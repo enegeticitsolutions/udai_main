@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "title": "Annual Charity Gala",
+    "date": "2026-04-15",
+    "time": "6:00 PM - 10:00 PM",
+    "location": "Kampala Serena Hotel",
+    "description": "Join us for an evening of celebration and fundraising to support children with special needs.",
+    "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600",
+    "category": "Fundraiser",
+    "attendees": 250
+  },
+  {
+    "id": 2,
+    "title": "Sensory Play Workshop",
+    "date": "2026-04-22",
+    "time": "10:00 AM - 12:00 PM",
+    "location": "UDAIREHAB Center",
+    "description": "Learn techniques and activities to support sensory development in children.",
+    "image": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600",
+    "category": "Workshop",
+    "attendees": 45
+  },
+  {
+    "id": 3,
+    "title": "Parent Support Group Meeting",
+    "date": "2026-04-25",
+    "time": "2:00 PM - 4:00 PM",
+    "location": "Online (Zoom)",
+    "description": "Monthly gathering for parents to share experiences and support each other.",
+    "image": "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600",
+    "category": "Support",
+    "attendees": 30
+  },
+  {
+    "id": 4,
+    "title": "Art Exhibition: Celebrating Abilities",
+    "date": "2026-05-10",
+    "time": "9:00 AM - 5:00 PM",
+    "location": "Uganda Museum",
+    "description": "Showcase of artwork created by our talented students with special needs.",
+    "image": "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600",
+    "category": "Exhibition",
+    "attendees": 300
+  },
+  {
+    "id": 5,
+    "title": "Sports Day for All",
+    "date": "2026-05-18",
+    "time": "8:00 AM - 3:00 PM",
+    "location": "Kololo Airstrip",
+    "description": "Inclusive sports event promoting physical activity and teamwork.",
+    "image": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600",
+    "category": "Sports",
+    "attendees": 150
+  },
+  {
+    "id": 6,
+    "title": "Music Therapy Concert",
+    "date": "2026-06-05",
+    "time": "5:00 PM - 7:00 PM",
+    "location": "National Theatre",
+    "description": "Experience the healing power of music through performances by our students.",
+    "image": "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=600",
+    "category": "Performance",
+    "attendees": 200
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "title": "Sensory Play Kit",
+    "price": 45.00,
+    "image": "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=400",
+    "category": "Educational Toys",
+    "inStock": true
+  },
+  {
+    "id": 2,
+    "title": "Communication Cards Set",
+    "price": 25.00,
+    "image": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400",
+    "category": "Learning Tools",
+    "inStock": true
+  },
+  {
+    "id": 3,
+    "title": "Therapy Ball",
+    "price": 35.00,
+    "image": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400",
+    "category": "Physical Therapy",
+    "inStock": true
+  },
+  {
+    "id": 4,
+    "title": "Adaptive Learning Books",
+    "price": 30.00,
+    "image": "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400",
+    "category": "Books",
+    "inStock": false
+  },
+  {
+    "id": 5,
+    "title": "Fine Motor Skills Kit",
+    "price": 50.00,
+    "image": "https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=400",
+    "category": "Educational Toys",
+    "inStock": true
+  },
+  {
+    "id": 6,
+    "title": "Calming Weighted Blanket",
+    "price": 75.00,
+    "image": "https://images.unsplash.com/photo-1615799998603-7c6270a45196?w=400",
+    "category": "Sensory",
+    "inStock": true
+  }
+]

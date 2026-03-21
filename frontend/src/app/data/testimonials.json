@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "name": "Margaret Nakato",
+    "role": "Parent",
+    "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200",
+    "quote": "UDAIREHAB changed my daughter's life. The therapists are compassionate, professional, and truly understand the needs of each child. We've seen incredible progress in just six months.",
+    "rating": 5
+  },
+  {
+    "id": 2,
+    "name": "James Wabwire",
+    "role": "Father of Two",
+    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200",
+    "quote": "As a father of twins with special needs, finding the right support was challenging. UDAIREHAB provided not just therapy, but a community. I'm grateful every day for their work.",
+    "rating": 5
+  },
+  {
+    "id": 3,
+    "name": "Dr. Patricia Auma",
+    "role": "Partner Organization",
+    "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200",
+    "quote": "Working with UDAIREHAB has been a privilege. Their commitment to evidence-based practices and family-centered care sets them apart. They're making a real difference.",
+    "rating": 5
+  },
+  {
+    "id": 4,
+    "name": "Samuel Mukasa",
+    "role": "Volunteer",
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200",
+    "quote": "Volunteering at UDAIREHAB opened my eyes to the incredible potential of every child. The love and dedication of the staff is inspiring. I leave every session with a full heart.",
+    "rating": 5
+  },
+  {
+    "id": 5,
+    "name": "Rose Nambi",
+    "role": "Guardian",
+    "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200",
+    "quote": "My nephew has thrived in the music therapy program. He's more confident, communicative, and happy. Thank you UDAIREHAB for believing in him when others didn't.",
+    "rating": 5
+  },
+  {
+    "id": 6,
+    "name": "Paul Ssebulime",
+    "role": "Teacher",
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200",
+    "quote": "The training workshops UDAIREHAB provides for educators have transformed my teaching approach. I now have practical tools to support all my students effectively.",
+    "rating": 5
+  }
+]

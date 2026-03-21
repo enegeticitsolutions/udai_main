@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "title": "Understanding Autism Spectrum Disorder: A Parent's Guide",
+    "date": "2026-03-10",
+    "author": "Dr. Sarah Mutesi",
+    "category": "Education",
+    "image": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600",
+    "excerpt": "Learn about the signs, diagnosis process, and early intervention strategies for children with autism.",
+    "readTime": "5 min read"
+  },
+  {
+    "id": 2,
+    "title": "The Power of Music Therapy in Child Development",
+    "date": "2026-03-05",
+    "author": "David Ssemakula",
+    "category": "Therapy",
+    "image": "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=600",
+    "excerpt": "Discover how music therapy can enhance cognitive, emotional, and social development in children with special needs.",
+    "readTime": "4 min read"
+  },
+  {
+    "id": 3,
+    "title": "Creating Inclusive Classrooms: Best Practices for Teachers",
+    "date": "2026-02-28",
+    "author": "Grace Nalongo",
+    "category": "Education",
+    "image": "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=600",
+    "excerpt": "Practical strategies for educators to create welcoming and accessible learning environments for all students.",
+    "readTime": "6 min read"
+  },
+  {
+    "id": 4,
+    "title": "Sensory Activities You Can Do at Home",
+    "date": "2026-02-20",
+    "author": "Emily Namukasa",
+    "category": "Activities",
+    "image": "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=600",
+    "excerpt": "Simple, affordable sensory activities that parents can incorporate into daily routines.",
+    "readTime": "5 min read"
+  },
+  {
+    "id": 5,
+    "title": "Celebrating Small Victories: The Importance of Progress Tracking",
+    "date": "2026-02-15",
+    "author": "John Okello",
+    "category": "Support",
+    "image": "https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=600",
+    "excerpt": "Why documenting and celebrating every achievement, no matter how small, matters in your child's development journey.",
+    "readTime": "4 min read"
+  },
+  {
+    "id": 6,
+    "title": "Nutrition and Special Needs: Foods That Support Brain Health",
+    "date": "2026-02-10",
+    "author": "Dr. Michael Kato",
+    "category": "Health",
+    "image": "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600",
+    "excerpt": "Expert advice on nutrition choices that can positively impact cognitive function and behavior.",
+    "readTime": "7 min read"
+  }
+]

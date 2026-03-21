@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "name": "Dr. Sarah Mutesi",
+    "image": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400",
+    "specialization": "Occupational Therapy",
+    "experience": "12 years",
+    "type": "Occupational Therapist",
+    "mode": "In-person",
+    "availableSlot": "Mon-Wed, 9AM-3PM",
+    "rating": 4.9,
+    "patients": 150
+  },
+  {
+    "id": 2,
+    "name": "John Okello",
+    "image": "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400",
+    "specialization": "Speech Therapy",
+    "experience": "8 years",
+    "type": "Speech Therapist",
+    "mode": "Online",
+    "availableSlot": "Thu-Sat, 10AM-4PM",
+    "rating": 4.8,
+    "patients": 120
+  },
+  {
+    "id": 3,
+    "name": "Grace Nalongo",
+    "image": "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400",
+    "specialization": "Physical Therapy",
+    "experience": "10 years",
+    "type": "Physical Therapist",
+    "mode": "In-person",
+    "availableSlot": "Mon-Fri, 8AM-2PM",
+    "rating": 5.0,
+    "patients": 200
+  },
+  {
+    "id": 4,
+    "name": "Dr. Michael Kato",
+    "image": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400",
+    "specialization": "Behavioral Therapy",
+    "experience": "15 years",
+    "type": "Behavioral Therapist",
+    "mode": "Hybrid",
+    "availableSlot": "Tue-Thu, 1PM-6PM",
+    "rating": 4.9,
+    "patients": 180
+  },
+  {
+    "id": 5,
+    "name": "Emily Namukasa",
+    "image": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400",
+    "specialization": "Art Therapy",
+    "experience": "6 years",
+    "type": "Art Therapist",
+    "mode": "In-person",
+    "availableSlot": "Wed-Fri, 10AM-3PM",
+    "rating": 4.7,
+    "patients": 90
+  },
+  {
+    "id": 6,
+    "name": "David Ssemakula",
+    "image": "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=400",
+    "specialization": "Music Therapy",
+    "experience": "9 years",
+    "type": "Music Therapist",
+    "mode": "Online",
+    "availableSlot": "Mon-Fri, 2PM-5PM",
+    "rating": 4.8,
+    "patients": 110
+  }
+]

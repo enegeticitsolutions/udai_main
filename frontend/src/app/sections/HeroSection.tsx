@@ -1,0 +1,52 @@
+import { Link } from "react-router";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { motion } from "motion/react";
+import { ArrowRight } from "lucide-react";
+
+
+export function HeroSection() {
+  return (
+    <section className="relative isolate flex min-h-[78vh] items-center overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 z-0">
+        <ImageWithFallback
+          src="/images/section.png"
+          alt="Children learning together"
+          className="h-full w-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-black/10" />
+      </div>
+
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl justify-center px-4 py-24 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-5xl text-center"
+        >
+          <h1 className="mb-6 text-5xl font-semibold leading-[0.98] tracking-tight text-white sm:text-6xl lg:text-8xl">
+            <span className="block">Empowering Children</span>
+            <span className="mt-3 block text-amber-400">with Special Needs</span>
+          </h1>
+          <p className="mx-auto mb-10 max-w-4xl text-lg leading-8 text-slate-100 sm:text-xl">
+            We provide specialized education, therapies, and skill-building programs that empower children and young adults with special needs to live independent, confident, and fulfilling lives.
+          </p>
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link
+              to="/contact"
+              className="inline-flex min-w-[220px] items-center justify-center gap-3 rounded-full bg-red-500 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-red-500/25 transition hover:bg-red-600"
+            >
+              Donate Now
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+            <Link
+              to="/about"
+              className="inline-flex min-w-[220px] items-center justify-center rounded-full border border-white/70 bg-white/10 px-8 py-4 text-lg font-semibold text-white backdrop-blur-sm transition hover:bg-white hover:text-slate-950"
+            >
+              View Our Story
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
