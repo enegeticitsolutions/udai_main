@@ -1,0 +1,73 @@
+# UDAI Backend
+
+Standalone Express + TypeScript backend for the existing `frontend/` app.
+
+## What it provides
+
+- `GET /api/health`
+- `GET /api/content/blog`
+- `GET /api/content/events`
+- `GET /api/content/products`
+- `GET /api/content/testimonials`
+- `GET /api/content/therapists`
+- `POST /api/forms/contact`
+- `POST /api/forms/volunteers`
+- `POST /api/forms/donations`
+- `POST /api/forms/events/rsvp`
+- `POST /api/forms/therapists/inquiries`
+
+## Data model
+
+- Content is read directly from `../frontend/src/app/data/*.json`
+- User submissions are stored in `backend/storage/*.json`
+
+This keeps the current frontend content in sync with the backend without forcing a database setup.
+
+## Local run
+
+1. `cd backend`
+2. `cp .env.example .env`
+3. `npm install`
+4. `npm run dev`
+
+Default server URL: `http://localhost:4000`
+
+## Frontend integration
+
+Replace direct JSON imports in the frontend with fetch calls to:
+
+- `http://localhost:4000/api/content/blog`
+- `http://localhost:4000/api/content/events`
+- `http://localhost:4000/api/content/products`
+- `http://localhost:4000/api/content/testimonials`
+- `http://localhost:4000/api/content/therapists`
+
+Send forms as JSON to the matching `POST /api/forms/*` endpoints.
+
+## Example requests
+
+### Contact form
+
+```bash
+curl -X POST http://localhost:4000/api/forms/contact \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Shubham Tripathi",
+    "email": "shubham@example.com",
+    "subject": "Volunteer inquiry",
+    "message": "I want to contribute to the weekend program."
+  }'
+```
+
+### Event RSVP
+
+```bash
+curl -X POST http://localhost:4000/api/forms/events/rsvp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventId": 1,
+    "name": "Shubham Tripathi",
+    "email": "shubham@example.com",
+    "attendees": 2
+  }'
+```

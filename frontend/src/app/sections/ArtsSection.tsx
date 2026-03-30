@@ -1,4 +1,4 @@
-import { Palette, Music, Camera, ArrowRight } from "lucide-react";
+import { Palette, Music, Camera } from "lucide-react";
 import { motion } from "motion/react";
 
 export function ArtsSection() {
@@ -6,46 +6,46 @@ export function ArtsSection() {
     {
       icon: Palette,
       title: "Art Workshops",
-      description: "Creative expression through painting, drawing, and sculpture, fostering imagination and motor skills.",
-      gradient: "from-purple-500 to-pink-500",
+      description: "Painting, drawing, and sculpting classes that allow children to explore colors and forms, fostering imagination and fine motor skills.",
     },
     {
       icon: Music,
       title: "Music & Dance",
-      description: "Rhythm, movement, and melody therapy that enhances coordination, memory, and emotional expression.",
-      gradient: "from-blue-500 to-cyan-500",
+      description: "Traditional and contemporary dance, choir, and instrument lessons that build rhythm, confidence, and cultural appreciation.",
     },
     {
       icon: Camera,
       title: "Media Arts",
-      description: "Digital storytelling, photography, and video production developing technical and creative skills.",
-      gradient: "from-emerald-500 to-teal-500",
+      description: "Photography and storytelling workshops that empower youth to document their lives and share their unique perspectives with the world.",
     },
   ];
 
   return (
-    <section className="py-16 sm:py-24 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-700 text-white relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-10 left-10 w-64 h-64 bg-white rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-white rounded-full blur-3xl" />
-      </div>
+    <section className="relative overflow-hidden bg-[#2f5597] py-20 text-white sm:py-24">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_40%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#2b4f8d] to-transparent" />
+      <div className="absolute left-0 top-0 h-full w-full opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:90px_90px]" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+          className="mx-auto mb-14 max-w-3xl text-center"
         >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-4">Arts & Creative Expression</h2>
-          <p className="text-xl text-blue-50 max-w-2xl mx-auto">
-            Unlocking potential through creativity, imagination, and artistic exploration
+          <div className="mb-4 text-sm font-semibold uppercase tracking-[0.24em] text-[#ffd86b]">
+            Arts & Culture
+          </div>
+          <h2 className="mb-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            Unleashing Creativity
+          </h2>
+          <p className="mx-auto max-w-2xl text-base leading-8 text-white/70">
+            Art heals, inspires, and connects. We provide safe spaces for children to express themselves through various creative mediums.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid gap-6 md:grid-cols-3">
           {programs.map((program, index) => {
             const Icon = program.icon;
             return (
@@ -55,37 +55,15 @@ export function ArtsSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 hover:bg-white/20 transition-all group border border-white/20"
+                className="rounded-[1.3rem] border border-white/8 bg-white/14 p-8 backdrop-blur-sm"
               >
-                <div className={`size-16 bg-gradient-to-br ${program.gradient} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                  <Icon className="size-8 text-white" />
-                </div>
-                <h3 className="text-2xl mb-4">{program.title}</h3>
-                <p className="text-blue-50 mb-6 leading-relaxed">{program.description}</p>
-                <button className="inline-flex items-center gap-2 text-white hover:gap-3 transition-all font-medium">
-                  Explore Program
-                  <ArrowRight className="size-4" />
-                </button>
+                <Icon className="mb-8 h-7 w-7 text-[#ffd86b]" />
+                <h3 className="mb-4 text-2xl font-semibold text-white">{program.title}</h3>
+                <p className="text-base leading-8 text-white/74">{program.description}</p>
               </motion.div>
             );
           })}
         </div>
-
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-12 text-center"
-        >
-          <p className="text-lg text-blue-50 mb-6">
-            Every child is an artist. Help us provide the tools and support they need.
-          </p>
-          <button className="px-8 py-4 bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition-all transform hover:scale-105 font-medium shadow-xl">
-            Support Arts Programs
-          </button>
-        </motion.div>
       </div>
     </section>
   );

@@ -1,4 +1,4 @@
-import { Users, Calendar, DollarSign, Heart } from "lucide-react";
+import { Users, Calendar, HandCoins, HeartHandshake } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 
@@ -32,58 +32,54 @@ export function ImpactSection() {
   const stats = [
     {
       icon: Users,
-      value: 5000,
+      value: 15000,
       suffix: "+",
       label: "Lives Impacted",
-      color: "from-blue-500 to-blue-600",
     },
     {
       icon: Calendar,
-      value: 15,
-      suffix: "+",
-      label: "Years of Service",
-      color: "from-emerald-500 to-emerald-600",
-    },
-    {
-      icon: DollarSign,
-      value: 2500000,
-      prefix: "$",
+      value: 12,
       suffix: "",
-      label: "Funds Raised",
-      color: "from-purple-500 to-purple-600",
+      label: "Year of Service",
     },
     {
-      icon: Heart,
-      value: 1200,
+      icon: HandCoins,
+      value: 250,
+      prefix: "",
+      suffix: "k",
+      label: "Funds Raised",
+    },
+    {
+      icon: HeartHandshake,
+      value: 500,
       suffix: "+",
-      label: "Active Donors",
-      color: "from-rose-500 to-rose-600",
+      label: "Generous donor",
     },
   ];
 
   return (
-    <section className="py-16 sm:py-24 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />
-      </div>
+    <section className="relative overflow-hidden bg-[#2f5597] py-18 text-white sm:py-22">
+      <div className="absolute left-1/2 top-28 h-[420px] w-[1100px] -translate-x-1/2 rounded-[50%] bg-white/8 blur-[1px]" />
+      <div className="absolute left-1/2 bottom-[-260px] h-[520px] w-[1200px] -translate-x-1/2 rounded-[50%] bg-white/10" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+          className="mx-auto mb-12 max-w-3xl text-center"
         >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-4">Our Impact in Numbers</h2>
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-            Real results from our commitment to transforming lives
+          <h2 className="mb-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            Our Impact at a Glance
+          </h2>
+          <p className="mx-auto max-w-2xl text-sm leading-7 text-white/68">
+            Numbers tell only part of the story, but they represent real lives changed through your support.
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -93,17 +89,17 @@ export function ImpactSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="text-center"
+                className="rounded-[1.1rem] border border-[#c8a85d]/35 bg-white/5 px-6 py-7 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
               >
-                <div className={`size-16 bg-gradient-to-br ${stat.color} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg`}>
-                  <Icon className="size-8 text-white" />
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-white/8">
+                  <Icon className="h-8 w-8 text-[#f6d46d]" />
                 </div>
-                <div className="text-4xl sm:text-5xl mb-2">
+                <div className="text-4xl font-semibold text-[#f6d46d]">
                   {stat.prefix}
                   <CountUp end={stat.value} />
                   {stat.suffix}
                 </div>
-                <div className="text-lg text-blue-100">{stat.label}</div>
+                <div className="mt-2 text-sm text-white/80">{stat.label}</div>
               </motion.div>
             );
           })}

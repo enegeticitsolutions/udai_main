@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "title": "Special Educator",
+    "department": "Education",
+    "location": "Delhi, India",
+    "type": "Full-time",
+    "experience": "2+ years",
+    "description": "Support children with special needs through individualized learning plans and classroom guidance.",
+    "responsibilities": [
+      "Create and implement learning plans",
+      "Track student progress and provide reports",
+      "Collaborate with therapists and parents"
+    ],
+    "requirements": [
+      "Degree in Special Education or related field",
+      "Experience working with children with disabilities",
+      "Strong communication and teamwork skills"
+    ],
+    "applyLink": "mailto:info@udairehab.org?subject=Career%20Application%20-%20Special%20Educator"
+  },
+  {
+    "id": 2,
+    "title": "Occupational Therapist",
+    "department": "Therapy",
+    "location": "Delhi, India",
+    "type": "Full-time",
+    "experience": "3+ years",
+    "description": "Help children improve daily living skills, coordination, and functional independence.",
+    "responsibilities": [
+      "Assess and design therapy plans",
+      "Work with families on home programs",
+      "Maintain therapy documentation"
+    ],
+    "requirements": [
+      "Degree in Occupational Therapy",
+      "Valid professional registration",
+      "Experience in pediatric therapy"
+    ],
+    "applyLink": "mailto:info@udairehab.org?subject=Career%20Application%20-%20Occupational%20Therapist"
+  },
+  {
+    "id": 3,
+    "title": "Speech Therapist",
+    "department": "Therapy",
+    "location": "Delhi, India",
+    "type": "Part-time",
+    "experience": "2+ years",
+    "description": "Provide speech and language support for children who need communication intervention.",
+    "responsibilities": [
+      "Conduct speech assessments",
+      "Plan therapy sessions",
+      "Coordinate with educators and caregivers"
+    ],
+    "requirements": [
+      "Degree in Speech and Hearing / Speech Therapy",
+      "Experience with pediatric communication support",
+      "Patient-centered approach"
+    ],
+    "applyLink": "mailto:info@udairehab.org?subject=Career%20Application%20-%20Speech%20Therapist"
+  }
+]

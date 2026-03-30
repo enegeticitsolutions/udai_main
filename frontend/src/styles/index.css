@@ -7,6 +7,14 @@ html {
   scroll-behavior: smooth;
 }
 
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
 /* Improve text rendering */
 * {
   -webkit-font-smoothing: antialiased;

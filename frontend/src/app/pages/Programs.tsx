@@ -6,73 +6,79 @@ export function Programs() {
     {
       icon: Heart,
       title: "Healthcare & Rehabilitation",
-      description: "Comprehensive medical services and rehabilitation programs for individuals with physical and mental health challenges.",
+      description:
+        "We are committed to improving the physical, mental, and emotional well-being of individuals through holistic healthcare and rehabilitation services. Our programs focus on enabling individuals with special needs and health challenges to lead independent and dignified lives.",
       image: "https://images.unsplash.com/photo-1589104759909-e355f8999f7e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwY2FyZSUyMHZvbHVudGVlcnN8ZW58MXx8fHwxNzczNzI4NTIzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
       services: [
-        "Physical therapy and occupational therapy",
-        "Mental health counseling and support",
-        "Medical outreach clinics",
-        "Assistive device provision and training",
+        "Personalized therapy programs (physical, occupational, behavioral)",
+        "Mental health support and counseling",
+        "Rehabilitation for differently-abled individuals",
+        "Long-term care and independent living training",
       ],
     },
     {
       icon: GraduationCap,
       title: "Education & Skills Training",
-      description: "Empowering individuals through quality education and vocational training programs that build sustainable livelihoods.",
+      description:
+        "We believe education is the foundation of empowerment. Our programs are designed to provide inclusive learning opportunities and skill development that help individuals become self-reliant and confident.",
       image: "https://images.unsplash.com/photo-1765223111660-cdf94396832a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjBjaGlsZHJlbiUyMGxlYXJuaW5nfGVufDF8fHx8MTc3MzY5MjU0MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
       services: [
-        "Adult literacy programs",
-        "Vocational skills training",
-        "Scholarship programs for vulnerable children",
-        "Computer and digital literacy courses",
+        "Special education with customized curriculum",
+        "Vocational training for employment readiness",
+        "Life skills development for daily independence",
+        "Digital and practical skill-building programs",
       ],
     },
     {
       icon: Hammer,
       title: "Community Development",
-      description: "Building infrastructure and creating sustainable economic opportunities within communities.",
+      description:
+        "We work closely with communities to create sustainable growth, social inclusion, and equal opportunities for all. Our initiatives aim to strengthen communities by addressing their real needs and challenges.",
       image: "https://images.unsplash.com/photo-1761039808159-f02b58f07032?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjBkZXZlbG9wbWVudCUyMGFmcmljYXxlbnwxfHx8fDE3NzM2NzcyOTF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
       services: [
-        "Water and sanitation projects",
-        "Community center construction",
-        "Microfinance and small business support",
-        "Agricultural development initiatives",
+        "Community awareness and engagement programs",
+        "Support for underprivileged and marginalized groups",
+        "Collaboration with local stakeholders and organizations",
+        "Development of inclusive and supportive environments",
       ],
     },
     {
       icon: Sprout,
       title: "Food Security & Agriculture",
-      description: "Promoting sustainable agriculture and ensuring food security for vulnerable communities.",
+      description:
+        "Ensuring access to basic needs like food is essential for a healthy society. We support sustainable practices and initiatives that promote food security and self-sufficiency.",
       image: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhZ3JpY3VsdHVyZSUyMGZhcm1pbmd8ZW58MXx8fHwxNzM2ODU5MjA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
       services: [
-        "Training in modern farming techniques",
-        "Seed and tool distribution",
-        "Nutrition education programs",
-        "Community garden initiatives",
+        "Food distribution and nutrition programs",
+        "Support for sustainable agriculture practices",
+        "Awareness on healthy eating and nutrition",
+        "Livelihood support through farming initiatives",
       ],
     },
     {
       icon: Users,
       title: "Women & Youth Empowerment",
-      description: "Specialized programs supporting women and youth to become leaders and changemakers in their communities.",
+      description:
+        "We empower women and youth by providing them with opportunities, skills, and confidence to lead independent and impactful lives.",
       image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGVtcG93ZXJtZW50JTIwZ3JvdXB8ZW58MXx8fHwxNzM2ODU5MjA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
       services: [
-        "Women's entrepreneurship training",
-        "Youth leadership development",
-        "Gender-based violence prevention",
-        "Mentorship programs",
+        "Skill development and employment programs",
+        "Leadership and confidence-building initiatives",
+        "Support for entrepreneurship and self-reliance",
+        "Gender equality and social inclusion programs",
       ],
     },
     {
       icon: BookOpen,
       title: "Advocacy & Awareness",
-      description: "Raising awareness and advocating for the rights and inclusion of marginalized communities.",
+      description:
+        "We aim to create awareness and bring positive social change by addressing critical issues like mental health, disability inclusion, and social stigma.",
       image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhZHZvY2FjeSUyMGNvbW11bml0eXxlbnwxfHx8fDE3MzY4NTkyMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
       services: [
-        "Community sensitization workshops",
-        "Rights-based advocacy campaigns",
-        "Policy dialogue and engagement",
-        "Inclusion and accessibility initiatives",
+        "Awareness campaigns on mental health and disabilities",
+        "Community outreach and education programs",
+        "Promoting inclusivity and reducing stigma",
+        "Policy advocacy and social impact initiatives",
       ],
     },
   ];
@@ -80,13 +86,10 @@ export function Programs() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="bg-gray-900 text-white py-16 sm:py-24">
+      <section className="bg-gray-900 text-white py-5 sm:py-7">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <h1 className="text-4xl sm:text-5xl mb-6">Our Programs</h1>
-            <p className="text-lg sm:text-xl text-gray-300">
-              Discover our comprehensive range of programs designed to address critical needs and create lasting positive change in communities.
-            </p>
+            <h1 className="text-3xl sm:text-4xl mb-0">Our Programs</h1>
           </div>
         </div>
       </section>
@@ -170,7 +173,7 @@ export function Programs() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="/contact"
+              href="/#donate"
               className="px-8 py-3 bg-white text-emerald-600 rounded-md hover:bg-gray-100 transition-colors"
             >
               Make a Donation

@@ -1,26 +1,26 @@
 [
   {
     "id": 1,
-    "name": "Margaret Nakato",
-    "role": "Parent",
-    "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200",
-    "quote": "UDAIREHAB changed my daughter's life. The therapists are compassionate, professional, and truly understand the needs of each child. We've seen incredible progress in just six months.",
+    "name": "Maria Gonzalez",
+    "role": "Community Leader",
+    "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200",
+    "quote": "Heart & Soil didn't just bring food; they brought dignity and hope back to our village. We are forever grateful.",
     "rating": 5
   },
   {
     "id": 2,
-    "name": "James Wabwire",
-    "role": "Father of Two",
-    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200",
-    "quote": "As a father of twins with special needs, finding the right support was challenging. UDAIREHAB provided not just therapy, but a community. I'm grateful every day for their work.",
+    "name": "David Chen",
+    "role": "Volunteer",
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200",
+    "quote": "Volunteering here changed my perspective on life. It's not about charity, it's about shared humanity.",
     "rating": 5
   },
   {
     "id": 3,
-    "name": "Dr. Patricia Auma",
-    "role": "Partner Organization",
-    "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200",
-    "quote": "Working with UDAIREHAB has been a privilege. Their commitment to evidence-based practices and family-centered care sets them apart. They're making a real difference.",
+    "name": "Sarah Omondi",
+    "role": "Program Graduate",
+    "avatar": "https://images.unsplash.com/photo-1544717305-2782549b5136?w=200",
+    "quote": "The sustainable farming program gave me the skills to support my family independently. This is real empowerment.",
     "rating": 5
   },
   {

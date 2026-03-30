@@ -76,7 +76,7 @@ export function NewLayout() {
                 );
               })}
               <Link
-                to="/contact"
+                to="/#donate"
                 className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all transform hover:scale-105 font-medium shadow-lg"
               >
                 Donate Now
@@ -127,7 +127,7 @@ export function NewLayout() {
                   );
                 })}
                 <Link
-                  to="/contact"
+                  to="/#donate"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg text-center hover:from-emerald-700 hover:to-emerald-800 transition-all font-medium shadow-lg"
                 >
@@ -188,6 +188,11 @@ export function NewLayout() {
                     Impact Reports
                   </Link>
                 </li>
+                <li>
+                  <Link to="/careers" className="hover:text-blue-400 transition-colors">
+                    Careers
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -201,7 +206,7 @@ export function NewLayout() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="hover:text-blue-400 transition-colors">
+                  <Link to="/#donate" className="hover:text-blue-400 transition-colors">
                     Donate
                   </Link>
                 </li>
@@ -238,7 +243,9 @@ export function NewLayout() {
               {/* Social Icons */}
               <div className="flex gap-3">
                 <a
-                  href="#"
+                  href="https://www.facebook.com/share/1ApdkHwEuw/"
+                  target="_blank"
+                  rel="noreferrer"
                   className="size-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
                   aria-label="Facebook"
                 >

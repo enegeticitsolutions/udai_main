@@ -1,74 +1,98 @@
 [
   {
     "id": 1,
-    "name": "Dr. Sarah Mutesi",
-    "image": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400",
-    "specialization": "Occupational Therapy",
-    "experience": "12 years",
-    "type": "Occupational Therapist",
-    "mode": "In-person",
-    "availableSlot": "Mon-Wed, 9AM-3PM",
-    "rating": 4.9,
-    "patients": 150
+    "name": "Ms Harsimran Kaur",
+    "image": "/images/doctor2.png",
+    "department": "Occupational Therapy",
+    "role": "Occupational Therapist",
+    "summary": "Supports motor, sensory, and daily living development through structured therapy."
   },
   {
     "id": 2,
-    "name": "John Okello",
-    "image": "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400",
-    "specialization": "Speech Therapy",
-    "experience": "8 years",
-    "type": "Speech Therapist",
-    "mode": "Online",
-    "availableSlot": "Thu-Sat, 10AM-4PM",
-    "rating": 4.8,
-    "patients": 120
+    "name": "Ms Nikki",
+    "image": "/images/doctor4.png",
+    "department": "Occupational Therapy",
+    "role": "Occupational Therapist",
+    "summary": "Works on functional skills that help children participate confidently in everyday activities."
   },
   {
     "id": 3,
-    "name": "Grace Nalongo",
-    "image": "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400",
-    "specialization": "Physical Therapy",
-    "experience": "10 years",
-    "type": "Physical Therapist",
-    "mode": "In-person",
-    "availableSlot": "Mon-Fri, 8AM-2PM",
-    "rating": 5.0,
-    "patients": 200
+    "name": "Ms Anamika",
+    "image": "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400",
+    "department": "Occupational Therapy",
+    "role": "Occupational Therapist",
+    "summary": "Focuses on sensory regulation, motor planning, and practical life skills."
   },
   {
     "id": 4,
-    "name": "Dr. Michael Kato",
+    "name": "Ms Promila",
     "image": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400",
-    "specialization": "Behavioral Therapy",
-    "experience": "15 years",
-    "type": "Behavioral Therapist",
-    "mode": "Hybrid",
-    "availableSlot": "Tue-Thu, 1PM-6PM",
-    "rating": 4.9,
-    "patients": 180
+    "department": "Special Education",
+    "role": "Special Educator",
+    "summary": "Helps children build learning independence through individualized classroom support."
   },
   {
     "id": 5,
-    "name": "Emily Namukasa",
+    "name": "Ms Sonia",
     "image": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400",
-    "specialization": "Art Therapy",
-    "experience": "6 years",
-    "type": "Art Therapist",
-    "mode": "In-person",
-    "availableSlot": "Wed-Fri, 10AM-3PM",
-    "rating": 4.7,
-    "patients": 90
+    "department": "Special Education",
+    "role": "Special Educator",
+    "summary": "Guides academic readiness with structured, child-centered learning support."
   },
   {
     "id": 6,
-    "name": "David Ssemakula",
-    "image": "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=400",
-    "specialization": "Music Therapy",
-    "experience": "9 years",
-    "type": "Music Therapist",
-    "mode": "Online",
-    "availableSlot": "Mon-Fri, 2PM-5PM",
-    "rating": 4.8,
-    "patients": 110
+    "name": "Ms Sakshi",
+    "image": "/images/Doctor1.png",
+    "department": "Speech Therapy",
+    "role": "Speech Therapist",
+    "summary": "Supports children with speech, language, and communication development."
+  },
+  {
+    "id": 7,
+    "name": "Mr Atal",
+    "image": "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400",
+    "department": "Speech Therapy",
+    "role": "Speech Therapist",
+    "summary": "Works on articulation, comprehension, and expressive communication skills."
+  },
+  {
+    "id": 8,
+    "name": "Mr Durgesh",
+    "image": "/images/doctor3.png",
+    "department": "Physical Therapy",
+    "role": "Physical Therapist",
+    "summary": "Supports movement, strength, coordination, and physical rehabilitation goals."
+  },
+  {
+    "id": 9,
+    "name": "Ms Sonia",
+    "image": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400",
+    "department": "Remedial Support",
+    "role": "Remedial Educator",
+    "summary": "Provides remedial support for academics, focus, and learning progress."
+  },
+  {
+    "id": 10,
+    "name": "Ms Shobha",
+    "image": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400",
+    "department": "Remedial Support",
+    "role": "Remedial Educator",
+    "summary": "Builds foundational academic skills through personalized support."
+  },
+  {
+    "id": 11,
+    "name": "Ms Tanu Rajput",
+    "image": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400",
+    "department": "Counselling / Home Programme",
+    "role": "Counsellor",
+    "summary": "Provides counseling and home-program guidance for family-centered support."
+  },
+  {
+    "id": 12,
+    "name": "Ms Harsimran",
+    "image": "/images/doctor2.png",
+    "department": "Counselling / Home Programme",
+    "role": "Counsellor",
+    "summary": "Helps families with routines, home support, and collaborative care planning."
   }
 ]

@@ -1,0 +1,77 @@
+[
+  {
+    "slug": "after-school-tutoring",
+    "title": "After-School Tutoring",
+    "shortDescription": "Providing personalized academic support to help students master core subjects and build confidence in their abilities.",
+    "heroImage": "/images/afterschool.png",
+    "gallery": ["/images/afterschool.png", "/images/arteducation.png"],
+    "accent": "from-[#2046b6] to-[#5a9ae8]",
+    "overview": [
+      "Our After-School Tutoring program gives students a structured learning environment beyond regular school hours, with focused support in reading, writing, mathematics, and classroom readiness.",
+      "The program is designed to meet each learner at their current level and build steady progress through repetition, encouragement, and guided practice.",
+      "We work closely with families so that students receive consistent academic support, improved routines, and stronger confidence in school participation."
+    ],
+    "highlights": [
+      "Personalized support in core academic subjects",
+      "Small-group and one-to-one guided sessions",
+      "Confidence-building through regular practice and feedback",
+      "Homework support and reinforcement of school learning"
+    ],
+    "outcomes": [
+      "Improved classroom participation and focus",
+      "Better foundational reading and numeracy skills",
+      "Higher confidence in completing school tasks independently",
+      "Stronger communication between educators and families"
+    ]
+  },
+  {
+    "slug": "scholarship-fund",
+    "title": "Scholarship Fund",
+    "shortDescription": "Expanding access to learning by supporting students with essential educational resources, fee assistance, and continuity in their studies.",
+    "heroImage": "/images/fund.png",
+    "gallery": ["/images/fund.png", "/images/about.png"],
+    "accent": "from-[#2b922f] to-[#63b853]",
+    "overview": [
+      "The Scholarship Fund helps children and young adults continue their education by reducing the financial barriers that often interrupt learning journeys.",
+      "This support can include fee assistance, educational materials, uniforms, transport help, and other essentials that make consistent school participation possible.",
+      "The program is built to protect educational continuity and ensure that promising learners are not left behind because of economic hardship."
+    ],
+    "highlights": [
+      "Fee and resource support for eligible students",
+      "Assistance with books, uniforms, and learning materials",
+      "Encouragement for continued attendance and retention",
+      "Focused support for families facing financial pressure"
+    ],
+    "outcomes": [
+      "Reduced dropout risk among vulnerable learners",
+      "Improved continuity in education",
+      "Greater family confidence in long-term schooling",
+      "More equitable access to learning opportunities"
+    ]
+  },
+  {
+    "slug": "digital-literacy",
+    "title": "Digital Literacy",
+    "shortDescription": "Equipping learners with practical digital skills so they can engage confidently with technology, communication tools, and modern learning methods.",
+    "heroImage": "/images/digital.png",
+    "gallery": ["/images/digital.png", "/images/section.png"],
+    "accent": "from-[#f2a007] to-[#ffd15d]",
+    "overview": [
+      "Our Digital Literacy program introduces learners to essential technology skills in a practical and supportive setting.",
+      "Students learn how to use digital devices, basic software tools, and communication platforms in ways that are relevant to education, independence, and future readiness.",
+      "The program focuses on confidence, safe technology use, and hands-on learning so participants can use digital tools meaningfully in everyday life."
+    ],
+    "highlights": [
+      "Introduction to computers and digital devices",
+      "Basic typing, file handling, and educational software use",
+      "Safe and guided use of online tools and communication platforms",
+      "Practical digital skills linked to study and daily life"
+    ],
+    "outcomes": [
+      "Improved confidence using technology",
+      "Better readiness for modern education and work environments",
+      "Increased independence in digital communication and tasks",
+      "Stronger participation in practical and skill-based learning"
+    ]
+  }
+]

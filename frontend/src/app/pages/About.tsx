@@ -64,13 +64,13 @@ export function About() {
             <div>
               <h2 className="text-3xl sm:text-4xl mb-6">Our Story</h2>
               <p className="text-gray-600 mb-4">
-                Founded in 2011, UDAIREHAB emerged from a vision to address the critical rehabilitation and development needs in underserved communities across Uganda. What started as a small grassroots initiative has grown into a comprehensive organization serving thousands of individuals annually.
+                UDAIREHAB is a non-profit rehabilitation and special education organization based in Delhi, India. It works primarily with children and young adults with special needs, helping them develop the skills required for independent and meaningful living.
               </p>
               <p className="text-gray-600 mb-4">
-                Our journey has been marked by partnerships with local communities, international organizations, and dedicated volunteers who share our commitment to creating lasting change. Through evidence-based programs and community-centered approaches, we've expanded our reach while maintaining our core focus on dignity, empowerment, and sustainable development.
+                The organization provides a combination of special education, therapy, and vocational training through a structured and supportive environment. Its approach focuses on the overall development of individuals social, emotional, cognitive, and physical.
               </p>
               <p className="text-gray-600">
-                Today, UDAIREHAB operates multiple programs across healthcare, education, and community development, touching the lives of over 50,000 individuals and families.
+                UDAIREHAB also offers rehabilitation programs and independent living training, enabling individuals to become more self-reliant and confident in their daily lives.
               </p>
             </div>
             <div className="relative h-96 rounded-lg overflow-hidden shadow-lg">
@@ -92,18 +92,18 @@ export function About() {
               <div className="size-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-6">
                 <Target className="size-6 text-emerald-600" />
               </div>
-              <h2 className="text-2xl mb-4">Our Mission</h2>
+              <h2 className="text-2xl mb-4">Mission</h2>
               <p className="text-gray-600">
-                To empower communities through comprehensive rehabilitation services, quality education, and sustainable development programs that promote dignity, self-reliance, and lasting positive change.
+                We provide special education and therapeutic support to build independence and life skills. Through vocational training and family guidance, we empower every child to thrive.
               </p>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-md">
               <div className="size-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-6">
                 <Eye className="size-6 text-emerald-600" />
               </div>
-              <h2 className="text-2xl mb-4">Our Vision</h2>
+              <h2 className="text-2xl mb-4">Vision</h2>
               <p className="text-gray-600">
-                A world where every individual has access to the resources, support, and opportunities needed to achieve their full potential and contribute meaningfully to their communities.
+                To create an inclusive world where individuals with special needs are empowered to live with dignity, independence, and confidence.
               </p>
             </div>
           </div>

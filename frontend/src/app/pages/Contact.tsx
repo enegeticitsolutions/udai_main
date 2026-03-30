@@ -1,5 +1,6 @@
 import { Mail, Phone, MapPin, Clock, Send } from "lucide-react";
 import { useState } from "react";
+import { apiPost } from "../lib/api";
 
 export function Contact() {
   const [formData, setFormData] = useState({
@@ -8,26 +9,33 @@ export function Contact() {
     subject: "",
     message: "",
   });
-
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // In a real application, you would send this data to a server
-    console.log("Form submitted:", formData);
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+
+    try {
+      setError(null);
+      await apiPost("/forms/contact", formData);
+      setSubmitted(true);
       setFormData({ name: "", email: "", subject: "", message: "" });
-    }, 3000);
-  };
+      window.setTimeout(() => {
+        setSubmitted(false);
+      }, 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to send message");
+    }
+  }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  function handleChange(
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [event.target.name]: event.target.value,
     });
-  };
+  }
 
   const contactInfo = [
     {
@@ -38,7 +46,7 @@ export function Contact() {
     {
       icon: Phone,
       title: "Phone",
-      details: ["+256 123 456 789", "+256 987 654 321"],
+      details: ["+91 9899681972", "+91 8377066832"],
     },
     {
       icon: MapPin,
@@ -54,28 +62,25 @@ export function Contact() {
 
   return (
     <div>
-      {/* Hero Section */}
-      <section className="bg-gray-900 text-white py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="bg-gray-900 py-16 text-white sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <h1 className="text-4xl sm:text-5xl mb-6">Contact Us</h1>
-            <p className="text-lg sm:text-xl text-gray-300">
-              Have questions or want to get involved? We'd love to hear from you. Reach out to us and we'll respond as soon as possible.
+            <h1 className="mb-6 text-4xl sm:text-5xl">Contact Us</h1>
+            <p className="text-lg text-gray-300 sm:text-xl">
+              Have questions or want to get involved? We&apos;d love to hear from you. Reach out to us and we&apos;ll respond as soon as possible.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Contact Form & Info */}
       <section className="py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-2">
             <div>
-              <h2 className="text-3xl mb-6">Send Us a Message</h2>
+              <h2 className="mb-6 text-3xl">Send Us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm mb-2 text-gray-700">
+                  <label htmlFor="name" className="mb-2 block text-sm text-gray-700">
                     Full Name *
                   </label>
                   <input
@@ -85,13 +90,13 @@ export function Contact() {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                    className="w-full rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                     placeholder="John Doe"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm mb-2 text-gray-700">
+                  <label htmlFor="email" className="mb-2 block text-sm text-gray-700">
                     Email Address *
                   </label>
                   <input
@@ -101,13 +106,13 @@ export function Contact() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                    className="w-full rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                     placeholder="john@example.com"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="subject" className="block text-sm mb-2 text-gray-700">
+                  <label htmlFor="subject" className="mb-2 block text-sm text-gray-700">
                     Subject *
                   </label>
                   <select
@@ -116,19 +121,19 @@ export function Contact() {
                     value={formData.subject}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                    className="w-full rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="">Select a subject</option>
-                    <option value="volunteer">Volunteer Opportunities</option>
-                    <option value="donation">Make a Donation</option>
-                    <option value="partnership">Partnership Inquiry</option>
-                    <option value="programs">Program Information</option>
-                    <option value="general">General Inquiry</option>
+                    <option value="General Inquiry">General Inquiry</option>
+                    <option value="Volunteer">Volunteer</option>
+                    <option value="Donation">Donation</option>
+                    <option value="Partnership">Partnership</option>
+                    <option value="Program Support">Program Support</option>
                   </select>
                 </div>
 
                 <div>
-                  <label htmlFor="message" className="block text-sm mb-2 text-gray-700">
+                  <label htmlFor="message" className="mb-2 block text-sm text-gray-700">
                     Message *
                   </label>
                   <textarea
@@ -138,15 +143,21 @@ export function Contact() {
                     onChange={handleChange}
                     required
                     rows={6}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none resize-none"
+                    className="w-full resize-none rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                     placeholder="Tell us more about your inquiry..."
                   />
                 </div>
 
+                {error ? (
+                  <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                ) : null}
+
                 <button
                   type="submit"
                   disabled={submitted}
-                  className="w-full px-6 py-3 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors disabled:bg-emerald-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 py-3 text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400"
                 >
                   {submitted ? (
                     "Message Sent!"
@@ -160,11 +171,10 @@ export function Contact() {
               </form>
             </div>
 
-            {/* Contact Information */}
             <div>
-              <h2 className="text-3xl mb-6">Contact Information</h2>
-              <p className="text-gray-600 mb-8">
-                You can also reach us through any of the following channels. We're here to help and answer any questions you may have.
+              <h2 className="mb-6 text-3xl">Contact Information</h2>
+              <p className="mb-8 text-gray-600">
+                You can also reach us through any of the following channels. We&apos;re here to help and answer any questions you may have.
               </p>
 
               <div className="space-y-6">
@@ -172,13 +182,13 @@ export function Contact() {
                   const Icon = info.icon;
                   return (
                     <div key={index} className="flex gap-4">
-                      <div className="size-12 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100">
                         <Icon className="size-6 text-emerald-600" />
                       </div>
                       <div>
-                        <h3 className="text-lg mb-2">{info.title}</h3>
-                        {info.details.map((detail, idx) => (
-                          <p key={idx} className="text-gray-600 text-sm">
+                        <h3 className="mb-2 text-lg">{info.title}</h3>
+                        {info.details.map((detail, detailIndex) => (
+                          <p key={detailIndex} className="text-sm text-gray-600">
                             {detail}
                           </p>
                         ))}
@@ -188,10 +198,9 @@ export function Contact() {
                 })}
               </div>
 
-              {/* Map Placeholder */}
-              <div className="mt-8 bg-gray-200 h-64 rounded-lg flex items-center justify-center">
+              <div className="mt-8 flex h-64 items-center justify-center rounded-lg bg-gray-200">
                 <div className="text-center text-gray-500">
-                  <MapPin className="size-12 mx-auto mb-2" />
+                  <MapPin className="mx-auto mb-2 size-12" />
                   <p className="text-sm">Map Location</p>
                 </div>
               </div>
@@ -200,82 +209,36 @@ export function Contact() {
         </div>
       </section>
 
-      {/* Donation Info */}
-      <section className="py-16 sm:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl mb-6">Make a Donation</h2>
-            <p className="text-gray-600 mb-8">
+      <section className="bg-gray-50 py-16 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="mb-6 text-3xl sm:text-4xl">Make a Donation</h2>
+            <p className="mb-8 text-gray-600">
               Your generous donations help us continue our mission to transform lives. Every contribution makes a difference.
             </p>
 
-            <div className="bg-white p-8 rounded-lg shadow-md">
-              <h3 className="text-xl mb-4">Bank Transfer Details</h3>
-              <div className="space-y-3 text-left max-w-md mx-auto text-sm text-gray-600">
-                <div className="flex justify-between py-2 border-b border-gray-200">
+            <div className="rounded-lg bg-white p-8 shadow-md">
+              <h3 className="mb-4 text-xl">Bank Transfer Details</h3>
+              <div className="mx-auto max-w-md space-y-3 text-left text-sm text-gray-600">
+                <div className="flex justify-between border-b border-gray-200 py-2">
                   <span className="font-medium">Bank Name:</span>
                   <span>Stanbic Bank Uganda</span>
                 </div>
-                <div className="flex justify-between py-2 border-b border-gray-200">
+                <div className="flex justify-between border-b border-gray-200 py-2">
                   <span className="font-medium">Account Name:</span>
-                  <span>UDAIREHAB NGO</span>
+                  <span>UDAI Rehabilitation Foundation</span>
                 </div>
-                <div className="flex justify-between py-2 border-b border-gray-200">
+                <div className="flex justify-between border-b border-gray-200 py-2">
                   <span className="font-medium">Account Number:</span>
-                  <span>1234567890</span>
+                  <span>0123456789</span>
                 </div>
-                <div className="flex justify-between py-2">
+                <div className="flex justify-between border-b border-gray-200 py-2">
                   <span className="font-medium">Swift Code:</span>
                   <span>SBICUGKX</span>
                 </div>
               </div>
-
-              <div className="mt-8 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                <p className="text-sm text-gray-600">
-                  <strong>Note:</strong> All donations are tax-deductible. Please email your donation receipt to donations@udairehab.org to receive your tax certificate.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="py-16 sm:py-24">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl mb-4">Frequently Asked Questions</h2>
-            <p className="text-gray-600">
-              Quick answers to common questions about UDAI and our programs.
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg mb-2">How can I volunteer with UDAIREHAB?</h3>
-              <p className="text-gray-600 text-sm">
-                You can start by filling out the contact form above and selecting "Volunteer Opportunities" as your subject. Our team will get back to you with information about current opportunities and the application process.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg mb-2">Are donations tax-deductible?</h3>
-              <p className="text-gray-600 text-sm">
-                Yes, UDAIREHAB is a registered NGO and all donations are tax-deductible. We will provide you with an official receipt for tax purposes.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg mb-2">How can I partner with UDAIREHAB?</h3>
-              <p className="text-gray-600 text-sm">
-                We welcome partnerships with organizations, businesses, and institutions that share our values. Please contact us through the form above or email us directly at partnerships@udairehab.org to discuss collaboration opportunities.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg mb-2">Where does my donation go?</h3>
-              <p className="text-gray-600 text-sm">
-                Your donations directly support our programs including healthcare services, education, community development, and operational costs. We maintain transparency in our financial reporting and can provide detailed breakdowns upon request.
+              <p className="mt-6 text-sm text-gray-500">
+                For online donation intent capture, use the donation form on the homepage. It is connected to the backend now.
               </p>
             </div>
           </div>

@@ -163,7 +163,7 @@ export function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/contact"
+              to="/#donate"
               className="px-8 py-3 bg-white text-emerald-600 rounded-md hover:bg-gray-100 transition-colors"
             >
               Donate Now

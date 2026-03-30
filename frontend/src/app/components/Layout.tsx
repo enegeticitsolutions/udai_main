@@ -1,19 +1,21 @@
-import { Outlet, Link, useLocation } from "react-router";
-import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
+import { Facebook, Instagram, Mail, Menu, Phone, Twitter, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const logo = "/images/logo_udai.png";
 
 export function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navigation = [
-    { name: "Home", href: "/" },
-    { name: "About Us", href: "/about" },
-    { name: "Programs", href: "/programs" },
-    { name: "Get Involved", href: "/get-involved" },
-    { name: "Contact", href: "/contact" },
+    { name: "About", href: "/about", type: "route" as const },
+    { name: "Programs", href: "/programs", type: "route" as const },
+    { name: "Therapist", href: "#therapists", type: "section" as const },
+    { name: "Shop", href: "#shop", type: "section" as const },
+    { name: "Event", href: "#events", type: "section" as const },
+    { name: "Volunteer", href: "#volunteer", type: "section" as const },
   ];
 
   const isActive = (href: string) => {
@@ -21,44 +23,102 @@ export function Layout() {
     return location.pathname.startsWith(href);
   };
 
+  useEffect(() => {
+    if (!location.hash) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const targetId = location.hash.replace("#", "");
+
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }, [location.hash, location.pathname]);
+
+  const handleSectionNavigation = (sectionHref: string) => {
+    const targetId = sectionHref.replace("#", "");
+
+    if (location.pathname === "/") {
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    } else {
+      navigate({ pathname: "/", hash: sectionHref });
+    }
+
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="UDAI Logo" className="h-10 w-auto" />
+      <header className="sticky top-0 z-50 bg-white">
+        <div className="bg-[#2f5597] text-white">
+          <div className="mx-auto flex max-w-7xl flex-col items-start justify-start gap-2 px-4 py-2 text-sm font-medium sm:px-6 md:flex-row md:items-center md:gap-10 lg:px-8">
+            <a
+              href="tel:+919899681972"
+              className="flex items-center gap-3 transition hover:text-white/80"
+            >
+              <Phone className="h-4 w-4" />
+              <span>+91 - 9899681972, 8377066832</span>
+            </a>
+            <a
+              href="mailto:info@udairehab.org"
+              className="flex items-center gap-3 transition hover:text-white/80"
+            >
+              <Mail className="h-4 w-4" />
+              <span>info@udairehab.org, udai.march@gmail.com</span>
+            </a>
+          </div>
+        </div>
+
+        <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-[92px] items-center justify-between gap-6">
+            <Link to="/" className="flex shrink-0 items-center">
+              <img src={logo} alt="UDAI Logo" className="h-16 w-auto sm:h-20" />
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`text-sm transition-colors ${
-                    isActive(item.href)
-                      ? "text-emerald-600"
-                      : "text-gray-700 hover:text-emerald-600"
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              <Link
-                to="/contact"
-                className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm hover:bg-emerald-700 transition-colors"
+            <div className="hidden items-center gap-8 lg:flex">
+              {navigation.map((item) =>
+                item.type === "route" ? (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`text-[15px] font-medium transition-colors ${
+                      isActive(item.href)
+                        ? "text-[#2f5597]"
+                        : "text-[#2b1b15] hover:text-[#2f5597]"
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
+                ) : (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => handleSectionNavigation(item.href)}
+                    className="text-[15px] font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
+                  >
+                    {item.name}
+                  </button>
+                ),
+              )}
+              <button
+                type="button"
+                onClick={() => handleSectionNavigation("#donate")}
+                className="rounded-full bg-[#ef3c32] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(239,60,50,0.28)] transition hover:bg-[#da2f26]"
               >
                 Donate Now
-              </Link>
+              </button>
             </div>
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2"
+              className="p-2 lg:hidden"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
@@ -69,31 +129,41 @@ export function Layout() {
             </button>
           </div>
 
-          {/* Mobile Navigation */}
           {mobileMenuOpen && (
-            <div className="md:hidden py-4 border-t">
+            <div className="border-t border-slate-200 py-4 lg:hidden">
               <div className="flex flex-col gap-4">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`text-sm transition-colors ${
-                      isActive(item.href)
-                        ? "text-emerald-600"
-                        : "text-gray-700 hover:text-emerald-600"
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-                <Link
-                  to="/contact"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm text-center hover:bg-emerald-700 transition-colors"
+                {navigation.map((item) =>
+                  item.type === "route" ? (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`text-sm font-medium transition-colors ${
+                        isActive(item.href)
+                          ? "text-[#2f5597]"
+                          : "text-[#2b1b15] hover:text-[#2f5597]"
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  ) : (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => handleSectionNavigation(item.href)}
+                      className="text-left text-sm font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
+                    >
+                      {item.name}
+                    </button>
+                  ),
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleSectionNavigation("#donate")}
+                  className="rounded-full bg-[#ef3c32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#da2f26]"
                 >
                   Donate Now
-                </Link>
+                </button>
               </div>
             </div>
           )}
@@ -105,63 +175,96 @@ export function Layout() {
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* About Column */}
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <img 
-                 src={logo} 
-                     alt="UDAI Logo" 
-                       className="w-[156px] h-[104px]"/>
-              </div>
-              <p className="text-gray-400 text-sm mb-4">
-                Empowering communities through rehabilitation, education, and sustainable development programs. Together, we build a brighter future.
+      <div className="bg-white py-10">
+        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+          <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#a79b95]">
+            Trusted by our partners & sponsors
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-y-8 text-xl font-semibold text-[#7b7270] sm:grid-cols-3 lg:grid-cols-6">
+            <div>Global Aid Alliance</div>
+            <div>Tech For Good</div>
+            <div>Future Foundations</div>
+            <div>Community First</div>
+            <div>Education United</div>
+            <div>Health & Hope</div>
+          </div>
+        </div>
+      </div>
+
+      <footer className="bg-[#2f5597] text-white">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="grid gap-10 md:grid-cols-[1.1fr_0.8fr_0.8fr_1fr]">
+            <div>
+              <img src={logo} alt="UDAI Logo" className="h-16 w-auto" />
+              <p className="mt-6 max-w-xs text-sm leading-8 text-white/76">
+                Cultivating hope and building sustainable communities through compassion, education, and shared resources.
               </p>
+              <div className="mt-6 flex items-center gap-4">
+                <a
+                  href="https://www.facebook.com/share/1ApdkHwEuw/"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Facebook"
+                  className="transition hover:text-white/80"
+                >
+                  <Facebook className="h-5 w-5 text-white" />
+                </a>
+                <Twitter className="h-5 w-5 text-white" />
+                <a
+                  href="https://www.instagram.com/udaispecialschool/"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="transition hover:text-white/80"
+                >
+                  <Instagram className="h-5 w-5 text-white" />
+                </a>
+              </div>
             </div>
 
-            {/* Quick Links */}
             <div>
-              <h3 className="font-semibold mb-4">Quick Links</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <Link to="/about" className="hover:text-emerald-500 transition-colors">
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/programs" className="hover:text-emerald-500 transition-colors">
-                    Our Programs
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/get-involved" className="hover:text-emerald-500 transition-colors">
-                    Get Involved
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/contact" className="hover:text-emerald-500 transition-colors">
-                    Contact
-                  </Link>
-                </li>
+              <h3 className="text-sm font-semibold text-[#ffd86b]">About Us</h3>
+              <ul className="mt-6 space-y-4 text-sm text-white/78">
+                <li><Link to="/about">Our Mission</Link></li>
+                <li><Link to="/about">Team & Board</Link></li>
+                <li><Link to="/about">Financials</Link></li>
+                <li><Link to="/careers">Careers</Link></li>
               </ul>
             </div>
 
-            {/* Contact Info */}
             <div>
-              <h3 className="font-semibold mb-4">Contact</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>Email: info@udairehab.org</li>
-                <li>Phone: +256 123 456 789</li>
-                <li>Address: Kampala, Uganda</li>
+              <h3 className="text-sm font-semibold text-[#ffd86b]">Get Involved</h3>
+              <ul className="mt-6 space-y-4 text-sm text-white/78">
+                <li><button type="button" onClick={() => handleSectionNavigation("#donate")}>Donate</button></li>
+                <li><button type="button" onClick={() => handleSectionNavigation("#volunteer")}>Volunteer</button></li>
+                <li><Link to="/get-involved">Partner with Us</Link></li>
+                <li><Link to="/contact">Contact Us</Link></li>
+                <li><Link to="/contact">Fundraise</Link></li>
               </ul>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-[#ffd86b]">Stay Connected</h3>
+              <p className="mt-6 text-sm leading-8 text-white/78">
+                Join our newsletter for inspiring stories and updates.
+              </p>
+              <div className="mt-5">
+                <div className="rounded-md bg-white/10 px-4 py-3 text-sm text-white/55">
+                  Your email address
+                </div>
+                <button className="mt-4 w-full rounded-md bg-[#d24d4e] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#c34345]">
+                  Subscribe
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
+          <div className="mt-12 flex flex-col gap-4 border-t border-white/12 pt-6 text-xs text-white/65 sm:flex-row sm:items-center sm:justify-between">
             <p>&copy; {new Date().getFullYear()} UDAIREHAB NGO. All rights reserved.</p>
+            <div className="flex items-center gap-8">
+              <a href="#">Privacy Policy</a>
+              <a href="#">Terms of Service</a>
+            </div>
           </div>
         </div>
       </footer>

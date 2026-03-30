@@ -1,149 +1,151 @@
-import { useState } from "react";
-import { Search, Filter, Star, Calendar, MapPin, Video } from "lucide-react";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { motion } from "motion/react";
-import therapistsData from "../data/therapists.json";
+import { useApiData } from "../hooks/useApiData";
+import type { Therapist } from "../types/api";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+
+const departmentOrder = [
+  "Occupational Therapy",
+  "Special Education",
+  "Speech Therapy",
+  "Physical Therapy",
+  "Remedial Support",
+  "Counselling / Home Programme",
+];
+
+const departmentDescriptions: Record<string, string> = {
+  "Occupational Therapy":
+    "Supports motor, sensory, and daily living development through structured therapy.",
+  "Special Education":
+    "Helps children build learning independence through individualized classroom support.",
+  "Speech Therapy":
+    "Supports children with speech, language, and communication development.",
+  "Physical Therapy":
+    "Supports movement, strength, coordination, and physical rehabilitation goals.",
+  "Remedial Support":
+    "Provides remedial support for academics, focus, and learning progress.",
+  "Counselling / Home Programme":
+    "Provides counseling and home-program guidance for family-centered support.",
+};
 
 export function TherapistsSection() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("All");
-  const [filterMode, setFilterMode] = useState("All");
+  const { data: therapists, isLoading, error } = useApiData<Therapist[]>(
+    "/content/therapists",
+    [],
+  );
 
-  const therapistTypes = ["All", "Occupational Therapist", "Speech Therapist", "Physical Therapist", "Behavioral Therapist", "Art Therapist", "Music Therapist"];
-  const modes = ["All", "In-person", "Online", "Hybrid"];
+  const whatsappNumber = "919899681972";
 
-  const filteredTherapists = therapistsData.filter((therapist) => {
-    const matchesSearch = therapist.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      therapist.specialization.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "All" || therapist.type === filterType;
-    const matchesMode = filterMode === "All" || therapist.mode === filterMode;
-    return matchesSearch && matchesType && matchesMode;
-  });
+  const groupedTherapists = departmentOrder
+    .map((department) => ({
+      department,
+      therapists: therapists.filter((therapist) => therapist.department === department).slice(0, 3),
+    }))
+    .filter((group) => group.therapists.length > 0);
+
+  const openWhatsApp = (department: string) => {
+    const message = encodeURIComponent(
+      `Hello UDAI, I would like to take an appointment for ${department}. Please share the next steps and guide me with the available team support.`,
+    );
+    window.location.href = `https://wa.me/${whatsappNumber}?text=${message}`;
+  };
 
   return (
-    <section className="py-16 sm:py-24 bg-gray-50" id="therapists">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="bg-[#f3f6ff] py-16 sm:py-20" id="therapists">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+          className="mx-auto mb-10 max-w-4xl text-center"
         >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-4 text-gray-900">Our Therapists</h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Connect with experienced, compassionate professionals dedicated to your child's development
+          <div className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-[#f2a007]">
+            Our Therapy Teams
+          </div>
+          <h2 className="mb-3 text-4xl font-semibold tracking-tight text-[#2f5597] sm:text-5xl">
+            Department-wise Support
+          </h2>
+          <p className="text-base leading-8 text-[#7b706a]">
+            We recommend a team-based approach. Book by department on WhatsApp, and our internal team will assign the right therapist based on availability and the child&apos;s needs.
           </p>
         </motion.div>
 
-        {/* Search and Filters */}
-        <div className="mb-12 space-y-4">
-          {/* Search Bar */}
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 size-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name or specialization..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-lg"
-            />
+        {isLoading ? (
+          <div className="rounded-[1.2rem] border border-dashed border-[#d7cfc8] bg-white/70 p-10 text-center text-sm text-[#776a66]">
+            Loading therapy teams...
           </div>
-
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-            <div className="flex items-center gap-2">
-              <Filter className="size-5 text-gray-600" />
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              >
-                {therapistTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <select
-                value={filterMode}
-                onChange={(e) => setFilterMode(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              >
-                {modes.map((mode) => (
-                  <option key={mode} value={mode}>
-                    {mode === "All" ? "All Modes" : mode}
-                  </option>
-                ))}
-              </select>
-            </div>
+        ) : error ? (
+          <div className="rounded-[1.2rem] border border-[#f1c8bc] bg-[#fff4f1] p-6 text-center text-sm text-[#b04d2f]">
+            {error}
           </div>
-        </div>
-
-        {/* Therapist Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredTherapists.map((therapist, index) => (
-            <motion.div
-              key={therapist.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all group"
-            >
-              <div className="relative h-64 overflow-hidden">
-                <ImageWithFallback
-                  src={therapist.image}
-                  alt={therapist.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute top-4 right-4 px-3 py-1 bg-white rounded-full text-sm font-medium flex items-center gap-1">
-                  <Star className="size-4 text-yellow-500 fill-yellow-500" />
-                  {therapist.rating}
-                </div>
-              </div>
-
-              <div className="p-6">
-                <h3 className="text-xl mb-1 text-gray-900">{therapist.name}</h3>
-                <p className="text-blue-600 mb-4 text-sm font-medium">{therapist.specialization}</p>
-
-                <div className="space-y-2 mb-6 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="size-4" />
-                    <span>{therapist.experience} experience</span>
+        ) : (
+          <div className="space-y-6">
+            {groupedTherapists.map((group, groupIndex) => (
+              <motion.div
+                key={group.department}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: groupIndex * 0.05 }}
+                className="overflow-hidden rounded-[1.6rem] border border-[#ddd8d1] bg-white shadow-[0_10px_26px_rgba(41,29,22,0.08)]"
+              >
+                <div className="flex flex-col gap-4 border-b border-[#ece4dc] px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d36f47]">
+                      Department
+                    </div>
+                    <h3 className="mt-2 text-2xl font-semibold text-[#24396f]">
+                      {group.department}
+                    </h3>
+                    <p className="mt-2 max-w-3xl text-sm leading-7 text-[#756761]">
+                      {departmentDescriptions[group.department]}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {therapist.mode === "Online" ? (
-                      <Video className="size-4" />
-                    ) : (
-                      <MapPin className="size-4" />
-                    )}
-                    <span>{therapist.mode}</span>
-                  </div>
-                  <div className="text-emerald-600 font-medium">
-                    Available: {therapist.availableSlot}
-                  </div>
-                </div>
 
-                <div className="flex gap-3">
-                  <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-                    Book Session
-                  </button>
-                  <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    View Profile
+                  <button
+                    type="button"
+                    onClick={() => openWhatsApp(group.department)}
+                    className="inline-flex items-center justify-center rounded-full bg-[#2f5597] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#264882]"
+                  >
+                    Take Appointment
                   </button>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
 
-        {filteredTherapists.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-600 text-lg">No therapists found matching your criteria.</p>
+                <div className="grid gap-4 px-6 py-6 md:grid-cols-2 xl:grid-cols-3">
+                  {group.therapists.map((therapist) => (
+                    <div
+                      key={therapist.id}
+                      className="overflow-hidden rounded-[1.15rem] border border-[#e3ddd6] bg-[#fffdfb]"
+                    >
+                      <div className="p-3">
+                        <div className="overflow-hidden rounded-[0.8rem]">
+                        <ImageWithFallback
+                          src={therapist.image}
+                          alt={therapist.name}
+                          className="h-72 w-full bg-[#f7f4f1] object-contain p-2"
+                        />
+                      </div>
+                    </div>
+
+                      <div className="px-4 pb-5">
+                        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d36f47]">
+                          {therapist.department}
+                        </div>
+                        <h4 className="mt-2 text-2xl font-semibold text-[#24396f]">
+                          {therapist.name}
+                        </h4>
+                        <p className="mt-2 text-lg font-medium text-[#556794]">
+                          {therapist.role}
+                        </p>
+                        <p className="mt-3 text-sm leading-7 text-[#6f6460]">
+                          {therapist.summary}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
           </div>
         )}
       </div>

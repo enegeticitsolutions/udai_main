@@ -1,100 +1,94 @@
+import { Link } from "react-router";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { Calendar, User, Clock, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
-import blogData from "../data/blog.json";
+import { useApiData } from "../hooks/useApiData";
+import type { BlogStoryDetail } from "../types/api";
 
 export function BlogSection() {
-  // Show first 3 blog posts
-  const featuredPosts = blogData.slice(0, 3);
+  const { data: posts, isLoading, error } = useApiData<BlogStoryDetail[]>(
+    "/content/blog-stories",
+    [],
+  );
+  const featuredPosts = posts.slice(0, 3);
 
   return (
-    <section className="py-16 sm:py-24 bg-gray-50" id="blog">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="bg-[#fbf7f4] py-16 sm:py-20" id="blog">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+          className="mx-auto mb-14 max-w-3xl text-center"
         >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-4 text-gray-900">Latest Insights</h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Expert advice, stories, and resources for parents and caregivers
+          <h2 className="mb-4 text-4xl font-semibold tracking-tight text-[#2b1b15] sm:text-5xl">
+            <span className="text-[#2f5597]">Stories</span> from the Field
+          </h2>
+          <p className="mx-auto max-w-2xl text-base leading-8 text-[#776a66]">
+            Read about the latest updates, success stories, and insights from our team and the communities we serve.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
-          {featuredPosts.map((post, index) => (
-            <motion.article
-              key={post.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all group"
-            >
-              <div className="relative h-56 overflow-hidden">
-                <ImageWithFallback
-                  src={post.image}
-                  alt={post.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute top-4 left-4 px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-medium">
-                  {post.category}
+        {isLoading ? (
+          <div className="rounded-[1.2rem] border border-dashed border-[#d7cfc8] bg-white/70 p-10 text-center text-sm text-[#776a66]">
+            Loading stories...
+          </div>
+        ) : error ? (
+          <div className="rounded-[1.2rem] border border-[#f1c8bc] bg-[#fff4f1] p-6 text-center text-sm text-[#b04d2f]">
+            {error}
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-3">
+            {featuredPosts.map((post, index) => (
+              <motion.article
+                key={post.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="flex h-full flex-col overflow-hidden rounded-[1.2rem] border border-[#eee7e1] bg-white shadow-[0_12px_24px_rgba(48,32,22,0.06)]"
+              >
+                <div className="relative h-56 overflow-hidden">
+                  <ImageWithFallback
+                    src={post.heroImage}
+                    alt={post.title}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#2f5597] shadow-sm">
+                    {post.category}
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-6">
-                <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="size-3" />
-                    <span>{new Date(post.date).toLocaleDateString("en-US", { 
-                      month: "short", 
+                <div className="flex h-full flex-1 flex-col p-5">
+                  <div className="mb-3 text-xs leading-5 text-[#9a8d86]">
+                    {new Date(post.date).toLocaleDateString("en-US", {
+                      month: "short",
                       day: "numeric",
-                      year: "numeric"
-                    })}</span>
+                      year: "numeric",
+                    })}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="size-3" />
-                    <span>{post.readTime}</span>
-                  </div>
+
+                  <h3 className="mb-3 text-2xl font-semibold leading-snug text-[#2b1b15]">
+                    {post.title}
+                  </h3>
+
+                  <p className="mb-6 text-sm leading-7 text-[#776a66]">
+                    {post.excerpt}
+                  </p>
+
+                  <Link
+                    to={`/stories/${post.id}`}
+                    className="mt-auto inline-flex items-center gap-2 pt-2 text-sm font-semibold text-[#2f5597] transition hover:gap-3"
+                  >
+                    Read Full Story
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </div>
-
-                <h3 className="text-lg mb-3 text-gray-900 line-clamp-2 leading-snug">
-                  {post.title}
-                </h3>
-                
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3 leading-relaxed">
-                  {post.excerpt}
-                </p>
-
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <User className="size-4" />
-                    <span>{post.author}</span>
-                  </div>
-                  <button className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium text-sm group-hover:gap-2 transition-all">
-                    Read More
-                    <ArrowRight className="size-4" />
-                  </button>
-                </div>
-              </div>
-            </motion.article>
-          ))}
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center"
-        >
-          <button className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all transform hover:scale-105 font-medium shadow-lg group">
-            View All Articles
-            <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </motion.div>
+              </motion.article>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
