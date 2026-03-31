@@ -1,0 +1,13 @@
+{
+  "name": "udai-monorepo",
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:admin-backend": "npm --prefix admin/backend run dev",
+    "dev:admin-frontend": "npm --prefix admin/frontend run dev"
+  },
+  "dependencies": {
+    "mongodb": "^7.1.1"
+  }
+}

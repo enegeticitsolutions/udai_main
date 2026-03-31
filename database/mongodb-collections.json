@@ -1,0 +1,85 @@
+{
+  "database": "udai",
+  "collections": [
+    {
+      "name": "admins",
+      "fields": ["fullName", "email", "passwordHash", "role", "isActive", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "therapistDepartments",
+      "fields": ["name", "slug", "description", "isActive", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "therapists",
+      "fields": ["departmentId", "name", "role", "summary", "imageUrl", "sortOrder", "isFeatured", "isActive", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "contacts",
+      "fields": ["name", "email", "subject", "message", "status", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "volunteers",
+      "fields": ["name", "email", "phone", "interestArea", "availability", "message", "status", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "donations",
+      "fields": ["name", "email", "amount", "currency", "donationType", "purpose", "message", "paymentMethod", "paymentStatus", "transactionReference", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "therapistInquiries",
+      "fields": ["departmentId", "therapistId", "childName", "age", "referredBy", "majorConcerns", "enquirySource", "requestType", "appointmentDate", "status", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "careers",
+      "fields": ["title", "department", "location", "employmentType", "experience", "description", "responsibilities", "requirements", "applyEmail", "applyLink", "isActive", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "careerApplications",
+      "fields": ["careerId", "name", "email", "phone", "resumeUrl", "message", "status", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "productCategories",
+      "fields": ["name", "slug", "description", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "products",
+      "fields": ["categoryId", "title", "description", "price", "imageUrl", "inStock", "featured", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "orders",
+      "fields": ["customerName", "customerEmail", "customerPhone", "subtotal", "shippingAmount", "totalAmount", "paymentMethod", "paymentStatus", "orderStatus", "shippingAddress", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "orderItems",
+      "fields": ["orderId", "productId", "quantity", "unitPrice", "lineTotal", "createdAt"]
+    },
+    {
+      "name": "events",
+      "fields": ["title", "slug", "date", "time", "location", "description", "imageUrl", "category", "capacity", "attendeesCount", "isActive", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "eventRegistrations",
+      "fields": ["eventId", "name", "email", "attendees", "status", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "blogPosts",
+      "fields": ["title", "slug", "author", "category", "excerpt", "content", "heroImageUrl", "readTime", "publishedAt", "isPublished", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "testimonials",
+      "fields": ["name", "role", "avatarUrl", "quote", "rating", "isActive", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "siteContent",
+      "fields": ["pageName", "sectionKey", "title", "subtitle", "body", "imageUrl", "ctaText", "ctaLink", "isActive", "createdAt", "updatedAt"]
+    },
+    {
+      "name": "mediaFiles",
+      "fields": ["fileName", "fileUrl", "fileType", "bucketName", "uploadedBy", "createdAt"]
+    },
+    {
+      "name": "auditLogs",
+      "fields": ["actorId", "actionType", "collectionName", "recordId", "changes", "createdAt"]
+    }
+  ]
+}

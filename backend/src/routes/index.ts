@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { contentRouter } from "./content.js";
 import { formsRouter } from "./forms.js";
+import { isMongoConnected } from "../lib/mongodb.js";
 
 export const apiRouter = Router();
 
@@ -9,6 +10,9 @@ apiRouter.get("/health", (_req, res) => {
     success: true,
     message: "UDAI backend is running",
     timestamp: new Date().toISOString(),
+    database: {
+      mongo: isMongoConnected() ? "connected" : "disconnected",
+    },
   });
 });
 

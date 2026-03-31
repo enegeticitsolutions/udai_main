@@ -34,13 +34,17 @@ export const eventRsvpSchema = z.object({
 });
 
 export const therapistInquirySchema = z.object({
-  therapistId: z.coerce.number().int().positive(),
+  department: z.string().trim().min(2).max(120),
+  therapistId: z.coerce.number().int().positive().optional(),
   childName: z.string().trim().min(2).max(120),
   age: z.coerce.number().int().min(0).max(120),
   referredBy: z.string().trim().min(2).max(120),
   majorConcerns: z.string().trim().min(5).max(2000),
   enquirySource: z.enum(["Given by Tanu", "Direct"]),
-  requestType: z.enum(["view-slots", "contact"]),
+  requestType: z.enum(["view-slots", "contact"]).default("contact"),
+  bookingAmount: z.coerce.number().positive().default(100),
+  sessionAmount: z.coerce.number().positive().default(800),
+  paymentMethod: z.enum(["qr", "upi", "netbanking", "card"]).optional(),
   appointmentDate: z
     .string()
     .trim()

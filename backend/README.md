@@ -4,6 +4,7 @@ Standalone Express + TypeScript backend for the existing `frontend/` app.
 
 ## What it provides
 
+- MongoDB connection at startup
 - `GET /api/health`
 - `GET /api/content/blog`
 - `GET /api/content/events`
@@ -20,6 +21,7 @@ Standalone Express + TypeScript backend for the existing `frontend/` app.
 
 - Content is read directly from `../frontend/src/app/data/*.json`
 - User submissions are stored in `backend/storage/*.json`
+- MongoDB is connected at startup for the future database migration, but the app is not yet reading or writing its collections.
 
 This keeps the current frontend content in sync with the backend without forcing a database setup.
 
@@ -29,6 +31,11 @@ This keeps the current frontend content in sync with the backend without forcing
 2. `cp .env.example .env`
 3. `npm install`
 4. `npm run dev`
+
+Make sure `.env` contains:
+
+- `MONGODB_URI`
+- `MONGODB_DB_NAME`
 
 Default server URL: `http://localhost:4000`
 

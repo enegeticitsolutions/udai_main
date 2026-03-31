@@ -10,6 +10,7 @@ import { EducationProgramDetail } from "./pages/EducationProgramDetail";
 import { BlogStoryDetail } from "./pages/BlogStoryDetail";
 import { Checkout } from "./pages/Checkout";
 import { Careers } from "./pages/Careers";
+import { Appointment } from "./pages/Appointment";
 
 export const router = createBrowserRouter([
   {
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
       { path: "products", Component: Products },
       { path: "checkout", Component: Checkout },
       { path: "careers", Component: Careers },
+      { path: "appointment", Component: Appointment },
       { path: "education/:slug", Component: EducationProgramDetail },
       { path: "stories/:id", Component: BlogStoryDetail },
       { path: "get-involved", Component: GetInvolved },

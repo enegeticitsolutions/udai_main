@@ -48,6 +48,23 @@ export interface Therapist {
   summary: string;
 }
 
+export interface TherapistInquiry {
+  id: string;
+  department: string;
+  therapistId?: number;
+  childName: string;
+  age: number;
+  referredBy: string;
+  majorConcerns: string;
+  enquirySource: "Given by Tanu" | "Direct";
+  requestType: "view-slots" | "contact";
+  bookingAmount: number;
+  sessionAmount: number;
+  paymentMethod?: "qr" | "upi" | "netbanking" | "card";
+  appointmentDate?: string;
+  createdAt: string;
+}
+
 export interface EducationProgramDetail {
   slug: string;
   title: string;

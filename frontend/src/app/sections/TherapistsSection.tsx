@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { useApiData } from "../hooks/useApiData";
+import { useNavigate } from "react-router";
 import type { Therapist } from "../types/api";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 
@@ -28,12 +29,11 @@ const departmentDescriptions: Record<string, string> = {
 };
 
 export function TherapistsSection() {
+  const navigate = useNavigate();
   const { data: therapists, isLoading, error } = useApiData<Therapist[]>(
     "/content/therapists",
     [],
   );
-
-  const whatsappNumber = "919899681972";
 
   const groupedTherapists = departmentOrder
     .map((department) => ({
@@ -42,11 +42,8 @@ export function TherapistsSection() {
     }))
     .filter((group) => group.therapists.length > 0);
 
-  const openWhatsApp = (department: string) => {
-    const message = encodeURIComponent(
-      `Hello UDAI, I would like to take an appointment for ${department}. Please share the next steps and guide me with the available team support.`,
-    );
-    window.location.href = `https://wa.me/${whatsappNumber}?text=${message}`;
+  const openAppointmentForm = (department: string) => {
+    navigate(`/appointment?department=${encodeURIComponent(department)}`);
   };
 
   return (
@@ -66,7 +63,7 @@ export function TherapistsSection() {
             Department-wise Support
           </h2>
           <p className="text-base leading-8 text-[#7b706a]">
-            We recommend a team-based approach. Book by department on WhatsApp, and our internal team will assign the right therapist based on availability and the child&apos;s needs.
+            We recommend a team-based approach. Book by department through the appointment form, and our internal team will assign the right therapist based on availability and the child&apos;s needs.
           </p>
         </motion.div>
 
@@ -104,10 +101,10 @@ export function TherapistsSection() {
 
                   <button
                     type="button"
-                    onClick={() => openWhatsApp(group.department)}
+                    onClick={() => openAppointmentForm(group.department)}
                     className="inline-flex items-center justify-center rounded-full bg-[#2f5597] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#264882]"
                   >
-                    Take Appointment
+                    Book Appointment
                   </button>
                 </div>
 

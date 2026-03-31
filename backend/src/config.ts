@@ -12,6 +12,8 @@ export const config = {
   env: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 4000),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  mongoUri: process.env.MONGODB_URI ?? "",
+  mongoDbName: process.env.MONGODB_DB_NAME ?? "udai",
   projectRoot,
   backendDataDir: path.resolve(projectRoot, "src", "data"),
   frontendDataDir: path.resolve(projectRoot, "..", "frontend", "src", "app", "data"),

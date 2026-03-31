@@ -61,12 +61,14 @@ formsRouter.post("/events/rsvp", async (req, res, next) => {
 formsRouter.post("/therapists/inquiries", async (req, res, next) => {
   try {
     const payload = therapistInquirySchema.parse(req.body);
-    const therapists = await getTherapists();
-    const therapistExists = therapists.some((therapist) => therapist.id === payload.therapistId);
+    if (payload.therapistId !== undefined) {
+      const therapists = await getTherapists();
+      const therapistExists = therapists.some((therapist) => therapist.id === payload.therapistId);
 
-    if (!therapistExists) {
-      res.status(404).json({ success: false, message: "Therapist not found" });
-      return;
+      if (!therapistExists) {
+        res.status(404).json({ success: false, message: "Therapist not found" });
+        return;
+      }
     }
 
     const record = await appendRecord("therapist-inquiries.json", payload);
