@@ -198,21 +198,6 @@ function LoginScreen({ onLogin }) {
             {loading ? "Signing in..." : "Login"}
           </Button>
         </form>
-
-        <div className="login-note">
-          Backend logins:
-          <div className="demo-logins">
-            <span>
-              <strong>Admin 1</strong> - admin1@udai.in / 111111
-            </span>
-            <span>
-              <strong>Admin 2</strong> - admin2@udai.in / 222222
-            </span>
-            <span>
-              <strong>Admin 3</strong> - admin3@udai.in / 333333
-            </span>
-          </div>
-        </div>
       </section>
     </main>
   );

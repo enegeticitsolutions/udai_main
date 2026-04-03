@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_ADMIN_API_BASE ?? "/api/admin").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_ADMIN_API_BASE ?? "http://localhost:5003/api/admin").replace(/\/$/, "");
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {

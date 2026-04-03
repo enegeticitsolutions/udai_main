@@ -35,7 +35,15 @@ This keeps the current frontend content in sync with the backend without forcing
 
 ## Separate admin hosting
 
-If you host the admin app on a different domain, update `CORS_ORIGIN` in `.env`:
+If you host the admin app on a different domain, update `.env` in `backend/`:
+
+```env
+CORS_ORIGIN=https://www.example.com,https://admin.example.com
+FRONTEND_ORIGIN=https://www.example.com
+ADMIN_ORIGIN=https://admin.example.com
+```
+
+If you prefer a single line, `CORS_ORIGIN` can also be a comma-separated list:
 
 ```env
 CORS_ORIGIN=https://admin.example.com,https://www.example.com
@@ -55,6 +63,8 @@ Make sure `.env` contains:
 - `MONGODB_URI`
 - `MONGODB_DB_NAME`
 - `CORS_ORIGIN`
+- `FRONTEND_ORIGIN`
+- `ADMIN_ORIGIN`
 
 Default server URL: `http://localhost:4000`
 

@@ -2,8 +2,7 @@ import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import { config } from "./config.js";
-import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
-import { apiRouter } from "./routes/index.js";
+import { adminRouter } from "./routes/admin.js";
 
 export function createApp() {
   const app = express();
@@ -27,18 +26,18 @@ export function createApp() {
   app.get("/", (_req, res) => {
     res.json({
       success: true,
-      message: "UDAI backend API",
+      message: "UDAI standalone admin backend",
       docs: {
-        health: "/api/health",
-        content: "/api/content/*",
-        forms: "/api/forms/*",
+        admin: "/api/admin/*",
       },
     });
   });
 
-  app.use("/api", apiRouter);
-  app.use(notFoundHandler);
-  app.use(errorHandler);
+  app.use("/api/admin", adminRouter);
+
+  app.use((_req, res) => {
+    res.status(404).json({ success: false, message: "Route not found" });
+  });
 
   return app;
 }

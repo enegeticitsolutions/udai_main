@@ -1,5 +1,5 @@
 {
-  "name": "udai-standalone-admin",
+  "name": "admin-main-frontend",
   "private": true,
   "type": "module",
   "scripts": {

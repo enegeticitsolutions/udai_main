@@ -1,0 +1,49 @@
+# Admin Main Frontend
+
+Standalone React admin panel for the UDAI platform.
+
+## Local development
+
+1. `cd admin-main/backend`
+2. `cp .env.example .env`
+3. Set your MongoDB Atlas URI and `CORS_ORIGIN`
+4. `npm install`
+5. `npm run dev`
+
+In a second terminal:
+
+1. `cd admin-main/frontend`
+2. `cp .env.example .env`
+3. Set `VITE_ADMIN_API_BASE` if you want to bypass the dev proxy
+4. `npm install`
+5. `npm run dev`
+
+## Production deployment
+
+Set the admin API base URL before building:
+
+```env
+VITE_ADMIN_API_BASE=https://api.example.com/api/admin
+VITE_ADMIN_URL=https://admin.example.com
+VITE_SITE_URL=https://www.example.com
+```
+
+Then build:
+
+```bash
+npm run build
+```
+
+Deploy the generated `dist/` folder to your static host.
+
+## Backend requirements
+
+The backend must allow the admin domain in `CORS_ORIGIN`, for example:
+
+```env
+CORS_ORIGIN=https://admin.example.com,https://www.example.com
+FRONTEND_ORIGIN=https://www.example.com
+ADMIN_ORIGIN=https://admin.example.com
+```
+
+For local development, the admin frontend proxy points to `http://localhost:5003`.
