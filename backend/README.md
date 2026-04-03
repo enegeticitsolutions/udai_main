@@ -16,6 +16,14 @@ Standalone Express + TypeScript backend for the existing `frontend/` app.
 - `POST /api/forms/donations`
 - `POST /api/forms/events/rsvp`
 - `POST /api/forms/therapists/inquiries`
+- `GET /api/forms/therapists/availability`
+- `POST /api/forms/orders`
+- `GET /api/admin/bootstrap`
+- `POST /api/admin/login`
+- `PATCH /api/admin/inquiries/:id`
+- `PATCH /api/admin/volunteers/:id`
+- `PATCH /api/admin/orders/:id`
+- `PATCH /api/admin/therapists/:id`
 
 ## Data model
 
@@ -24,6 +32,16 @@ Standalone Express + TypeScript backend for the existing `frontend/` app.
 - MongoDB is connected at startup for the future database migration, but the app is not yet reading or writing its collections.
 
 This keeps the current frontend content in sync with the backend without forcing a database setup.
+
+## Separate admin hosting
+
+If you host the admin app on a different domain, update `CORS_ORIGIN` in `.env`:
+
+```env
+CORS_ORIGIN=https://admin.example.com,https://www.example.com
+```
+
+The backend accepts a comma-separated list of allowed origins.
 
 ## Local run
 
@@ -36,6 +54,7 @@ Make sure `.env` contains:
 
 - `MONGODB_URI`
 - `MONGODB_DB_NAME`
+- `CORS_ORIGIN`
 
 Default server URL: `http://localhost:4000`
 

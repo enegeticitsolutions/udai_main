@@ -10,6 +10,7 @@ const mongoCollectionByFileName: Record<string, string> = {
   "donations.json": "donations",
   "event-rsvps.json": "eventRegistrations",
   "therapist-inquiries.json": "therapistInquiries",
+  "orders.json": "orders",
 };
 
 export async function ensureStorageDir() {

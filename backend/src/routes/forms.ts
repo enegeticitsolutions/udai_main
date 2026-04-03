@@ -4,10 +4,12 @@ import {
   contactSchema,
   donationIntentSchema,
   eventRsvpSchema,
+  orderSchema,
   therapistInquirySchema,
   volunteerSchema,
 } from "../schemas.js";
-import { getEvents, getTherapists } from "../services/contentService.js";
+import { getEvents } from "../services/contentService.js";
+import { getDepartmentAvailability, reserveDepartmentTherapist } from "../services/appointmentAvailabilityService.js";
 export const formsRouter = Router();
 
 formsRouter.post("/contact", async (req, res, next) => {
@@ -61,18 +63,58 @@ formsRouter.post("/events/rsvp", async (req, res, next) => {
 formsRouter.post("/therapists/inquiries", async (req, res, next) => {
   try {
     const payload = therapistInquirySchema.parse(req.body);
-    if (payload.therapistId !== undefined) {
-      const therapists = await getTherapists();
-      const therapistExists = therapists.some((therapist) => therapist.id === payload.therapistId);
+    const assignedTherapist = await reserveDepartmentTherapist(
+      payload.department,
+      payload.appointmentDate,
+      payload.appointmentTime,
+    );
 
-      if (!therapistExists) {
-        res.status(404).json({ success: false, message: "Therapist not found" });
-        return;
-      }
+    if (!assignedTherapist) {
+      res.status(409).json({
+        success: false,
+        message: "Selected slot is fully booked. Please choose another available time.",
+      });
+      return;
     }
 
-    const record = await appendRecord("therapist-inquiries.json", payload);
-    res.status(201).json({ success: true, message: "Therapist request submitted", data: record });
+    const enrichedRecord = await appendRecord("therapist-inquiries.json", {
+      ...payload,
+      assignedTherapist: assignedTherapist.name,
+      assignmentMode: "Auto-assigned",
+      assignmentNote: "Slot reserved",
+    });
+    res.status(201).json({ success: true, message: "Therapist request submitted", data: enrichedRecord });
+  } catch (error) {
+    next(error);
+  }
+});
+
+formsRouter.get("/therapists/availability", async (req, res, next) => {
+  try {
+    const department = String(req.query.department ?? "").trim();
+    const date = String(req.query.date ?? "").trim();
+
+    if (!department || !date) {
+      res.status(400).json({ success: false, message: "department and date are required" });
+      return;
+    }
+
+    const slots = await getDepartmentAvailability(department, date);
+    res.json({ success: true, data: { department, date, slots } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+formsRouter.post("/orders", async (req, res, next) => {
+  try {
+    const payload = orderSchema.parse(req.body);
+    const orderNumber = `ORD-${Date.now()}`;
+    const record = await appendRecord("orders.json", {
+      ...payload,
+      orderNumber,
+    });
+    res.status(201).json({ success: true, message: "Order recorded successfully", data: record });
   } catch (error) {
     next(error);
   }

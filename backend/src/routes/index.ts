@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { adminRouter } from "./admin.js";
 import { contentRouter } from "./content.js";
 import { formsRouter } from "./forms.js";
 import { isMongoConnected } from "../lib/mongodb.js";
@@ -18,3 +19,4 @@ apiRouter.get("/health", (_req, res) => {
 
 apiRouter.use("/content", contentRouter);
 apiRouter.use("/forms", formsRouter);
+apiRouter.use("/admin", adminRouter);

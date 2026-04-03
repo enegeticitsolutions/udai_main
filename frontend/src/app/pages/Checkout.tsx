@@ -4,15 +4,17 @@ import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
+import { apiPost } from "../lib/api";
 import { clearCheckoutProduct, getCart, getCheckoutProduct } from "../lib/cart";
 import type { CartItem } from "../lib/cart";
-import type { Product } from "../types/api";
+import type { Order, Product } from "../types/api";
 
-type PaymentMethod = "card" | "upi" | "netbanking";
+type PaymentMethod = "qr" | "upi" | "card" | "netbanking";
 
 type AddressForm = {
   country: string;
   fullName: string;
+  email: string;
   mobile: string;
   pincode: string;
   house: string;
@@ -27,6 +29,7 @@ type AddressForm = {
 const initialAddress: AddressForm = {
   country: "India",
   fullName: "",
+  email: "",
   mobile: "",
   pincode: "",
   house: "",
@@ -79,7 +82,15 @@ export function Checkout() {
   async function handlePayNow(event: React.FormEvent) {
     event.preventDefault();
 
-    if (!address.fullName || !address.mobile || !address.pincode || !address.house || !address.area || !address.city || !address.state) {
+    if (
+      !address.fullName ||
+      !address.mobile ||
+      !address.pincode ||
+      !address.house ||
+      !address.area ||
+      !address.city ||
+      !address.state
+    ) {
       toast.error("Please fill the delivery address fields.");
       return;
     }
@@ -91,12 +102,42 @@ export function Checkout() {
 
     setSubmitting(true);
 
-    window.setTimeout(() => {
-      toast.success("Payment initiated successfully.");
+    try {
+      const payload = {
+        customerName: address.fullName.trim(),
+        customerEmail: address.email.trim() || undefined,
+        customerPhone: address.mobile.trim(),
+        shippingAddress: {
+          ...address,
+          email: address.email.trim() || undefined,
+        },
+        items: orderItems.map((item) => ({
+          productId: item.product.id,
+          title: item.product.title,
+          price: item.product.price,
+          quantity: item.quantity,
+          image: item.product.image,
+          category: item.product.category,
+        })),
+        subtotal,
+        shippingAmount: shipping,
+        totalAmount: total,
+        currency: "INR",
+        paymentMethod,
+        paymentStatus: "initiated",
+        orderStatus: "new",
+        notes: address.instructions.trim(),
+      };
+
+      await apiPost<Order>("/forms/orders", payload);
+      toast.success("Payment initiated successfully. Order saved for admin review.");
       clearCheckoutProduct();
       navigate("/products");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save your order.");
+    } finally {
       setSubmitting(false);
-    }, 1000);
+    }
   }
 
   if (orderItems.length === 0) {
@@ -144,14 +185,20 @@ export function Checkout() {
                     <Input value={address.fullName} onChange={(e) => updateField("fullName", e.target.value)} placeholder="Enter full name" />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Mobile number</label>
-                    <Input value={address.mobile} onChange={(e) => updateField("mobile", e.target.value)} placeholder="Enter mobile number" />
+                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Email address</label>
+                    <Input value={address.email} onChange={(e) => updateField("email", e.target.value)} placeholder="Enter email address" />
                   </div>
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Pincode</label>
-                  <Input value={address.pincode} onChange={(e) => updateField("pincode", e.target.value)} placeholder="6 digits PIN code" />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Mobile number</label>
+                    <Input value={address.mobile} onChange={(e) => updateField("mobile", e.target.value)} placeholder="Enter mobile number" />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Pincode</label>
+                    <Input value={address.pincode} onChange={(e) => updateField("pincode", e.target.value)} placeholder="6 digits PIN code" />
+                  </div>
                 </div>
 
                 <div>
@@ -207,6 +254,24 @@ export function Checkout() {
               <p className="mt-2 text-sm text-[#776a66]">Choose how you want to pay. Cash on delivery is not available.</p>
 
               <div className="mt-6 grid gap-4">
+                <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "qr" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
+                  <div className="flex items-center gap-3">
+                    <input type="radio" name="payment" checked={paymentMethod === "qr"} onChange={() => setPaymentMethod("qr")} />
+                    <div>
+                      <div className="font-semibold text-[#2b1b15]">QR Code</div>
+                      <div className="text-sm text-[#776a66]">Scan the QR code to complete payment.</div>
+                    </div>
+                  </div>
+                  {paymentMethod === "qr" ? (
+                    <div className="mt-4 rounded-2xl border border-dashed border-[#cfd8f6] bg-[#f7f9ff] p-5 text-center">
+                      <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-2xl border border-[#d8e0fb] bg-white text-xs text-[#6676a8]">
+                        QR Payment Placeholder
+                      </div>
+                      <p className="mt-3 text-sm text-[#776a66]">Scan to pay your order amount securely.</p>
+                    </div>
+                  ) : null}
+                </label>
+
                 <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "card" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
                     <input type="radio" name="payment" checked={paymentMethod === "card"} onChange={() => setPaymentMethod("card")} />

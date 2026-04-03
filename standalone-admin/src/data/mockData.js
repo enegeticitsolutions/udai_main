@@ -1,0 +1,331 @@
+export const adminUsers = [
+  {
+    name: "Admin One",
+    email: "admin1@udai.in",
+    password: "111111",
+    role: "admin",
+    isActive: true,
+  },
+  {
+    name: "Admin Two",
+    email: "admin2@udai.in",
+    password: "222222",
+    role: "editor",
+    isActive: true,
+  },
+  {
+    name: "Admin Three",
+    email: "admin3@udai.in",
+    password: "333333",
+    role: "viewer",
+    isActive: true,
+  },
+];
+
+export const sidebarItems = [
+  "Dashboard",
+  "Appointments / Inquiries",
+  "Orders / Purchases",
+  "Donations",
+  "Volunteers",
+  "Therapist Management",
+  "Availability Manager",
+  "Child / Parent Records",
+  "Notifications Center",
+  "Message Broadcast",
+  "Reports / Analytics",
+  "Settings",
+];
+
+export const therapistDepartments = {
+  "Occupational Therapy": ["Ms Harsimran Kaur", "Ms Nikki", "Ms Anamika"],
+  "Special Education": ["Ms Promila", "Ms Sonia"],
+  "Speech Therapy": ["Ms Sakshi", "Mr Atal"],
+  "Physical Therapy": ["Mr Durgesh"],
+  "Remedial & Academic Support": ["Ms Sonia", "Ms Shobha"],
+  "Counselling / Home Programme": ["Ms Tanu Rajput", "Ms Harsimran"],
+};
+
+export const therapists = [
+  {
+    name: "Ms Harsimran Kaur",
+    department: "Occupational Therapy",
+    role: "OT Specialist",
+    experience: "12 years",
+    active: true,
+  },
+  {
+    name: "Ms Nikki",
+    department: "Occupational Therapy",
+    role: "OT Specialist",
+    experience: "9 years",
+    active: true,
+  },
+  {
+    name: "Ms Anamika",
+    department: "Occupational Therapy",
+    role: "OT Specialist",
+    experience: "7 years",
+    active: true,
+  },
+  {
+    name: "Ms Promila",
+    department: "Special Education",
+    role: "Special Educator",
+    experience: "8 years",
+    active: true,
+  },
+  {
+    name: "Ms Sonia",
+    department: "Special Education",
+    role: "Special Educator",
+    experience: "6 years",
+    active: true,
+  },
+  {
+    name: "Ms Sakshi",
+    department: "Speech Therapy",
+    role: "Speech Therapist",
+    experience: "5 years",
+    active: true,
+  },
+  {
+    name: "Mr Atal",
+    department: "Speech Therapy",
+    role: "Speech Therapist",
+    experience: "7 years",
+    active: true,
+  },
+  {
+    name: "Mr Durgesh",
+    department: "Physical Therapy",
+    role: "Physical Therapist",
+    experience: "10 years",
+    active: true,
+  },
+  {
+    name: "Ms Shobha",
+    department: "Remedial & Academic Support",
+    role: "Remedial Specialist",
+    experience: "9 years",
+    active: true,
+  },
+  {
+    name: "Ms Tanu Rajput",
+    department: "Counselling / Home Programme",
+    role: "Counsellor",
+    experience: "8 years",
+    active: true,
+  },
+  {
+    name: "Ms Harsimran",
+    department: "Counselling / Home Programme",
+    role: "Counsellor",
+    experience: "6 years",
+    active: true,
+  },
+];
+
+export const inquiries = [
+  {
+    id: "INQ-1001",
+    childName: "Aarav",
+    age: 6,
+    concern: "Speech delay and attention issues",
+    source: "Website",
+    status: "submitted",
+    department: "Speech Therapy",
+    assignedTherapist: "Ms Sakshi",
+    schedule: "Today, 4:00 PM",
+  },
+  {
+    id: "INQ-1002",
+    childName: "Mira",
+    age: 5,
+    concern: "Fine motor support and sensory regulation",
+    source: "WhatsApp",
+    status: "assigned",
+    department: "Occupational Therapy",
+    assignedTherapist: "Ms Nikki",
+    schedule: "Tomorrow, 11:30 AM",
+  },
+  {
+    id: "INQ-1003",
+    childName: "Kabir",
+    age: 8,
+    concern: "Reading and writing support",
+    source: "Website",
+    status: "confirmed",
+    department: "Remedial & Academic Support",
+    assignedTherapist: "Ms Shobha",
+    schedule: "Apr 3, 10:00 AM",
+  },
+];
+
+export const donations = [
+  {
+    id: "DON-2001",
+    donorName: "Shubham Tripathi",
+    email: "shubham.tripathi@gmail.com",
+    phone: "9876543210",
+    amount: 1000,
+    donationType: "One-time",
+    paymentMethod: "UPI",
+    status: "paid",
+    createdAt: "Apr 1, 2026 10:20 AM",
+    purpose: "Therapy support",
+    message: "For child therapy sessions",
+  },
+  {
+    id: "DON-2002",
+    donorName: "Aditi Sharma",
+    email: "aditi.sharma@gmail.com",
+    phone: "9123456780",
+    amount: 500,
+    donationType: "Monthly",
+    paymentMethod: "QR",
+    status: "pending",
+    createdAt: "Apr 1, 2026 11:45 AM",
+    purpose: "Education support",
+    message: "Monthly contribution",
+  },
+  {
+    id: "DON-2003",
+    donorName: "Rahul Verma",
+    email: "rahul.verma@gmail.com",
+    phone: "9012345678",
+    amount: 2500,
+    donationType: "One-time",
+    paymentMethod: "Card",
+    status: "failed",
+    createdAt: "Apr 1, 2026 01:10 PM",
+    purpose: "Special education",
+    message: "Transaction failed due to bank issue",
+  },
+];
+
+export const orders = [
+  {
+    id: "ORD-9001",
+    orderNumber: "ORD-9001",
+    customerName: "Anita Sharma",
+    customerEmail: "anita.sharma@gmail.com",
+    customerPhone: "9876504321",
+    items: [
+      { productId: 1, title: "Therapy Journal", price: 299, quantity: 2 },
+      { productId: 2, title: "Learning Kit", price: 499, quantity: 1 },
+    ],
+    subtotal: 1097,
+    shippingAmount: 0,
+    totalAmount: 1097,
+    currency: "INR",
+    paymentMethod: "upi",
+    paymentStatus: "paid",
+    orderStatus: "confirmed",
+    notes: "Deliver to reception desk",
+    createdAt: "Apr 1, 2026 09:05 AM",
+  },
+  {
+    id: "ORD-9002",
+    orderNumber: "ORD-9002",
+    customerName: "Rahul Verma",
+    customerEmail: "rahul.verma@gmail.com",
+    customerPhone: "9123405678",
+    items: [
+      { productId: 3, title: "Sensory Toy Pack", price: 799, quantity: 1 },
+    ],
+    subtotal: 799,
+    shippingAmount: 0,
+    totalAmount: 799,
+    currency: "INR",
+    paymentMethod: "card",
+    paymentStatus: "initiated",
+    orderStatus: "new",
+    notes: "",
+    createdAt: "Apr 1, 2026 11:22 AM",
+  },
+];
+
+export const volunteers = [
+  {
+    id: "VOL-3001",
+    name: "Priya Sharma",
+    email: "priya.sharma@gmail.com",
+    phone: "9876501234",
+    interestArea: "Child support",
+    availability: "Weekends",
+    message: "Interested in therapy support activities",
+    status: "new",
+    createdAt: "Apr 1, 2026 09:30 AM",
+    assignedTask: "",
+  },
+  {
+    id: "VOL-3002",
+    name: "Nitin Verma",
+    email: "nitin.verma@gmail.com",
+    phone: "9123405678",
+    interestArea: "Events and outreach",
+    availability: "Evenings",
+    message: "Can help in awareness drives",
+    status: "reviewed",
+    createdAt: "Apr 1, 2026 10:55 AM",
+    assignedTask: "",
+  },
+  {
+    id: "VOL-3003",
+    name: "Anjali Gupta",
+    email: "anjali.gupta@gmail.com",
+    phone: "9012304567",
+    interestArea: "Administration",
+    availability: "Flexible",
+    message: "Willing to support admin tasks and coordination",
+    status: "task_assigned",
+    createdAt: "Apr 1, 2026 12:20 PM",
+    assignedTask: "Admin support",
+  },
+];
+
+export const availabilitySlots = [
+  {
+    therapist: "Ms Harsimran Kaur",
+    day: "Mon - Wed",
+    time: "9:00 AM - 1:00 PM",
+  },
+  {
+    therapist: "Ms Sakshi",
+    day: "Tue - Fri",
+    time: "11:00 AM - 4:00 PM",
+  },
+  {
+    therapist: "Mr Durgesh",
+    day: "Mon - Sat",
+    time: "10:00 AM - 2:00 PM",
+  },
+];
+
+export const records = [
+  {
+    childName: "Aarav",
+    parent: "Neha",
+    concern: "Speech and communication",
+    pastAppointments: 2,
+  },
+  {
+    childName: "Mira",
+    parent: "Rohit",
+    concern: "Motor and sensory regulation",
+    pastAppointments: 1,
+  },
+  {
+    childName: "Kabir",
+    parent: "Pooja",
+    concern: "Remedial support",
+    pastAppointments: 4,
+  },
+];
+
+export const notifications = [
+  "Appointment confirmed for Aarav",
+  "Reminder sent to Mira",
+  "Reschedule request pending for Kabir",
+];

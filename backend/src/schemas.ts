@@ -49,7 +49,11 @@ export const therapistInquirySchema = z.object({
     .string()
     .trim()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+    ,
+  appointmentTime: z
+    .string()
+    .trim()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/),
 });
 
 export const productSchema = z.object({
@@ -58,4 +62,44 @@ export const productSchema = z.object({
   image: z.string().trim().url(),
   category: z.string().trim().max(80).default("New Arrival"),
   inStock: z.boolean().default(true),
+});
+
+const shippingAddressSchema = z.object({
+  country: z.string().trim().min(2).max(80),
+  fullName: z.string().trim().min(2).max(120),
+  mobile: z.string().trim().min(7).max(30),
+  pincode: z.string().trim().min(3).max(12),
+  house: z.string().trim().min(2).max(200),
+  area: z.string().trim().min(2).max(200),
+  landmark: z.string().trim().max(200).default(""),
+  city: z.string().trim().min(2).max(120),
+  state: z.string().trim().min(2).max(120),
+  instructions: z.string().trim().max(1000).default(""),
+  defaultAddress: z.boolean().default(false),
+  email: z.string().trim().email().optional(),
+});
+
+const orderItemSchema = z.object({
+  productId: z.coerce.number().int().positive(),
+  title: z.string().trim().min(2).max(160),
+  price: z.coerce.number().positive().max(1_000_000),
+  quantity: z.coerce.number().int().positive(),
+  image: z.string().trim().url(),
+  category: z.string().trim().max(80).optional(),
+});
+
+export const orderSchema = z.object({
+  customerName: z.string().trim().min(2).max(120),
+  customerEmail: z.string().trim().email().optional(),
+  customerPhone: z.string().trim().min(7).max(30),
+  shippingAddress: shippingAddressSchema,
+  items: z.array(orderItemSchema).min(1),
+  subtotal: z.coerce.number().positive(),
+  shippingAmount: z.coerce.number().min(0).default(0),
+  totalAmount: z.coerce.number().positive(),
+  currency: z.string().trim().min(3).max(10).default("INR"),
+  paymentMethod: z.enum(["qr", "upi", "card", "netbanking"]),
+  paymentStatus: z.enum(["initiated", "pending", "paid", "failed"]).default("initiated"),
+  orderStatus: z.enum(["new", "confirmed", "packed", "shipped", "delivered", "cancelled"]).default("new"),
+  notes: z.string().trim().max(2000).default(""),
 });
