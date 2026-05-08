@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticateAdmin } from "../services/adminAuthService.js";
-import { getAdminBootstrap, updateAdminRecord } from "../services/adminService.js";
+import { createAdminRecord, deleteAdminRecord, getAdminBootstrap, updateAdminRecord } from "../services/adminService.js";
 
 export const adminRouter = Router();
 
@@ -25,6 +25,44 @@ adminRouter.get("/bootstrap", async (_req, res, next) => {
   try {
     const data = await getAdminBootstrap();
     res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/subscribers", async (req, res, next) => {
+  try {
+    const email = String(req.body?.email ?? "").trim().toLowerCase();
+
+    if (!email) {
+      res.status(400).json({ success: false, message: "Email is required" });
+      return;
+    }
+
+    const record = await createAdminRecord("subscribers", { email });
+    res.status(201).json({ success: true, data: record, message: "Subscriber saved successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/contacts", async (req, res, next) => {
+  try {
+    const payload = {
+      name: String(req.body?.name ?? "").trim(),
+      email: String(req.body?.email ?? "").trim(),
+      subject: String(req.body?.subject ?? "").trim(),
+      website: String(req.body?.website ?? "").trim(),
+      message: String(req.body?.message ?? "").trim(),
+    };
+
+    if (!payload.name || !payload.email || !payload.subject || !payload.message) {
+      res.status(400).json({ success: false, message: "Name, email, subject, and message are required" });
+      return;
+    }
+
+    const record = await createAdminRecord("contacts", payload);
+    res.status(201).json({ success: true, data: record, message: "Contact message saved successfully" });
   } catch (error) {
     next(error);
   }
@@ -72,6 +110,28 @@ adminRouter.patch("/orders/:id", async (req, res, next) => {
   }
 });
 
+adminRouter.post("/therapists", async (req, res, next) => {
+  try {
+    const payload = {
+      name: String(req.body?.name ?? "").trim(),
+      department: String(req.body?.department ?? "").trim(),
+      role: String(req.body?.role ?? "").trim(),
+      experience: String(req.body?.experience ?? "").trim(),
+      active: req.body?.active !== false,
+    };
+
+    if (!payload.name || !payload.department || !payload.role || !payload.experience) {
+      res.status(400).json({ success: false, message: "Name, department, role, and experience are required" });
+      return;
+    }
+
+    const record = await createAdminRecord("therapists", payload);
+    res.status(201).json({ success: true, data: record, message: "Therapist added successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminRouter.patch("/therapists/:id", async (req, res, next) => {
   try {
     const updated = await updateAdminRecord("therapists", req.params.id, req.body ?? {});
@@ -81,6 +141,20 @@ adminRouter.patch("/therapists/:id", async (req, res, next) => {
     }
 
     res.json({ success: true, data: updated, message: "Therapist updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/therapists/:id", async (req, res, next) => {
+  try {
+    const deleted = await deleteAdminRecord("therapists", req.params.id);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: "Therapist not found" });
+      return;
+    }
+
+    res.json({ success: true, data: deleted, message: "Therapist removed successfully" });
   } catch (error) {
     next(error);
   }

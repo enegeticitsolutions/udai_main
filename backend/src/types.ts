@@ -92,7 +92,14 @@ export interface VolunteerSubmission {
   name: string;
   email: string;
   phone: string;
+  aadhar: string;
+  aadharOther: string;
+  pan: string;
+  panOther: string;
+  fullAddress: string;
+  fullAddressOther: string;
   interestArea: string;
+  interestAreaOther: string;
   availability: string;
   message: string;
   createdAt: string;
@@ -180,6 +187,16 @@ export interface Order {
   paymentStatus: "initiated" | "pending" | "paid" | "failed";
   orderStatus: "new" | "confirmed" | "packed" | "shipped" | "delivered" | "cancelled";
   notes: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+  razorpayAmount?: number;
+  razorpayCurrency?: string;
+  razorpayReceipt?: string;
+  razorpayStatus?: string;
+  razorpayQrCodeId?: string;
+  razorpayQrImageUrl?: string;
+  razorpayQrImageContent?: string;
   createdAt: string;
   updatedAt?: string;
 }

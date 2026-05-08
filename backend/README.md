@@ -18,6 +18,8 @@ Standalone Express + TypeScript backend for the existing `frontend/` app.
 - `POST /api/forms/therapists/inquiries`
 - `GET /api/forms/therapists/availability`
 - `POST /api/forms/orders`
+- `POST /api/payments/razorpay/order`
+- `POST /api/payments/razorpay/verify`
 - `GET /api/admin/bootstrap`
 - `POST /api/admin/login`
 - `PATCH /api/admin/inquiries/:id`
@@ -65,6 +67,8 @@ Make sure `.env` contains:
 - `CORS_ORIGIN`
 - `FRONTEND_ORIGIN`
 - `ADMIN_ORIGIN`
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
 
 Default server URL: `http://localhost:4000`
 

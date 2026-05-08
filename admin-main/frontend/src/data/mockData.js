@@ -30,6 +30,8 @@ export const sidebarItems = [
   "Volunteers",
   "Therapist Management",
   "Availability Manager",
+  "Subscribe",
+  "Contacts",
   "Child / Parent Records",
   "Notifications Center",
   "Message Broadcast",
@@ -48,6 +50,7 @@ export const therapistDepartments = {
 
 export const therapists = [
   {
+    id: 1,
     name: "Ms Harsimran Kaur",
     department: "Occupational Therapy",
     role: "OT Specialist",
@@ -55,6 +58,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 2,
     name: "Ms Nikki",
     department: "Occupational Therapy",
     role: "OT Specialist",
@@ -62,6 +66,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 3,
     name: "Ms Anamika",
     department: "Occupational Therapy",
     role: "OT Specialist",
@@ -69,6 +74,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 4,
     name: "Ms Promila",
     department: "Special Education",
     role: "Special Educator",
@@ -76,6 +82,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 5,
     name: "Ms Sonia",
     department: "Special Education",
     role: "Special Educator",
@@ -83,6 +90,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 6,
     name: "Ms Sakshi",
     department: "Speech Therapy",
     role: "Speech Therapist",
@@ -90,6 +98,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 7,
     name: "Mr Atal",
     department: "Speech Therapy",
     role: "Speech Therapist",
@@ -97,6 +106,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 8,
     name: "Mr Durgesh",
     department: "Physical Therapy",
     role: "Physical Therapist",
@@ -104,6 +114,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 9,
     name: "Ms Shobha",
     department: "Remedial & Academic Support",
     role: "Remedial Specialist",
@@ -111,6 +122,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 10,
     name: "Ms Tanu Rajput",
     department: "Counselling / Home Programme",
     role: "Counsellor",
@@ -118,6 +130,7 @@ export const therapists = [
     active: true,
   },
   {
+    id: 11,
     name: "Ms Harsimran",
     department: "Counselling / Home Programme",
     role: "Counsellor",
@@ -125,6 +138,8 @@ export const therapists = [
     active: true,
   },
 ];
+
+export const contacts = [];
 
 export const inquiries = [
   {
@@ -305,22 +320,70 @@ export const availabilitySlots = [
 
 export const records = [
   {
-    childName: "Aarav",
+    id: "REC-4001",
+    childName: "Harsh",
+    age: 6,
     parent: "Neha",
-    concern: "Speech and communication",
+    parentPhone: "9876543210",
+    parentEmail: "neha@example.com",
+    concern: "Reading readiness and classroom focus",
     pastAppointments: 2,
+    department: "Remedial Support",
+    status: "confirmed",
+    previousSlot: "-",
+    newSlot: "5 Apr, 10 AM",
+    assignedTherapist: "Ms Sonia",
+    school: "Sunrise Kids Academy",
+    lastVisit: "2 Apr, 2026",
+    nextFollowUp: "5 Apr, 2026",
+    preferredContact: "Call after 5 PM",
+    supportPlan: "1:1 reading drills, parent review",
+    notes: "Needs structured reading support and regular feedback from home.",
+    actionLabel: "View",
   },
   {
-    childName: "Mira",
+    id: "REC-4002",
+    childName: "Saksham",
+    age: 7,
     parent: "Rohit",
-    concern: "Motor and sensory regulation",
+    parentPhone: "9811122233",
+    parentEmail: "rohit@example.com",
+    concern: "Occupational support and motor planning",
     pastAppointments: 1,
+    department: "Remedial Support",
+    status: "cancelled",
+    previousSlot: "4 Apr, 11 AM",
+    newSlot: "-",
+    assignedTherapist: "Ms Sonia",
+    school: "Bright Start School",
+    lastVisit: "31 Mar, 2026",
+    nextFollowUp: "Pending new schedule",
+    preferredContact: "WhatsApp",
+    supportPlan: "Sensory breaks, writing practice, follow-up call",
+    notes: "Family requested a new slot after a timetable conflict.",
+    actionLabel: "Reason",
   },
   {
-    childName: "Kabir",
+    id: "REC-4003",
+    childName: "Ayaan",
+    age: 8,
     parent: "Pooja",
-    concern: "Remedial support",
+    parentPhone: "9765432100",
+    parentEmail: "pooja@example.com",
+    concern: "Special education and classroom support",
     pastAppointments: 4,
+    department: "Special Education",
+    status: "rescheduled",
+    previousSlot: "3 Apr, 2 PM",
+    newSlot: "6 Apr, 4 PM",
+    assignedTherapist: "Ms Shobha",
+    school: "Little Steps Academy",
+    lastVisit: "29 Mar, 2026",
+    nextFollowUp: "6 Apr, 2026",
+    preferredContact: "Call before 3 PM",
+    supportPlan: "Math remediation, classroom observation, progress review",
+    notes: "Rescheduled because the child had an exam at the previous time.",
+    actionLabel: "History",
   },
 ];
 

@@ -21,7 +21,7 @@ export async function connectDb() {
   if (db) return db;
   await client.connect();
   db = client.db(dbName);
-  return db;
+  return db
 }
 
 export async function closeDb() {

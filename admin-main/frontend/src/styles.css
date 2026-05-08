@@ -365,6 +365,16 @@ button {
   letter-spacing: -0.02em;
 }
 
+.section-head--dark {
+  align-items: flex-start;
+}
+
+.section-copy {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -420,6 +430,12 @@ button {
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--line);
+}
+
+.btn-danger {
+  background: rgba(185, 28, 28, 0.08);
+  color: var(--danger);
+  border: 1px solid rgba(185, 28, 28, 0.22);
 }
 
 .btn:hover {
@@ -513,6 +529,28 @@ th {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.therapist-add-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+}
+
+.therapist-add-form .btn {
+  align-self: end;
+  min-height: 46px;
+}
+
+.therapist-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .therapist-card {
   padding: 18px;
   display: grid;
@@ -538,8 +576,16 @@ th {
 
 .therapist-card dl {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin: 0;
+}
+
+.therapist-card dl > div {
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  padding: 12px;
 }
 
 .therapist-card dt {
@@ -549,6 +595,12 @@ th {
 
 .therapist-card dd {
   margin: 4px 0 0;
+}
+
+.therapist-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .split-grid {
@@ -677,10 +729,255 @@ th {
   overflow: hidden;
 }
 
+.records-page {
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+  align-items: start;
+}
+
+.child-records-card,
+.child-record-detail-card {
+  background: #1e1e1e;
+  border-color: #2d2d2d;
+  color: #f8fafc;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+}
+
+.child-record-detail-card {
+  background: linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%);
+  border-color: rgba(29, 78, 216, 0.12);
+  color: var(--text);
+  box-shadow: 0 16px 30px rgba(29, 78, 216, 0.08);
+}
+
+.child-records-card .section-head h2,
+.child-record-detail-card .section-head h2,
+.child-records-card .section-copy,
+.child-record-detail-card .section-copy {
+  color: #f8fafc;
+}
+
+.child-record-detail-card .section-head h2,
+.child-record-detail-card .section-copy {
+  color: var(--text);
+}
+
+.child-records-card .section-copy,
+.child-record-detail-card .section-copy {
+  opacity: 0.72;
+}
+
+.records-table-wrap {
+  border-color: #323232;
+  background: #202020;
+}
+
+.records-table {
+  color: #f8fafc;
+}
+
+.records-table th {
+  background: #262626;
+  color: rgba(248, 250, 252, 0.7);
+  border-bottom-color: #343434;
+  font-size: 0.83rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.records-table td {
+  border-bottom-color: #313131;
+}
+
+.records-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.records-table tbody tr:hover td,
+.records-table tbody tr.is-selected td {
+  background: #262626;
+}
+
+.record-name-button,
+.record-action-button {
+  border: 0;
+  background: transparent;
+  color: #111111;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+.record-name-button {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.record-name-button--dark {
+  color: #f8fafc;
+}
+
+.therapist-name-button {
+  color: #111111;
+}
+
+.record-detail-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.record-highlight {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.record-highlight div,
+.record-detail-item {
+  background: #262626;
+  border: 1px solid #343434;
+  border-radius: 16px;
+}
+
+.record-highlight div {
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.record-highlight span,
+.record-detail-item dt {
+  color: rgba(248, 250, 252, 0.6);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.record-highlight strong,
+.record-detail-item dd {
+  color: #f8fafc;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.record-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.record-detail-grid--single {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.therapist-detail-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.record-detail-item {
+  padding: 14px;
+}
+
+.record-detail-item dd {
+  margin: 6px 0 0;
+  line-height: 1.45;
+}
+
+.child-record-detail-card .record-highlight div,
+.child-record-detail-card .record-detail-item {
+  background: #ffffff;
+  border-color: rgba(29, 78, 216, 0.08);
+}
+
+.child-record-detail-card .record-highlight span,
+.child-record-detail-card .record-detail-item dt {
+  color: var(--muted);
+}
+
+.child-record-detail-card .record-highlight strong,
+.child-record-detail-card .record-detail-item dd {
+  color: var(--text);
+}
+
+.child-record-detail-card .change-request-item {
+  background: #ffffff;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row-action-btn {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.row-action-btn--danger {
+  background: rgba(185, 28, 28, 0.08);
+  color: var(--danger);
+  border-color: rgba(185, 28, 28, 0.14);
+}
+
+.row-action-btn--warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning);
+  border-color: rgba(245, 158, 11, 0.16);
+}
+
+.change-requests {
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.change-request-list {
+  display: grid;
+  gap: 12px;
+}
+
+.change-request-item {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-2);
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.change-request-top,
+.change-request-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.change-request-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+  justify-content: flex-start;
+}
+
+.change-request-item p {
+  margin: 0;
+  color: var(--text);
+}
+
 @media (max-width: 1200px) {
+  .therapist-add-form,
   .metrics-grid,
   .therapist-grid,
-  .split-grid {
+  .split-grid,
+  .records-page {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -696,9 +993,11 @@ th {
   }
 
   .dashboard-hero,
+  .therapist-add-form,
   .metrics-grid,
   .therapist-grid,
   .split-grid,
+  .records-page,
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -710,5 +1009,10 @@ th {
 
   .topbar-actions {
     flex-wrap: wrap;
+  }
+
+  .record-highlight,
+  .record-detail-grid {
+    grid-template-columns: 1fr;
   }
 }

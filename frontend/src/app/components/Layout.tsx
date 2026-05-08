@@ -1,21 +1,55 @@
-import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { Facebook, Instagram, Mail, Menu, Phone, Twitter, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Outlet, Link, useLocation } from "react-router";
+import { ChevronDown, Facebook, Instagram, Mail, Menu, Phone, Youtube, X } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { adminApiPost } from "../lib/api";
 
 const logo = "/images/logo_udai.png";
 
 export function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterMessage, setNewsletterMessage] = useState("");
   const location = useLocation();
-  const navigate = useNavigate();
+
+  async function handleNewsletterSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setNewsletterMessage("");
+
+    if (!newsletterEmail.trim()) {
+      setNewsletterMessage("Please enter your email address.");
+      return;
+    }
+
+    try {
+      await adminApiPost("/subscribers", { email: newsletterEmail.trim() });
+      setNewsletterMessage("Thanks. Your email has been saved.");
+      setNewsletterEmail("");
+    } catch (error) {
+      setNewsletterMessage(error instanceof Error ? error.message : "Unable to save your email.");
+    }
+  }
 
   const navigation = [
     { name: "About", href: "/about", type: "route" as const },
     { name: "Programs", href: "/programs", type: "route" as const },
-    { name: "Therapist", href: "#therapists", type: "section" as const },
-    { name: "Shop", href: "#shop", type: "section" as const },
-    { name: "Event", href: "#events", type: "section" as const },
-    { name: "Volunteer", href: "#volunteer", type: "section" as const },
+    {
+      name: "Projects",
+      type: "dropdown" as const,
+      children: [
+        { name: "Special School", href: "/projects#special-school" },
+        { name: "School Readiness Program", href: "/projects#school-readiness-program" },
+        { name: "Ek Prayas Vocational Training Center", href: "/projects#ek-prayas-vocational-training-center" },
+        { name: "Living Home", href: "/projects#living-home" },
+        { name: "Community", href: "/projects#community" },
+        { name: "Parents And Teacher w/s", href: "/projects#parents-and-teacher-ws" },
+        { name: "Courses Offered", href: "/projects#courses-offered" },
+      ],
+    },
+    { name: "Therapist", href: "/#therapists", type: "section" as const },
+    { name: "Shop", href: "/#shop", type: "section" as const },
+    { name: "Event", href: "/#events", type: "section" as const },
+    { name: "Volunteer", href: "/#volunteer", type: "section" as const },
   ];
 
   const isActive = (href: string) => {
@@ -24,6 +58,7 @@ export function Layout() {
   };
 
   useEffect(() => {
+    setProjectsOpen(false);
     if (!location.hash) {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -39,24 +74,9 @@ export function Layout() {
     });
   }, [location.hash, location.pathname]);
 
-  const handleSectionNavigation = (sectionHref: string) => {
-    const targetId = sectionHref.replace("#", "");
-
-    if (location.pathname === "/") {
-      const target = document.getElementById(targetId);
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    } else {
-      navigate({ pathname: "/", hash: sectionHref });
-    }
-
-    setMobileMenuOpen(false);
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 bg-white">
+      <header className="sticky top-0 z-50 bg-white border-b border-[#e7dfd7]">
         <div className="bg-[#2f5597] text-white">
           <div className="mx-auto flex max-w-7xl flex-col items-start justify-start gap-2 px-4 py-2 text-sm font-medium sm:px-6 md:flex-row md:items-center md:gap-10 lg:px-8">
             <a
@@ -84,7 +104,34 @@ export function Layout() {
 
             <div className="hidden items-center gap-8 lg:flex">
               {navigation.map((item) =>
-                item.type === "route" ? (
+                item.type === "dropdown" ? (
+                  <div key={item.name} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setProjectsOpen((prev) => !prev)}
+                      className={`inline-flex items-center gap-1 text-[15px] font-medium transition-colors ${
+                        projectsOpen ? "text-[#2f5597]" : "text-[#2b1b15] hover:text-[#2f5597]"
+                      }`}
+                    >
+                      {item.name}
+                      <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {projectsOpen ? (
+                      <div className="absolute left-0 top-full z-50 mt-3 w-72 rounded-2xl border border-[#e7dfd7] bg-white p-2 shadow-[0_18px_40px_rgba(41,29,22,0.12)]">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.name}
+                            to={child.href}
+                            onClick={() => setProjectsOpen(false)}
+                            className="block rounded-xl px-4 py-3 text-sm font-medium text-[#2b1b15] transition hover:bg-[#f7f4ef] hover:text-[#2f5597]"
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : item.type === "route" ? (
                   <Link
                     key={item.name}
                     to={item.href}
@@ -97,23 +144,23 @@ export function Layout() {
                     {item.name}
                   </Link>
                 ) : (
-                  <button
+                  <Link
                     key={item.name}
-                    type="button"
-                    onClick={() => handleSectionNavigation(item.href)}
+                    to={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
                     className="text-[15px] font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
                   >
                     {item.name}
-                  </button>
+                  </Link>
                 ),
               )}
-              <button
-                type="button"
-                onClick={() => handleSectionNavigation("#donate")}
+              <Link
+                to="/#donate"
+                onClick={() => setMobileMenuOpen(false)}
                 className="rounded-full bg-[#ef3c32] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(239,60,50,0.28)] transition hover:bg-[#da2f26]"
               >
                 Donate Now
-              </button>
+              </Link>
             </div>
 
             <button
@@ -133,7 +180,35 @@ export function Layout() {
             <div className="border-t border-slate-200 py-4 lg:hidden">
               <div className="flex flex-col gap-4">
                 {navigation.map((item) =>
-                  item.type === "route" ? (
+                  item.type === "dropdown" ? (
+                    <div key={item.name} className="rounded-2xl border border-[#e7dfd7] bg-[#fbfaf8] p-3">
+                      <button
+                        type="button"
+                        onClick={() => setProjectsOpen((prev) => !prev)}
+                        className="flex w-full items-center justify-between text-left text-sm font-medium text-[#2b1b15]"
+                      >
+                        <span>{item.name}</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {projectsOpen ? (
+                        <div className="mt-3 grid gap-2">
+                          {item.children.map((child) => (
+                            <Link
+                              key={child.name}
+                              to={child.href}
+                              onClick={() => {
+                                setProjectsOpen(false);
+                                setMobileMenuOpen(false);
+                              }}
+                              className="rounded-xl px-3 py-2 text-sm font-medium text-[#2b1b15] transition hover:bg-white hover:text-[#2f5597]"
+                            >
+                              {child.name}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : item.type === "route" ? (
                     <Link
                       key={item.name}
                       to={item.href}
@@ -147,23 +222,23 @@ export function Layout() {
                       {item.name}
                     </Link>
                   ) : (
-                    <button
+                    <Link
                       key={item.name}
-                      type="button"
-                      onClick={() => handleSectionNavigation(item.href)}
+                      to={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
                       className="text-left text-sm font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
                     >
                       {item.name}
-                    </button>
+                    </Link>
                   ),
                 )}
-                <button
-                  type="button"
-                  onClick={() => handleSectionNavigation("#donate")}
+                <Link
+                  to="/#donate"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="rounded-full bg-[#ef3c32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#da2f26]"
                 >
                   Donate Now
-                </button>
+                </Link>
               </div>
             </div>
           )}
@@ -174,22 +249,6 @@ export function Layout() {
       <main className="flex-1">
         <Outlet />
       </main>
-
-      <div className="bg-white py-10">
-        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-          <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#a79b95]">
-            Trusted by our partners & sponsors
-          </div>
-          <div className="mt-8 grid grid-cols-2 gap-y-8 text-xl font-semibold text-[#7b7270] sm:grid-cols-3 lg:grid-cols-6">
-            <div>Global Aid Alliance</div>
-            <div>Tech For Good</div>
-            <div>Future Foundations</div>
-            <div>Community First</div>
-            <div>Education United</div>
-            <div>Health & Hope</div>
-          </div>
-        </div>
-      </div>
 
       <footer className="bg-[#2f5597] text-white">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
@@ -209,7 +268,15 @@ export function Layout() {
                 >
                   <Facebook className="h-5 w-5 text-white" />
                 </a>
-                <Twitter className="h-5 w-5 text-white" />
+                <a
+                  href="https://www.youtube.com/@udaiworkingtogetherworkssp2603"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="YouTube"
+                  className="transition hover:text-white/80"
+                >
+                  <Youtube className="h-5 w-5 text-white" />
+                </a>
                 <a
                   href="https://www.instagram.com/udaispecialschool/"
                   target="_blank"
@@ -235,8 +302,8 @@ export function Layout() {
             <div>
               <h3 className="text-sm font-semibold text-[#ffd86b]">Get Involved</h3>
               <ul className="mt-6 space-y-4 text-sm text-white/78">
-                <li><button type="button" onClick={() => handleSectionNavigation("#donate")}>Donate</button></li>
-                <li><button type="button" onClick={() => handleSectionNavigation("#volunteer")}>Volunteer</button></li>
+                <li><Link to="/#donate">Donate</Link></li>
+                <li><Link to="/#volunteer">Volunteer</Link></li>
                 <li><Link to="/get-involved">Partner with Us</Link></li>
                 <li><Link to="/contact">Contact Us</Link></li>
                 <li><Link to="/contact">Fundraise</Link></li>
@@ -248,14 +315,22 @@ export function Layout() {
               <p className="mt-6 text-sm leading-8 text-white/78">
                 Join our newsletter for inspiring stories and updates.
               </p>
-              <div className="mt-5">
-                <div className="rounded-md bg-white/10 px-4 py-3 text-sm text-white/55">
-                  Your email address
-                </div>
-                <button className="mt-4 w-full rounded-md bg-[#d24d4e] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#c34345]">
+              <form onSubmit={handleNewsletterSubmit} className="mt-5">
+                <input
+                  type="email"
+                  value={newsletterEmail}
+                  onChange={(event) => setNewsletterEmail(event.target.value)}
+                  placeholder="Your email address"
+                  className="w-full rounded-md border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/55 focus:border-white/25 focus:ring-2 focus:ring-white/20"
+                />
+                <button
+                  type="submit"
+                  className="mt-4 w-full rounded-md bg-[#d24d4e] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#c34345]"
+                >
                   Subscribe
                 </button>
-              </div>
+                {newsletterMessage ? <p className="mt-3 text-xs text-white/75">{newsletterMessage}</p> : null}
+              </form>
             </div>
           </div>
 

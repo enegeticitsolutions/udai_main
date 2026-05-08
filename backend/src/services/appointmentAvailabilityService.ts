@@ -96,14 +96,15 @@ export async function getDepartmentAvailability(department: string, date: string
 
   return slotTimes.map((time) => {
     const bookedCount = bookedByTime.filter((item) => item.appointmentTime === time).length;
-    const isAvailable = bookedCount === 0 && departmentTherapists.length > 0;
+    const availableCount = Math.max(departmentTherapists.length - bookedCount, 0);
+    const isAvailable = availableCount > 0;
 
     return {
       time,
       label: formatTimeLabel(time),
       totalTherapists: departmentTherapists.length,
       bookedCount,
-      availableCount: isAvailable ? 1 : 0,
+      availableCount,
       isAvailable,
     } satisfies AvailabilitySlot;
   });
@@ -124,7 +125,7 @@ export async function reserveDepartmentTherapist(department: string, date: strin
       item.status !== "rejected",
   );
 
-  if (activeBookings.length > 0) {
+  if (activeBookings.length >= departmentTherapists.length) {
     return null;
   }
 

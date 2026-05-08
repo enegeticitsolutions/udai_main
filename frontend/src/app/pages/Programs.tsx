@@ -86,18 +86,18 @@ export function Programs() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="bg-gray-900 text-white py-5 sm:py-7">
+      <section className="text-[#2b1b15] py-5 sm:py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <h1 className="text-3xl sm:text-4xl mb-0">Our Programs</h1>
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-3xl sm:text-4xl mb-2">Our Programs</h1>
           </div>
         </div>
       </section>
 
       {/* Programs Grid */}
-      <section className="py-16 sm:py-24">
+      <section className="py-4 sm:py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-16">
+          <div className="space-y-12 sm:space-y-14">
             {programs.map((program, index) => {
               const Icon = program.icon;
               const isEven = index % 2 === 0;
@@ -105,11 +105,11 @@ export function Programs() {
               return (
                 <div key={index} className={`grid md:grid-cols-2 gap-8 items-center ${!isEven ? 'md:grid-flow-dense' : ''}`}>
                   <div className={!isEven ? 'md:col-start-2' : ''}>
-                    <div className="size-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-6">
+                    <div className="size-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4">
                       <Icon className="size-6 text-emerald-600" />
                     </div>
-                    <h2 className="text-3xl mb-4">{program.title}</h2>
-                    <p className="text-gray-600 mb-6">{program.description}</p>
+                    <h2 className="text-3xl mb-3">{program.title}</h2>
+                    <p className="text-gray-600 mb-4">{program.description}</p>
                     <div className="space-y-3">
                       {program.services.map((service, idx) => (
                         <div key={idx} className="flex items-start gap-3">
@@ -165,22 +165,22 @@ export function Programs() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 sm:py-24 bg-emerald-600 text-white">
+      <section className="py-16 sm:py-24 bg-white text-[#2b1b15]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl mb-6">Support Our Programs</h2>
-          <p className="text-lg text-emerald-100 mb-8">
+          <p className="text-lg text-gray-600 mb-8">
             Your contribution helps us expand our reach and deepen our impact. Together, we can transform more lives and strengthen more communities.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="/#donate"
-              className="px-8 py-3 bg-white text-emerald-600 rounded-md hover:bg-gray-100 transition-colors"
+              className="px-8 py-3 bg-[#ef3c32] text-white rounded-md hover:bg-[#da2f26] transition-colors"
             >
               Make a Donation
             </a>
             <a
               href="/get-involved"
-              className="px-8 py-3 border border-white text-white rounded-md hover:bg-emerald-700 transition-colors"
+              className="px-8 py-3 border border-[#e7dfd7] text-[#2b1b15] rounded-md hover:bg-[#f7f2eb] transition-colors"
             >
               Volunteer
             </a>

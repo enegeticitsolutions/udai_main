@@ -109,6 +109,13 @@ export interface Order {
   paymentStatus: "initiated" | "pending" | "paid" | "failed";
   orderStatus: "new" | "confirmed" | "packed" | "shipped" | "delivered" | "cancelled";
   notes: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+  razorpayAmount?: number;
+  razorpayCurrency?: string;
+  razorpayReceipt?: string;
+  razorpayStatus?: string;
   createdAt: string;
   updatedAt?: string;
 }

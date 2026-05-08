@@ -1,14 +1,49 @@
 import { Outlet, Link, useLocation } from "react-router";
-import { Menu, X, Heart, Facebook, Twitter, Instagram, Linkedin, Mail } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, Menu, X, Heart, Facebook, Youtube, Instagram, Linkedin, Mail } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { adminApiPost } from "../lib/api";
 
 export function NewLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterMessage, setNewsletterMessage] = useState("");
   const location = useLocation();
+
+  async function handleNewsletterSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setNewsletterMessage("");
+
+    if (!newsletterEmail.trim()) {
+      setNewsletterMessage("Please enter your email address.");
+      return;
+    }
+
+    try {
+      await adminApiPost("/subscribers", { email: newsletterEmail.trim() });
+      setNewsletterMessage("Thanks. Your email has been saved.");
+      setNewsletterEmail("");
+    } catch (error) {
+      setNewsletterMessage(error instanceof Error ? error.message : "Unable to save your email.");
+    }
+  }
 
   const navigation = [
     { name: "About", href: "/about" },
     { name: "Programs", href: "/programs" },
+    {
+      name: "Projects",
+      type: "dropdown" as const,
+      children: [
+        { name: "Special School", href: "/projects#special-school" },
+        { name: "School Readiness Program", href: "/projects#school-readiness-program" },
+        { name: "Ek Prayas Vocational Training Center", href: "/projects#ek-prayas-vocational-training-center" },
+        { name: "Living Home", href: "/projects#living-home" },
+        { name: "Community", href: "/projects#community" },
+        { name: "Parents And Teacher w/s", href: "/projects#parents-and-teacher-ws" },
+        { name: "Courses Offered", href: "/projects#courses-offered" },
+      ],
+    },
     { name: "Therapist", href: "/#therapists" },
     { name: "Shop", href: "/#shop" },
     { name: "Event", href: "/#events" },
@@ -21,21 +56,19 @@ export function NewLayout() {
     return location.pathname.startsWith(href);
   };
 
-  const handleNavClick = (href: string) => {
-    if (href.startsWith("/#")) {
-      const id = href.substring(2);
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
-    }
+  const closeMenus = () => {
     setMobileMenuOpen(false);
+    setProjectsOpen(false);
   };
+
+  useEffect(() => {
+    setProjectsOpen(false);
+  }, [location.pathname, location.hash]);
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-50">
+      <header className="bg-white shadow-md sticky top-0 z-50 border-b border-gray-200">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
@@ -52,15 +85,46 @@ export function NewLayout() {
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-8">
               {navigation.map((item) => {
+                if (item.type === "dropdown") {
+                  return (
+                    <div key={item.name} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setProjectsOpen((prev) => !prev)}
+                        className={`inline-flex items-center gap-1 font-medium transition-colors ${
+                          projectsOpen ? "text-blue-600" : "text-gray-700 hover:text-blue-600"
+                        }`}
+                      >
+                        {item.name}
+                        <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {projectsOpen ? (
+                        <div className="absolute left-0 top-full z-50 mt-3 w-72 rounded-2xl border border-gray-200 bg-white p-2 shadow-[0_18px_40px_rgba(41,29,22,0.12)]">
+                          {item.children.map((child) => (
+                            <Link
+                              key={child.name}
+                              to={child.href}
+                              onClick={closeMenus}
+                              className="block rounded-xl px-4 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50 hover:text-blue-600"
+                            >
+                              {child.name}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                }
                 if (item.href.startsWith("/#")) {
                   return (
-                    <button
+                    <Link
                       key={item.name}
-                      onClick={() => handleNavClick(item.href)}
+                      to={item.href}
+                      onClick={closeMenus}
                       className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
                     >
                       {item.name}
-                    </button>
+                    </Link>
                   );
                 }
                 return (
@@ -102,17 +166,46 @@ export function NewLayout() {
             <div className="lg:hidden py-4 border-t">
               <div className="flex flex-col gap-4">
                 {navigation.map((item) => {
-                  if (item.href.startsWith("/#")) {
-                    return (
+                if (item.type === "dropdown") {
+                  return (
+                    <div key={item.name} className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
                       <button
-                        key={item.name}
-                        onClick={() => handleNavClick(item.href)}
-                        className="text-gray-700 hover:text-blue-600 transition-colors font-medium text-left"
+                        type="button"
+                        onClick={() => setProjectsOpen((prev) => !prev)}
+                        className="flex w-full items-center justify-between text-left text-gray-700 font-medium"
                       >
-                        {item.name}
+                        <span>{item.name}</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
                       </button>
-                    );
-                  }
+                      {projectsOpen ? (
+                        <div className="mt-3 grid gap-2">
+                          {item.children.map((child) => (
+                            <Link
+                              key={child.name}
+                              to={child.href}
+                              onClick={closeMenus}
+                              className="rounded-xl px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-white hover:text-blue-600"
+                            >
+                              {child.name}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                }
+                if (item.href.startsWith("/#")) {
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={closeMenus}
+                      className="text-gray-700 hover:text-blue-600 transition-colors font-medium text-left"
+                    >
+                      {item.name}
+                    </Link>
+                  );
+                }
                   return (
                     <Link
                       key={item.name}
@@ -128,7 +221,7 @@ export function NewLayout() {
                 })}
                 <Link
                   to="/#donate"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={closeMenus}
                   className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg text-center hover:from-emerald-700 hover:to-emerald-800 transition-all font-medium shadow-lg"
                 >
                   Donate Now
@@ -229,16 +322,19 @@ export function NewLayout() {
               <p className="text-gray-400 text-sm mb-4">
                 Subscribe to our newsletter for updates and stories.
               </p>
-              <div className="flex gap-2 mb-4">
+              <form onSubmit={handleNewsletterSubmit} className="mb-4 flex gap-2">
                 <input
                   type="email"
                   placeholder="Your email"
+                  value={newsletterEmail}
+                  onChange={(event) => setNewsletterEmail(event.target.value)}
                   className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
                 />
-                <button className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                <button type="submit" className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                   <Mail className="size-4" />
                 </button>
-              </div>
+              </form>
+              {newsletterMessage ? <p className="mb-4 text-xs text-gray-400">{newsletterMessage}</p> : null}
               
               {/* Social Icons */}
               <div className="flex gap-3">
@@ -252,11 +348,13 @@ export function NewLayout() {
                   <Facebook className="size-5" />
                 </a>
                 <a
-                  href="#"
+                  href="https://www.youtube.com/@udaiworkingtogetherworkssp2603"
+                  target="_blank"
+                  rel="noreferrer"
                   className="size-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
-                  aria-label="Twitter"
+                  aria-label="YouTube"
                 >
-                  <Twitter className="size-5" />
+                  <Youtube className="size-5" />
                 </a>
                 <a
                   href="#"

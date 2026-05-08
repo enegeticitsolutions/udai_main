@@ -1,13 +1,45 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { apiPost } from "../lib/api";
-import { clearCheckoutProduct, getCart, getCheckoutProduct } from "../lib/cart";
+import { clearCart, clearCheckoutProduct, getCart, getCheckoutProduct } from "../lib/cart";
 import type { CartItem } from "../lib/cart";
 import type { Order, Product } from "../types/api";
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: {
+      key: string;
+      amount: number;
+      currency: string;
+      name: string;
+      description: string;
+      order_id: string;
+      prefill: {
+        name: string;
+        email: string;
+        contact: string;
+      };
+      theme?: {
+        color?: string;
+      };
+      notes?: Record<string, string>;
+      handler?: (response: {
+        razorpay_payment_id: string;
+        razorpay_order_id: string;
+        razorpay_signature: string;
+      }) => void;
+      modal?: {
+        ondismiss?: () => void;
+      };
+    }) => {
+      open: () => void;
+    };
+  }
+}
 
 type PaymentMethod = "qr" | "upi" | "card" | "netbanking";
 
@@ -45,6 +77,62 @@ function money(total: number) {
   return `₹${total.toFixed(2)}`;
 }
 
+type RazorpayCreateResponse = {
+  order: Order;
+  razorpay: {
+    keyId: string;
+    orderId: string;
+    amount: number;
+    currency: string;
+    name: string;
+    description: string;
+    prefill: {
+      name: string;
+      email: string;
+      contact: string;
+    };
+  };
+};
+
+type RazorpayVerificationResponse = Order;
+
+type RazorpayQrCreateResponse = {
+  order: Order;
+  qrCode: {
+    id: string;
+    status: string;
+    imageUrl: string;
+    imageContent?: string;
+    amount: number;
+    currency: string;
+    isFallback?: boolean;
+  };
+};
+
+function loadRazorpayScript() {
+  return new Promise<boolean>((resolve) => {
+    if (typeof window !== "undefined" && typeof window.Razorpay !== "undefined") {
+      resolve(true);
+      return;
+    }
+
+    const existingScript = document.getElementById("razorpay-checkout-script");
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(true), { once: true });
+      existingScript.addEventListener("error", () => resolve(false), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "razorpay-checkout-script";
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export function Checkout() {
   const navigate = useNavigate();
   const [checkoutProduct, setCheckoutProduct] = useState<Product | null>(null);
@@ -52,6 +140,7 @@ export function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [address, setAddress] = useState<AddressForm>(initialAddress);
   const [submitting, setSubmitting] = useState(false);
+  const [qrPayment, setQrPayment] = useState<RazorpayQrCreateResponse | null>(null);
 
   useEffect(() => {
     const selectedProduct = getCheckoutProduct();
@@ -129,12 +218,72 @@ export function Checkout() {
         notes: address.instructions.trim(),
       };
 
-      await apiPost<Order>("/forms/orders", payload);
-      toast.success("Payment initiated successfully. Order saved for admin review.");
-      clearCheckoutProduct();
-      navigate("/products");
+      if (paymentMethod === "qr") {
+        const qrCheckout = await apiPost<RazorpayQrCreateResponse>("/payments/razorpay/qr-code", payload);
+        setQrPayment(qrCheckout);
+        toast.success(`QR code generated for order ${qrCheckout.order.orderNumber ?? qrCheckout.order.id}.`);
+        return;
+      }
+
+      setQrPayment(null);
+      const checkout = await apiPost<RazorpayCreateResponse>("/payments/razorpay/order", payload);
+      const scriptLoaded = await loadRazorpayScript();
+
+      if (!scriptLoaded) {
+        throw new Error("Failed to load Razorpay checkout.");
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const instance = new window.Razorpay({
+          key: checkout.razorpay.keyId,
+          amount: checkout.razorpay.amount,
+          currency: checkout.razorpay.currency,
+          name: checkout.razorpay.name,
+          description: checkout.razorpay.description,
+          order_id: checkout.razorpay.orderId,
+          prefill: checkout.razorpay.prefill,
+          theme: {
+            color: "#2f5597",
+          },
+          notes: {
+            localOrderId: checkout.order.id,
+            paymentMethod,
+          },
+          handler: async (response) => {
+            try {
+              const verified = await apiPost<RazorpayVerificationResponse>("/payments/razorpay/verify", {
+                localOrderId: checkout.order.id,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                paymentMethod,
+              });
+
+              clearCheckoutProduct();
+              clearCart();
+              toast.success(`Payment verified successfully. Order ${verified.orderNumber ?? verified.id} is confirmed.`);
+              navigate("/products");
+              resolve();
+            } catch (verificationError) {
+              reject(verificationError instanceof Error ? verificationError : new Error("Payment verification failed."));
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              reject(new Error("Payment window closed before completion."));
+            },
+          },
+        });
+
+        instance.open();
+      });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save your order.");
+      const message = error instanceof Error ? error.message : "Unable to start Razorpay checkout.";
+      if (message === "Payment window closed before completion.") {
+        toast.info(message);
+      } else {
+        toast.error(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -251,12 +400,22 @@ export function Checkout() {
 
             <div className="rounded-[1.4rem] bg-white p-6 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:p-8">
               <h2 className="text-2xl font-semibold text-[#2b1b15]">Payment Method</h2>
-              <p className="mt-2 text-sm text-[#776a66]">Choose how you want to pay. Cash on delivery is not available.</p>
+              <p className="mt-2 text-sm text-[#776a66]">
+                This checkout now opens Razorpay test checkout for the selected payment method.
+              </p>
 
               <div className="mt-6 grid gap-4">
                 <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "qr" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
-                    <input type="radio" name="payment" checked={paymentMethod === "qr"} onChange={() => setPaymentMethod("qr")} />
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "qr"}
+                      onChange={() => {
+                        setPaymentMethod("qr");
+                        setQrPayment(null);
+                      }}
+                    />
                     <div>
                       <div className="font-semibold text-[#2b1b15]">QR Code</div>
                       <div className="text-sm text-[#776a66]">Scan the QR code to complete payment.</div>
@@ -264,35 +423,68 @@ export function Checkout() {
                   </div>
                   {paymentMethod === "qr" ? (
                     <div className="mt-4 rounded-2xl border border-dashed border-[#cfd8f6] bg-[#f7f9ff] p-5 text-center">
-                      <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-2xl border border-[#d8e0fb] bg-white text-xs text-[#6676a8]">
-                        QR Payment Placeholder
-                      </div>
-                      <p className="mt-3 text-sm text-[#776a66]">Scan to pay your order amount securely.</p>
+                      {qrPayment ? (
+                        <>
+                          <img
+                            src={qrPayment.qrCode.imageUrl}
+                            alt="Razorpay payment QR code"
+                            className="mx-auto h-44 w-44 rounded-2xl border border-[#d8e0fb] bg-white object-contain p-2"
+                          />
+                          <p className="mt-3 text-sm text-[#776a66]">
+                            Test QR generated for {money(qrPayment.qrCode.amount / 100)}. Scan it from a UPI app.
+                          </p>
+                          {qrPayment.qrCode.isFallback ? (
+                            <p className="mt-2 text-xs text-[#9a6a12]">
+                              Razorpay QR API is unavailable for this test account, so this is a local test QR.
+                            </p>
+                          ) : null}
+                          {qrPayment.qrCode.imageContent ? (
+                            <a
+                              href={qrPayment.qrCode.imageContent}
+                              className="mt-3 inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#2f5597] shadow-sm"
+                            >
+                              Open UPI Link
+                            </a>
+                          ) : null}
+                        </>
+                      ) : (
+                        <p className="text-sm text-[#776a66]">
+                          Click Pay Now to generate a Razorpay test QR code for this order.
+                        </p>
+                      )}
                     </div>
                   ) : null}
                 </label>
 
                 <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "card" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
-                    <input type="radio" name="payment" checked={paymentMethod === "card"} onChange={() => setPaymentMethod("card")} />
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "card"}
+                      onChange={() => {
+                        setPaymentMethod("card");
+                        setQrPayment(null);
+                      }}
+                    />
                     <div>
                       <div className="font-semibold text-[#2b1b15]">Credit Card / Debit Card</div>
                       <div className="text-sm text-[#776a66]">Pay securely with your card.</div>
                     </div>
                   </div>
-                  {paymentMethod === "card" ? (
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <Input placeholder="Cardholder name" />
-                      <Input placeholder="Card number" />
-                      <Input placeholder="Expiry MM/YY" />
-                      <Input placeholder="CVV" />
-                    </div>
-                  ) : null}
                 </label>
 
                 <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "upi" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
-                    <input type="radio" name="payment" checked={paymentMethod === "upi"} onChange={() => setPaymentMethod("upi")} />
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "upi"}
+                      onChange={() => {
+                        setPaymentMethod("upi");
+                        setQrPayment(null);
+                      }}
+                    />
                     <div>
                       <div className="font-semibold text-[#2b1b15]">Pay with UPI</div>
                       <div className="text-sm text-[#776a66]">Enter your UPI ID to complete payment.</div>
@@ -307,7 +499,15 @@ export function Checkout() {
 
                 <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "netbanking" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
-                    <input type="radio" name="payment" checked={paymentMethod === "netbanking"} onChange={() => setPaymentMethod("netbanking")} />
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "netbanking"}
+                      onChange={() => {
+                        setPaymentMethod("netbanking");
+                        setQrPayment(null);
+                      }}
+                    />
                     <div>
                       <div className="font-semibold text-[#2b1b15]">Net Banking</div>
                       <div className="text-sm text-[#776a66]">Choose your bank and continue to pay.</div>
@@ -332,7 +532,7 @@ export function Checkout() {
                 disabled={submitting}
                 className="mt-6 w-full rounded-full bg-[#2f5597] py-6 text-base font-semibold text-white shadow-[0_10px_20px_rgba(47,85,151,0.22)] hover:bg-[#264882]"
               >
-                {submitting ? "Processing..." : "Pay Now"}
+                {submitting ? "Processing..." : paymentMethod === "qr" && !qrPayment ? "Generate QR" : "Pay Now"}
               </Button>
             </div>
           </form>

@@ -503,6 +503,10 @@ export function Appointment() {
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {availability.slots.map((slot) => {
                       const active = form.appointmentTime === slot.time;
+                      const availableLabel =
+                        slot.availableCount > 0
+                          ? `${slot.availableCount} therapist${slot.availableCount > 1 ? "s" : ""} available`
+                          : "Fully booked";
 
                       return (
                         <button
@@ -524,7 +528,7 @@ export function Appointment() {
                         >
                           <div className="text-sm font-semibold text-[#24396f]">{slot.label}</div>
                           <div className="mt-1 text-xs text-[#6f6460]">
-                            {slot.isAvailable ? "Available" : "Fully booked"}
+                            {availableLabel}
                           </div>
                           <div className="mt-3 inline-flex rounded-full bg-[#f3f6ff] px-3 py-1 text-xs font-semibold text-[#2f5597]">
                             {active ? "Selected" : slot.isAvailable ? "Tap to choose" : "Unavailable"}

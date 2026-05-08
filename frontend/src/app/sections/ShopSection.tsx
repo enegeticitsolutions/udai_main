@@ -3,6 +3,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useApiData } from "../hooks/useApiData";
+import fallbackProducts from "../data/products.json";
 import type { Product } from "../types/api";
 
 export function ShopSection() {
@@ -10,6 +11,7 @@ export function ShopSection() {
   const { data: products, isLoading, error } = useApiData<Product[]>(
     "/content/products",
     [],
+    fallbackProducts as Product[],
   );
   const displayProducts = products.slice(0, 4);
 
@@ -37,10 +39,10 @@ export function ShopSection() {
 
           <button
             type="button"
-            onClick={() => navigate("/products")}
+            onClick={() => navigate("/new-arrivals")}
             className="relative z-10 inline-flex cursor-pointer items-center gap-2 self-start rounded-full border border-[#ff6a58] px-6 py-3 text-sm font-semibold text-[#ff3d39] transition hover:bg-[#fff0ec] lg:self-center"
           >
-            Shop Now
+            Shop New Arrivals
             <ArrowRight className="h-4 w-4" />
           </button>
         </motion.div>

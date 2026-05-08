@@ -5,17 +5,43 @@ import { apiPost } from "../lib/api";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 
+const interestAreaOptions = [
+  "Community outreach",
+  "Program implementation support",
+  "Skills-based volunteering",
+  "Event support and coordination",
+  "Other",
+];
+
 export function GetInvolved() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
+    aadhar: "",
+    aadharOther: "",
+    pan: "",
+    panOther: "",
+    fullAddress: "",
+    fullAddressOther: "",
     interestArea: "Community outreach",
+    interestAreaOther: "",
     availability: "Weekends",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const isErrorFeedback =
+    feedback !== null &&
+    (feedback === "Aadhar must be exactly 12 digits." ||
+      feedback === "Phone number must be 10 digits." ||
+      feedback.startsWith("Unable to"));
+
+  function formatAadharDisplay(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 12);
+    const groups = digits.match(/.{1,4}/g);
+    return groups ? groups.join(" ") : "";
+  }
 
   const opportunities = [
     {
@@ -89,6 +115,16 @@ export function GetInvolved() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!/^\d{12}$/.test(formData.aadhar)) {
+      setFeedback("Aadhar must be exactly 12 digits.");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(formData.phone)) {
+      setFeedback("Phone number must be 10 digits.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setFeedback(null);
@@ -98,7 +134,14 @@ export function GetInvolved() {
         name: "",
         email: "",
         phone: "",
+        aadhar: "",
+        aadharOther: "",
+        pan: "",
+        panOther: "",
+        fullAddress: "",
+        fullAddressOther: "",
         interestArea: "Community outreach",
+        interestAreaOther: "",
         availability: "Weekends",
         message: "",
       });
@@ -114,15 +157,15 @@ export function GetInvolved() {
       <section className="relative bg-gray-900 py-16 text-white sm:py-24">
         <div className="absolute inset-0 overflow-hidden">
           <ImageWithFallback
-            src="https://images.unsplash.com/photo-1759709042164-0dd78a39028b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWxwaW5nJTIwaGFuZHMlMjBjaGFyaXR5fGVufDF8fHx8MTc3MzcyODUyM3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+            src="/images/involved.png"
             alt="Helping hands"
             className="h-full w-full object-cover opacity-30"
           />
         </div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
-            <h1 className="mb-6 text-4xl sm:text-5xl">Get Involved</h1>
-            <p className="text-lg text-gray-300 sm:text-xl">
+            <h1 className="mb-6 text-4xl text-white sm:text-5xl">Get Involved</h1>
+            <p className="text-lg text-white sm:text-xl">
               There are many ways to support UDAIREHAB&apos;s mission. Whether you volunteer your time, donate resources, or partner with us, your involvement makes a real difference.
             </p>
           </div>
@@ -143,15 +186,15 @@ export function GetInvolved() {
               const Icon = opportunity.icon;
               return (
                 <div key={index} className="rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-lg">
-                  <div className="mb-4 flex size-12 items-center justify-center rounded-lg bg-emerald-100">
-                    <Icon className="size-6 text-emerald-600" />
+                <div className="mb-4 flex size-12 items-center justify-center rounded-lg bg-[#ffe2e2]">
+                    <Icon className="size-6 text-[#ff4b57]" />
                   </div>
                   <h3 className="mb-3 text-xl">{opportunity.title}</h3>
                   <p className="mb-4 text-sm text-gray-600">{opportunity.description}</p>
                   <div className="space-y-2">
                     {opportunity.options.map((option, idx) => (
                       <div key={idx} className="flex items-start gap-2">
-                        <div className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-emerald-600" />
+                        <div className="mt-1.5 size-1.5 flex-shrink-0 rounded-full bg-black" />
                         <p className="text-sm text-gray-600">{option}</p>
                       </div>
                     ))}
@@ -168,7 +211,7 @@ export function GetInvolved() {
           <div className="grid items-center gap-12 md:grid-cols-2">
             <div className="relative h-96 overflow-hidden rounded-lg shadow-lg">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1771340590660-61ffd7937f88?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZWhhYmlsaXRhdGlvbiUyMHN1cHBvcnQlMjBjb21tdW5pdHl8ZW58MXx8fHwxNzczNzI4NTIxfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+                src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1200"
                 alt="Volunteer in action"
                 className="h-full w-full object-cover"
               />
@@ -181,7 +224,7 @@ export function GetInvolved() {
               <p className="mb-6 text-gray-600">
                 Our volunteers are the backbone of our organization. They bring diverse skills, perspectives, and dedication that make our programs possible. Whether you have a few hours a month or can commit more regularly, there&apos;s a role for you.
               </p>
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-6">
+              <div className="rounded-lg border border-[#e7dfd2] bg-[#f8f3ea] p-6">
                 <h3 className="mb-2 text-lg">Volunteer Requirements</h3>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li>• Must be 18 years or older (or 16+ with parental consent)</li>
@@ -228,27 +271,85 @@ export function GetInvolved() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input
+                  inputMode="numeric"
+                  maxLength={10}
                   value={formData.phone}
                   onChange={(event) => setFormData((current) => ({ ...current, phone: event.target.value }))}
                   placeholder="Phone number"
                   required
                   className="bg-white"
                 />
-                <Input
+                <select
                   value={formData.availability}
                   onChange={(event) => setFormData((current) => ({ ...current, availability: event.target.value }))}
-                  placeholder="Availability"
+                  className="h-11 rounded-md border border-input bg-white px-3 text-sm outline-none"
+                  required
+                >
+                  <option value="Weekends">Weekends</option>
+                  <option value="Weekdays">Weekdays</option>
+                  <option value="Evenings">Evenings</option>
+                  <option value="Flexible">Flexible</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  inputMode="numeric"
+                  maxLength={14}
+                  value={formatAadharDisplay(formData.aadhar)}
+                  onChange={(event) =>
+                    setFormData((current) => ({
+                      ...current,
+                      aadhar: event.target.value.replace(/\D/g, "").slice(0, 12),
+                    }))
+                  }
+                  placeholder="0000 0000 0000"
+                  required
+                  className="bg-white"
+                />
+                <Input
+                  value={formData.pan}
+                  onChange={(event) => setFormData((current) => ({ ...current, pan: event.target.value }))}
+                  placeholder="PAN"
                   required
                   className="bg-white"
                 />
               </div>
-              <Input
-                value={formData.interestArea}
-                onChange={(event) => setFormData((current) => ({ ...current, interestArea: event.target.value }))}
-                placeholder="Interest area"
-                required
-                className="bg-white"
-              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  value={formData.fullAddress}
+                  onChange={(event) => setFormData((current) => ({ ...current, fullAddress: event.target.value }))}
+                  placeholder="Full Address"
+                  required
+                  className="bg-white"
+                />
+
+                <div className="space-y-2">
+                  <select
+                    value={formData.interestArea}
+                    onChange={(event) => setFormData((current) => ({ ...current, interestArea: event.target.value }))}
+                    className="h-11 w-full rounded-md border border-input bg-white px-3 text-sm outline-none"
+                    required
+                  >
+                    {interestAreaOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  {formData.interestArea === "Other" ? (
+                    <Input
+                      value={formData.interestAreaOther}
+                      onChange={(event) => setFormData((current) => ({ ...current, interestAreaOther: event.target.value }))}
+                      placeholder="Specify interest area"
+                      className="bg-white"
+                    />
+                  ) : null}
+                </div>
+              </div>
+
               <Textarea
                 value={formData.message}
                 onChange={(event) => setFormData((current) => ({ ...current, message: event.target.value }))}
@@ -258,7 +359,14 @@ export function GetInvolved() {
               />
 
               {feedback ? (
-                <div className="rounded-lg border border-[#bddcc3] bg-[#edf8ef] px-4 py-3 text-sm text-[#2f6c3e]">
+                <div
+                  className={`rounded-lg px-4 py-3 text-sm ${
+                    isErrorFeedback
+                      ? "border border-[#f3b4b4] bg-[#fff1f1] text-[#b42318]"
+                      : "border border-[#bddcc3] bg-[#edf8ef] text-[#2f6c3e]"
+                  }`}
+                  role="alert"
+                >
                   {feedback}
                 </div>
               ) : null}
@@ -284,43 +392,32 @@ export function GetInvolved() {
             </p>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="border border-gray-200 bg-white p-6 text-center shadow-md">
-              <div className="mb-2 text-4xl text-emerald-600">$50</div>
-              <div className="text-sm text-gray-600">Provides school supplies for 5 students</div>
-            </div>
-            <div className="border border-gray-200 bg-white p-6 text-center shadow-md">
-              <div className="mb-2 text-4xl text-emerald-600">$100</div>
-              <div className="text-sm text-gray-600">Funds one month of rehabilitation therapy</div>
-            </div>
-            <div className="border border-gray-200 bg-white p-6 text-center shadow-md">
-              <div className="mb-2 text-4xl text-emerald-600">$250</div>
-              <div className="text-sm text-gray-600">Supports vocational training for one person</div>
-            </div>
-            <div className="border border-gray-200 bg-white p-6 text-center shadow-md">
-              <div className="mb-2 text-4xl text-emerald-600">$500</div>
-              <div className="text-sm text-gray-600">Establishes a community health clinic</div>
-            </div>
+          <div className="overflow-hidden rounded-[1.5rem] border border-gray-200 bg-white shadow-md">
+            <ImageWithFallback
+              src="/images/impact-glance.png"
+              alt="Our impact at a glance"
+              className="h-auto w-full object-cover"
+            />
           </div>
         </div>
       </section>
 
-      <section className="bg-emerald-600 py-16 text-white sm:py-24">
+      <section className="bg-white py-16 shadow-[0_-18px_40px_rgba(0,0,0,0.09),0_18px_40px_rgba(0,0,0,0.09)] sm:py-24">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="mb-6 text-3xl sm:text-4xl">Ready to Make a Difference?</h2>
-          <p className="mb-8 text-lg text-emerald-100">
+          <h2 className="mb-6 text-3xl sm:text-4xl text-[#2b1b15]">Ready to Make a Difference?</h2>
+          <p className="mb-8 text-lg text-[#6f615a]">
             Join our community of supporters and help us create lasting change. Every contribution, big or small, makes a real impact.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <a
               href="/#donate"
-              className="rounded-md bg-white px-8 py-3 text-emerald-600 transition-colors hover:bg-gray-100"
+              className="rounded-md bg-[#ff4b57] px-8 py-3 text-white transition-colors hover:bg-[#ec3f4c]"
             >
               Get Started
             </a>
             <a
               href="/contact"
-              className="rounded-md border border-white px-8 py-3 text-white transition-colors hover:bg-emerald-700"
+              className="rounded-md border border-[#eadfd7] px-8 py-3 text-[#2b1b15] transition-colors hover:bg-[#fff8f4]"
             >
               Contact Us
             </a>

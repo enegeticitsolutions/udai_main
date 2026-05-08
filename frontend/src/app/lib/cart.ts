@@ -68,3 +68,8 @@ export function clearCheckoutProduct() {
   if (!canUseStorage()) return;
   window.localStorage.removeItem(CHECKOUT_KEY);
 }
+
+export function clearCart() {
+  if (!canUseStorage()) return;
+  window.localStorage.removeItem(CART_KEY);
+}

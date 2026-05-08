@@ -1,8 +1,10 @@
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { Instagram, Facebook, Twitter } from "lucide-react";
+import { Instagram, Facebook, Youtube } from "lucide-react";
 import { motion } from "motion/react";
 
 export function SocialGallerySection() {
+  const instagramUrl = "https://www.instagram.com/udaispecialschool/";
+  const youtubeUrl = "https://www.youtube.com/@udaiworkingtogetherworkssp2603";
   const images = [
     { id: 1, url: "/images/Social1.png" },
     { id: 2, url: "/images/social2.png" },
@@ -27,20 +29,26 @@ export function SocialGallerySection() {
           </div>
           <div className="flex items-center gap-4 text-[#b9aca5]">
             <Instagram className="h-5 w-5" />
-            <Twitter className="h-5 w-5" />
+            <a href={youtubeUrl} target="_blank" rel="noreferrer" aria-label="YouTube">
+              <Youtube className="h-5 w-5" />
+            </a>
             <Facebook className="h-5 w-5" />
           </div>
         </motion.div>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {images.map((image, index) => (
-            <motion.div
+            <motion.a
               key={image.id}
+              href={instagramUrl}
+              target="_blank"
+              rel="noreferrer"
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
               className="group relative aspect-square cursor-pointer overflow-hidden rounded-[0.9rem]"
+              aria-label="Open Instagram"
             >
               <ImageWithFallback
                 src={image.url}
@@ -52,7 +60,7 @@ export function SocialGallerySection() {
                   <Instagram className="h-5 w-5" />
                 </div>
               </div>
-            </motion.div>
+            </motion.a>
           ))}
         </div>
       </div>

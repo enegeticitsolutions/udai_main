@@ -20,7 +20,7 @@ export function Careers() {
 
   return (
     <div className="bg-[#f8f4ef]">
-      <section className="py-10 sm:py-14">
+      <section className="py-6 sm:py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <h1 className="text-left text-4xl font-semibold tracking-tight text-[#2b1b15] sm:text-5xl">
             Join Our Mission
@@ -28,7 +28,7 @@ export function Careers() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20">
+      <section className="py-8 sm:py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {isLoading ? (
             <div className="rounded-[1.2rem] border border-dashed border-[#d7cfc8] bg-white/70 p-10 text-center text-sm text-[#776a66]">

@@ -44,40 +44,34 @@ export function About() {
   ];
 
   return (
-    <div>
+    <div className="bg-[#f7f6f3]">
       {/* Hero Section */}
-      <section className="bg-gray-900 text-white py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl sm:text-5xl mb-6">About UDAIREHAB</h1>
-            <p className="text-lg sm:text-xl text-gray-300">
-              Building resilient communities through rehabilitation, education, and sustainable development since 2011.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Story Section */}
-      <section className="py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl sm:text-4xl mb-6">Our Story</h2>
-              <p className="text-gray-600 mb-4">
-                UDAIREHAB is a non-profit rehabilitation and special education organization based in Delhi, India. It works primarily with children and young adults with special needs, helping them develop the skills required for independent and meaningful living.
-              </p>
-              <p className="text-gray-600 mb-4">
-                The organization provides a combination of special education, therapy, and vocational training through a structured and supportive environment. Its approach focuses on the overall development of individuals social, emotional, cognitive, and physical.
-              </p>
-              <p className="text-gray-600">
-                UDAIREHAB also offers rehabilitation programs and independent living training, enabling individuals to become more self-reliant and confident in their daily lives.
-              </p>
+      <section className="px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <div className="mx-auto max-w-7xl rounded-[2rem] bg-white px-5 py-7 shadow-[0_18px_45px_rgba(32,24,18,0.08)] sm:px-10 sm:py-10">
+          <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-10">
+            <div className="max-w-2xl">
+              <h1 className="text-3xl font-semibold tracking-tight text-[#111111] sm:text-5xl lg:text-6xl">
+                About UDAIREHAB
+              </h1>
+              <div className="mt-8 space-y-4 text-gray-600 sm:mt-10 sm:space-y-5">
+                <h2 className="text-2xl text-[#111111] sm:text-4xl">Our Story</h2>
+                <p className="text-sm leading-6 sm:text-base sm:leading-7">
+                  UDAIREHAB is a non-profit rehabilitation and special education organization based in Delhi, India. It works primarily with children and young adults with special needs, helping them develop the skills required for independent and meaningful living.
+                </p>
+                <p className="text-sm leading-6 sm:text-base sm:leading-7">
+                  The organization provides a combination of special education, therapy, and vocational training through a structured and supportive environment. Its approach focuses on the overall development of individuals social, emotional, cognitive, and physical.
+                </p>
+                <p className="text-sm leading-6 sm:text-base sm:leading-7">
+                  UDAIREHAB also offers rehabilitation programs and independent living training, enabling individuals to become more self-reliant and confident in their daily lives.
+                </p>
+              </div>
             </div>
-            <div className="relative h-96 rounded-lg overflow-hidden shadow-lg">
+
+            <div className="relative h-64 overflow-hidden rounded-[1.8rem] bg-[#dfe8f7] shadow-[0_16px_34px_rgba(39,63,107,0.12)] sm:h-[28rem]">
               <ImageWithFallback
                 src="https://images.unsplash.com/photo-1739298061740-5ed03045b280?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWFtJTIwbWVldGluZyUyMGNvbGxhYm9yYXRpb258ZW58MXx8fHwxNzczNjgxNTQwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt="Team collaboration"
-                className="w-full h-full object-cover"
+                alt="About UDAIREHAB"
+                className="h-full w-full object-cover"
               />
             </div>
           </div>
@@ -85,24 +79,23 @@ export function About() {
       </section>
 
       {/* Mission & Vision */}
-      <section className="py-16 sm:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12">
-            <div className="bg-white p-8 rounded-lg shadow-md">
-              <div className="size-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-6">
-                <Target className="size-6 text-emerald-600" />
-              </div>
-              <h2 className="text-2xl mb-4">Mission</h2>
-              <p className="text-gray-600">
+      <section className="bg-[linear-gradient(180deg,#f8f3ec_0%,#f5efe7_100%)] py-14 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid items-stretch gap-4 md:grid-cols-2">
+            <div className="relative min-h-0 overflow-hidden rounded-[1.5rem] border border-[#e8dfd7] bg-white px-4 py-5 shadow-[0_18px_38px_rgba(36,24,18,0.08)] before:absolute before:left-0 before:top-0 before:h-full before:w-[4px] before:rounded-l-[1.5rem] before:bg-[#18a94c] sm:min-h-[18rem] sm:rounded-[2rem] sm:px-9 sm:py-9 sm:before:w-[6px] sm:before:rounded-l-[2rem]">
+              <h2 className="text-xl font-semibold tracking-tight text-[#2b1b15] sm:text-[2.25rem]">
+                Mission
+              </h2>
+              <p className="mt-3 max-w-xl text-[0.9rem] leading-5 break-words text-[#7a6b63] sm:mt-6 sm:text-[1.2rem] sm:leading-[1.95]">
                 We provide special education and therapeutic support to build independence and life skills. Through vocational training and family guidance, we empower every child to thrive.
               </p>
             </div>
-            <div className="bg-white p-8 rounded-lg shadow-md">
-              <div className="size-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-6">
-                <Eye className="size-6 text-emerald-600" />
-              </div>
-              <h2 className="text-2xl mb-4">Vision</h2>
-              <p className="text-gray-600">
+
+            <div className="relative min-h-0 overflow-hidden rounded-[1.5rem] border border-[#e8dfd7] bg-white px-4 py-5 shadow-[0_18px_38px_rgba(36,24,18,0.08)] before:absolute before:left-0 before:top-0 before:h-full before:w-[4px] before:rounded-l-[1.5rem] before:bg-[#ff8a00] sm:min-h-[18rem] sm:rounded-[2rem] sm:px-9 sm:py-9 sm:before:w-[6px] sm:before:rounded-l-[2rem]">
+              <h2 className="text-xl font-semibold tracking-tight text-[#2b1b15] sm:text-[2.25rem]">
+                Vision
+              </h2>
+              <p className="mt-3 max-w-xl text-[0.9rem] leading-5 break-words text-[#7a6b63] sm:mt-6 sm:text-[1.2rem] sm:leading-[1.95]">
                 To create an inclusive world where individuals with special needs are empowered to live with dignity, independence, and confidence.
               </p>
             </div>
@@ -168,11 +161,11 @@ export function About() {
       </section>
 
       {/* Impact Stats */}
-      <section className="py-16 sm:py-24 bg-emerald-600 text-white">
+      <section className="py-16 sm:py-24 bg-white text-[#111111]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl mb-4">Our Impact</h2>
-            <p className="text-emerald-100 max-w-2xl mx-auto">
+            <p className="text-gray-600 max-w-2xl mx-auto">
               Real numbers that demonstrate our commitment to creating lasting change.
             </p>
           </div>
@@ -180,19 +173,19 @@ export function About() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="text-4xl sm:text-5xl mb-2">50,000+</div>
-              <div className="text-emerald-100">Lives Impacted</div>
+              <div className="text-gray-600">Lives Impacted</div>
             </div>
             <div className="text-center">
               <div className="text-4xl sm:text-5xl mb-2">25+</div>
-              <div className="text-emerald-100">Active Programs</div>
+              <div className="text-gray-600">Active Programs</div>
             </div>
             <div className="text-center">
               <div className="text-4xl sm:text-5xl mb-2">15+</div>
-              <div className="text-emerald-100">Years of Service</div>
+              <div className="text-gray-600">Years of Service</div>
             </div>
             <div className="text-center">
               <div className="text-4xl sm:text-5xl mb-2">100+</div>
-              <div className="text-emerald-100">Partner Organizations</div>
+              <div className="text-gray-600">Partner Organizations</div>
             </div>
           </div>
         </div>

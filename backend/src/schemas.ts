@@ -3,15 +3,23 @@ import { z } from "zod";
 export const contactSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email(),
-  subject: z.string().trim().min(2).max(120),
+  subject: z.string().trim().min(2).max(120).default("Website Inquiry"),
+  website: z.string().trim().max(200).optional().default(""),
   message: z.string().trim().min(10).max(2000),
 });
 
 export const volunteerSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email(),
-  phone: z.string().trim().min(7).max(30),
+  phone: z.string().trim().regex(/^\d{10}$/, "Phone number must be 10 digits"),
+  aadhar: z.string().trim().regex(/^\d{12}$/, "Aadhar must be exactly 12 digits"),
+  aadharOther: z.string().trim().max(120).default(""),
+  pan: z.string().trim().min(2).max(120),
+  panOther: z.string().trim().max(120).default(""),
+  fullAddress: z.string().trim().min(2).max(200),
+  fullAddressOther: z.string().trim().max(200).default(""),
   interestArea: z.string().trim().min(2).max(120),
+  interestAreaOther: z.string().trim().max(120).default(""),
   availability: z.string().trim().min(2).max(120),
   message: z.string().trim().min(10).max(2000),
 });
@@ -84,7 +92,7 @@ const orderItemSchema = z.object({
   title: z.string().trim().min(2).max(160),
   price: z.coerce.number().positive().max(1_000_000),
   quantity: z.coerce.number().int().positive(),
-  image: z.string().trim().url(),
+  image: z.string().trim().min(1),
   category: z.string().trim().max(80).optional(),
 });
 

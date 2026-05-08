@@ -3,6 +3,7 @@ import { Clock3, MapPin } from "lucide-react";
 import { motion } from "motion/react";
 import { useApiData } from "../hooks/useApiData";
 import { apiPost } from "../lib/api";
+import fallbackEvents from "../data/events.json";
 import type { EventItem } from "../types/api";
 import {
   Dialog,
@@ -18,6 +19,7 @@ export function EventsSection() {
   const { data: events, isLoading, error } = useApiData<EventItem[]>(
     "/content/events",
     [],
+    fallbackEvents as EventItem[],
   );
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [formData, setFormData] = useState({

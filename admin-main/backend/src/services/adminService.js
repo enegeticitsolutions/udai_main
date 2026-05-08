@@ -6,8 +6,10 @@ import { readJsonFile, writeJsonFile } from "../lib/fileStore.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 import {
   donations as seedDonations,
+  contacts as seedContacts,
   inquiries as seedInquiries,
   orders as seedOrders,
+  subscribers as seedSubscribers,
   therapists as seedTherapists,
   volunteers as seedVolunteers,
 } from "../data/seedData.js";
@@ -16,8 +18,10 @@ const storageByEntity = {
   inquiries: { fileName: "therapist-inquiries.json", collectionName: "therapistInquiries", seed: seedInquiries },
   volunteers: { fileName: "volunteers.json", collectionName: "volunteers", seed: seedVolunteers },
   donations: { fileName: "donations.json", collectionName: "donations", seed: seedDonations },
+  contacts: { fileName: "contacts.json", collectionName: "contacts", seed: seedContacts },
   orders: { fileName: "orders.json", collectionName: "orders", seed: seedOrders },
   therapists: { fileName: "therapists.json", collectionName: "therapists", seed: seedTherapists },
+  subscribers: { fileName: "subscribers.json", collectionName: "subscribers", seed: seedSubscribers },
 };
 
 function storagePath(fileName) {
@@ -44,7 +48,12 @@ async function readStorageRecords(entity) {
 
 async function readRecords(entity) {
   const { collectionName } = storageByEntity[entity];
-  await connectMongoDb();
+  try {
+    await connectMongoDb();
+  } catch {
+    // Fall back to file storage when MongoDB is unavailable so the admin panel
+    // still boots and shows the saved roster data.
+  }
 
   if (isMongoConnected()) {
     const docs = await getMongoDb().collection(collectionName).find({}).sort({ createdAt: -1 }).toArray();
@@ -74,7 +83,11 @@ async function updateStorageRecord(entity, id, updates) {
 
 async function updateMongoRecord(entity, id, updates) {
   const { collectionName } = storageByEntity[entity];
-  await connectMongoDb();
+  try {
+    await connectMongoDb();
+  } catch {
+    return null;
+  }
 
   if (!isMongoConnected()) {
     return null;
@@ -99,13 +112,106 @@ async function updateMongoRecord(entity, id, updates) {
   return normalizeMongoDocument({ ...existing, ...merged });
 }
 
+async function deleteStorageRecord(entity, id) {
+  const { fileName } = storageByEntity[entity];
+  const records = await readStorageRecords(entity);
+  const nextRecords = records.filter((record) => String(record.id) !== String(id));
+
+  if (nextRecords.length === records.length) {
+    return null;
+  }
+
+  await fs.mkdir(config.storageDir, { recursive: true });
+  await writeJsonFile(storagePath(fileName), nextRecords);
+
+  return { id };
+}
+
+async function deleteMongoRecord(entity, id) {
+  const { collectionName } = storageByEntity[entity];
+  try {
+    await connectMongoDb();
+  } catch {
+    return null;
+  }
+
+  if (!isMongoConnected()) {
+    return null;
+  }
+
+  const collection = getMongoDb().collection(collectionName);
+  const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };
+  const result = await collection.deleteOne(filter);
+
+  if (result.deletedCount === 0) {
+    return null;
+  }
+
+  return { id };
+}
+
+async function createStorageRecord(entity, record) {
+  const { fileName } = storageByEntity[entity];
+  const records = await readStorageRecords(entity);
+  if (entity === "subscribers") {
+    const email = String(record.email ?? "").trim().toLowerCase();
+    const existing = records.find((item) => String(item.email ?? "").trim().toLowerCase() === email);
+    if (existing) {
+      return existing;
+    }
+  }
+  const nextRecord = {
+    id: `${entity.slice(0, 3).toUpperCase()}-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    ...record,
+  };
+  const nextRecords = [nextRecord, ...records];
+
+  await fs.mkdir(config.storageDir, { recursive: true });
+  await writeJsonFile(storagePath(fileName), nextRecords);
+
+  return nextRecord;
+}
+
+async function createMongoRecord(entity, record) {
+  const { collectionName } = storageByEntity[entity];
+  try {
+    await connectMongoDb();
+  } catch {
+    return null;
+  }
+
+  if (!isMongoConnected()) {
+    return null;
+  }
+
+  const collection = getMongoDb().collection(collectionName);
+  if (entity === "subscribers") {
+    const email = String(record.email ?? "").trim().toLowerCase();
+    const existing = await collection.findOne({ email });
+    if (existing) {
+      return normalizeMongoDocument(existing);
+    }
+  }
+  const nextRecord = {
+    id: `${entity.slice(0, 3).toUpperCase()}-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    ...record,
+  };
+
+  await collection.insertOne(nextRecord);
+  return normalizeMongoDocument(nextRecord);
+}
+
 export async function getAdminBootstrap() {
-  const [inquiries, donations, volunteers, orders, therapists] = await Promise.all([
+  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers] = await Promise.all([
     readRecords("inquiries"),
     readRecords("donations"),
     readRecords("volunteers"),
+    readRecords("contacts"),
     readRecords("orders"),
     readRecords("therapists"),
+    readRecords("subscribers"),
   ]);
 
   const totalDonations = donations.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
@@ -125,7 +231,9 @@ export async function getAdminBootstrap() {
     donations,
     orders,
     volunteers,
+    contacts,
     therapists,
+    subscribers,
     dashboard: {
       totalRequests: inquiries.length,
       pendingRequests,
@@ -149,4 +257,22 @@ export async function updateAdminRecord(entity, id, updates) {
   }
 
   return updateStorageRecord(entity, id, updates);
+}
+
+export async function createAdminRecord(entity, record) {
+  const mongoCreated = await createMongoRecord(entity, record);
+  if (mongoCreated) {
+    return mongoCreated;
+  }
+
+  return createStorageRecord(entity, record);
+}
+
+export async function deleteAdminRecord(entity, id) {
+  const mongoDeleted = await deleteMongoRecord(entity, id);
+  if (mongoDeleted) {
+    return mongoDeleted;
+  }
+
+  return deleteStorageRecord(entity, id);
 }

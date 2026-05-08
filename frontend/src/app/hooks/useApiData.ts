@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../lib/api";
 
-export function useApiData<T>(path: string, initialData: T) {
+export function useApiData<T>(path: string, initialData: T, fallbackData?: T) {
   const [data, setData] = useState<T>(initialData);
   const [isLoading, setIsLoading] = useState(Boolean(path));
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,12 @@ export function useApiData<T>(path: string, initialData: T) {
           return;
         }
 
-        setError(err instanceof Error ? err.message : "Unable to load data");
+        if (fallbackData !== undefined) {
+          setData(fallbackData);
+          setError(null);
+        } else {
+          setError(err instanceof Error ? err.message : "Unable to load data");
+        }
       } finally {
         if (active) {
           setIsLoading(false);

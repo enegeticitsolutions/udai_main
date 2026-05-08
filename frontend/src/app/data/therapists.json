@@ -4,95 +4,69 @@
     "name": "Ms Harsimran Kaur",
     "image": "/images/doctor2.png",
     "department": "Occupational Therapy",
-    "role": "Occupational Therapist",
-    "summary": "Supports motor, sensory, and daily living development through structured therapy."
+    "role": "Occupational Therapist"
   },
   {
     "id": 2,
     "name": "Ms Nikki",
     "image": "/images/doctor4.png",
     "department": "Occupational Therapy",
-    "role": "Occupational Therapist",
-    "summary": "Works on functional skills that help children participate confidently in everyday activities."
+    "role": "Occupational Therapist"
   },
   {
     "id": 3,
     "name": "Ms Anamika",
-    "image": "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400",
+    "image": "/images/anamika.jpeg",
     "department": "Occupational Therapy",
-    "role": "Occupational Therapist",
-    "summary": "Focuses on sensory regulation, motor planning, and practical life skills."
-  },
-  {
-    "id": 4,
-    "name": "Ms Promila",
-    "image": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400",
-    "department": "Special Education",
-    "role": "Special Educator",
-    "summary": "Helps children build learning independence through individualized classroom support."
-  },
-  {
-    "id": 5,
-    "name": "Ms Sonia",
-    "image": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400",
-    "department": "Special Education",
-    "role": "Special Educator",
-    "summary": "Guides academic readiness with structured, child-centered learning support."
+    "role": "Occupational Therapist"
   },
   {
     "id": 6,
     "name": "Ms Sakshi",
     "image": "/images/Doctor1.png",
     "department": "Speech Therapy",
-    "role": "Speech Therapist",
-    "summary": "Supports children with speech, language, and communication development."
+    "role": "Speech Therapist"
   },
   {
     "id": 7,
     "name": "Mr Atal",
     "image": "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400",
     "department": "Speech Therapy",
-    "role": "Speech Therapist",
-    "summary": "Works on articulation, comprehension, and expressive communication skills."
+    "role": "Speech Therapist"
   },
   {
     "id": 8,
     "name": "Mr Durgesh",
     "image": "/images/doctor3.png",
     "department": "Physical Therapy",
-    "role": "Physical Therapist",
-    "summary": "Supports movement, strength, coordination, and physical rehabilitation goals."
-  },
-  {
-    "id": 9,
-    "name": "Ms Sonia",
-    "image": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400",
-    "department": "Remedial Support",
-    "role": "Remedial Educator",
-    "summary": "Provides remedial support for academics, focus, and learning progress."
+    "role": "Physical Therapist"
   },
   {
     "id": 10,
-    "name": "Ms Shobha",
-    "image": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400",
+    "name": "Shobha Almiya",
+    "image": "/images/sobha.png",
     "department": "Remedial Support",
-    "role": "Remedial Educator",
-    "summary": "Builds foundational academic skills through personalized support."
+    "role": "Special educators"
   },
   {
     "id": 11,
     "name": "Ms Tanu Rajput",
     "image": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400",
     "department": "Counselling / Home Programme",
-    "role": "Counsellor",
-    "summary": "Provides counseling and home-program guidance for family-centered support."
+    "role": "Counsellor"
   },
   {
     "id": 12,
-    "name": "Ms Harsimran",
-    "image": "/images/doctor2.png",
-    "department": "Counselling / Home Programme",
-    "role": "Counsellor",
-    "summary": "Helps families with routines, home support, and collaborative care planning."
+    "name": "Soniya Taneja",
+    "image": "/images/sonia.png",
+    "department": "NIOS",
+    "role": "NIOS Instructor"
+  },
+  {
+    "id": 13,
+    "name": "Ranjan Goswami",
+    "image": "/images/Ranjan.png",
+    "department": "Special Education",
+    "role": "Special Educator"
   }
 ]

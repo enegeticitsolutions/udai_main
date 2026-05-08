@@ -60,3 +60,23 @@ export function patchTherapist(id, updates) {
     body: JSON.stringify(updates),
   });
 }
+
+export function createTherapist(therapist) {
+  return request("/therapists", {
+    method: "POST",
+    body: JSON.stringify(therapist),
+  });
+}
+
+export function deleteTherapist(id) {
+  return request(`/therapists/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function addSubscriber(email) {
+  return request("/subscribers", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}

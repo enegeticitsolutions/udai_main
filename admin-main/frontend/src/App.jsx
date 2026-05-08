@@ -8,6 +8,7 @@ import Table from "./components/Table";
 import {
   availabilitySlots,
   donations as fallbackDonations,
+  contacts as fallbackContacts,
   inquiries as fallbackInquiries,
   notifications,
   records,
@@ -15,7 +16,16 @@ import {
   therapists as fallbackTherapists,
   volunteers as fallbackVolunteers,
 } from "./data/mockData";
-import { getAdminBootstrap, patchInquiry, patchOrder, patchTherapist, patchVolunteer } from "./services/adminApi";
+import {
+  addSubscriber,
+  createTherapist,
+  deleteTherapist,
+  getAdminBootstrap,
+  patchInquiry,
+  patchOrder,
+  patchTherapist,
+  patchVolunteer,
+} from "./services/adminApi";
 import { adminLogin } from "./services/adminApi";
 
 const tokenKey = "udai_standalone_admin_token";
@@ -29,23 +39,19 @@ const roleSections = {
     "Volunteers",
     "Therapist Management",
     "Availability Manager",
-    "Child / Parent Records",
+    "Subscribe",
+    "Contacts",
     "Notifications Center",
     "Message Broadcast",
     "Reports / Analytics",
     "Settings",
   ],
   editor: [
-    "Dashboard",
     "Appointments / Inquiries",
-    "Orders / Purchases",
     "Therapist Management",
     "Availability Manager",
-    "Child / Parent Records",
-    "Volunteers",
-    "Notifications Center",
-    "Message Broadcast",
   ],
+  finance: ["Orders / Purchases", "Donations", "Reports / Analytics"],
   viewer: ["Dashboard", "Orders / Purchases", "Donations", "Reports / Analytics"],
 };
 
@@ -115,6 +121,53 @@ function inquiryTone(status) {
   if (status === "cancelled") return "red";
   if (status === "initiated") return "blue";
   return "slate";
+}
+
+function recordTone(status) {
+  if (status === "confirmed") return "green";
+  if (status === "rescheduled") return "amber";
+  if (status === "cancelled") return "red";
+  return "slate";
+}
+
+function formatRecordLabel(key) {
+  return key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/^\w/, (char) => char.toUpperCase());
+}
+
+function formatRecordValue(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function formatSelectedChildDateTime(item) {
+  if (!item) return "-";
+  if (item.appointmentDate && item.appointmentTime) {
+    return `${formatDisplayDate(item.appointmentDate)} · ${item.appointmentTime}`;
+  }
+  if (item.appointmentDate) return formatDisplayDate(item.appointmentDate);
+  return item.schedule ?? "-";
+}
+
+function findChildRecord(childName) {
+  return records.find((record) => record.childName === childName) ?? null;
+}
+
+function mergeChildDetails(inquiry, childRecord) {
+  return {
+    ...(childRecord ?? {}),
+    ...(inquiry ?? {}),
+    childName: inquiry?.childName ?? childRecord?.childName ?? "-",
+    department: inquiry?.department ?? childRecord?.department ?? "-",
+    schedule: formatSelectedChildDateTime(inquiry),
+    status: inquiry?.status ?? childRecord?.status ?? "-",
+    assignedTherapist: inquiry?.assignedTherapist ?? childRecord?.assignedTherapist ?? "-",
+    parent: childRecord?.parent ?? inquiry?.parent ?? "-",
+  };
 }
 
 function buildDepartmentMap(therapists) {
@@ -310,9 +363,12 @@ function DashboardPage({ inquiries, therapists, donations, orders, currentUser, 
   );
 }
 
-function InquiriesPage({ inquiries, therapistMap, onUpdateInquiry }) {
+function InquiriesPage({ inquiries, therapists, therapistMap, onUpdateInquiry }) {
   const departmentOptions = Object.keys(therapistMap);
   const autoAssigned = useMemo(() => autoAssignInquiries(inquiries, therapistMap), [inquiries, therapistMap]);
+  const [selectedInquiryId, setSelectedInquiryId] = useState(autoAssigned[0]?.id ?? null);
+  const [selectedTherapistName, setSelectedTherapistName] = useState(autoAssigned[0]?.assignedTherapist ?? null);
+  const [changeRequests, setChangeRequests] = useState([]);
   const statusCounts = useMemo(
     () => ({
       new: autoAssigned.filter((item) => item.status === "new").length,
@@ -325,13 +381,45 @@ function InquiriesPage({ inquiries, therapistMap, onUpdateInquiry }) {
     [autoAssigned],
   );
 
+  useEffect(() => {
+    if (!autoAssigned.length) {
+      setSelectedInquiryId(null);
+      setSelectedTherapistName(null);
+      return;
+    }
+
+    if (!autoAssigned.some((item) => item.id === selectedInquiryId)) {
+      setSelectedInquiryId(autoAssigned[0].id);
+    }
+
+    if (!selectedTherapistName && autoAssigned[0]?.assignedTherapist) {
+      setSelectedTherapistName(autoAssigned[0].assignedTherapist);
+    }
+  }, [autoAssigned, selectedInquiryId, selectedTherapistName]);
+
+  const selectedInquiry = autoAssigned.find((item) => item.id === selectedInquiryId) ?? autoAssigned[0] ?? null;
+  const selectedChildRecord = selectedInquiry ? findChildRecord(selectedInquiry.childName) : null;
+  const selectedChildDetails = selectedInquiry ? mergeChildDetails(selectedInquiry, selectedChildRecord) : null;
+  const selectedTherapist =
+    therapists.find((therapist) => therapist.name === selectedTherapistName) ??
+    therapists.find((therapist) => therapist.name === selectedInquiry?.assignedTherapist) ??
+    null;
+  const selectedChildEntries = selectedChildDetails
+    ? Object.entries(selectedChildDetails).filter(([key]) => key !== "id")
+    : [];
+
+  useEffect(() => {
+    if (selectedInquiry?.assignedTherapist) {
+      setSelectedTherapistName(selectedInquiry.assignedTherapist);
+    }
+  }, [selectedInquiry?.assignedTherapist]);
+
   async function updateInquiry(index, key, value) {
     const currentItem = autoAssigned[index];
     const updated = autoAssignInquiries(
       autoAssigned.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item)),
       therapistMap,
     );
-
     try {
       await onUpdateInquiry(currentItem.id, {
         [key]: value,
@@ -344,6 +432,38 @@ function InquiriesPage({ inquiries, therapistMap, onUpdateInquiry }) {
     } catch (error) {
       console.error(error);
     }
+  }
+
+  function addChangeRequest(item, type, note) {
+    setChangeRequests((prev) => [
+      {
+        id: `${item.id}-${type}-${Date.now()}`,
+        childName: item.childName,
+        type,
+        note: note || "No note provided",
+        therapist: item.assignedTherapist,
+        schedule: formatDisplayDate(item.appointmentDate) !== "-" ? formatInquiryDateTime(item) : item.schedule ?? "-",
+        createdAt: new Date().toLocaleString(),
+      },
+      ...prev,
+    ]);
+  }
+
+  function setAppointmentStatus(index, status) {
+    const item = autoAssigned[index];
+    const note = window.prompt(
+      status === "cancelled"
+        ? `Add a cancellation note for ${item.childName} (optional):`
+        : `Add a reschedule note or new time for ${item.childName} (optional):`,
+    );
+
+    if (status === "cancelled") {
+      addChangeRequest(item, "Cancellation requested", note);
+    } else if (status === "rescheduled") {
+      addChangeRequest(item, "Reschedule requested", note);
+    }
+
+    updateInquiry(index, "status", status);
   }
 
   return (
@@ -360,50 +480,138 @@ function InquiriesPage({ inquiries, therapistMap, onUpdateInquiry }) {
         <StatCard label="Cancelled" value={statusCounts.cancelled} hint="Removed bookings" />
       </div>
 
-        <Table
-          columns={["Child", "Age", "Department", "Therapist", "Status", "Schedule", "Assignment"]}
-          rows={autoAssigned.map((item, index) => [
-            item.childName,
-            item.age,
-          <select
-            key={`${item.id}-dept`}
-            value={item.department}
-            onChange={(e) => updateInquiry(index, "department", e.target.value)}
-            className="select-inline"
-          >
-            {departmentOptions.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
-              </option>
-            ))}
-          </select>,
-          <div key={`${item.id}-therapist`} className="auto-therapist">
-            <strong>{item.assignedTherapist}</strong>
-            <span>{item.assignmentMode}</span>
-          </div>,
-          <select
-            key={`${item.id}-status`}
-            value={item.status}
-            onChange={(e) => updateInquiry(index, "status", e.target.value)}
-            className="select-inline"
-          >
-            <option value="new">new</option>
-            <option value="assigned">assigned</option>
-            <option value="initiated">initiated</option>
-            <option value="confirmed">confirmed</option>
-            <option value="rescheduled">rescheduled</option>
-            <option value="cancelled">cancelled</option>
-              </select>,
-          item.appointmentDate && item.appointmentTime
-            ? `${formatDisplayDate(item.appointmentDate)} · ${item.appointmentTime}`
-            : item.appointmentDate
-              ? formatDisplayDate(item.appointmentDate)
-              : item.schedule ?? "-",
-          <Badge key={`${item.id}-assignment`} tone={item.assignmentNote === "Needs review" ? "amber" : "green"}>
-            {item.assignmentNote}
-          </Badge>,
-        ])}
-      />
+      <div className="split-grid inquiry-layout">
+        <div className="content-card inquiry-table-card">
+          <div className="section-head section-head--dark">
+            <div>
+              <h2>Appointments / Inquiries</h2>
+              <p className="section-copy">Click a child name to open the full child and parent record.</p>
+            </div>
+            <Badge tone="slate">{autoAssigned.length} records</Badge>
+          </div>
+
+          <Table
+            columns={["Child Name", "Department", "Schedule"]}
+            rows={autoAssigned.map((item, index) => [
+              <button
+                key={`${item.id}-name`}
+                type="button"
+                className="record-name-button"
+                onClick={() => setSelectedInquiryId(item.id)}
+              >
+                {item.childName}
+              </button>,
+              item.department,
+              formatSelectedChildDateTime(item),
+            ])}
+          />
+        </div>
+
+        <aside className="content-card child-record-detail-card">
+          <div className="section-head section-head--dark">
+            <div>
+              <h2>{selectedChildDetails?.childName ?? "No child selected"}</h2>
+              <p className="section-copy">
+                {selectedChildDetails
+                  ? `${selectedChildDetails.parent} · ${selectedChildDetails.department}`
+                  : "Select a child name to inspect the full record."}
+              </p>
+            </div>
+            {selectedChildDetails ? (
+              <Badge tone={recordTone(selectedChildDetails.status)}>{selectedChildDetails.status}</Badge>
+            ) : null}
+          </div>
+
+          {selectedChildDetails ? (
+            <div className="record-detail-stack">
+              <div className="record-highlight">
+                <div>
+                  <span>Schedule</span>
+                  <strong>{selectedChildDetails.schedule}</strong>
+                </div>
+                <div>
+                  <span>Status</span>
+                  <strong>{selectedChildDetails.status}</strong>
+                </div>
+                <div>
+                  <span>Therapist</span>
+                  <strong>{selectedChildDetails.assignedTherapist}</strong>
+                </div>
+              </div>
+
+              {selectedTherapist ? (
+                <div className="therapist-detail-panel">
+                  <div className="section-head section-head--dark">
+                    <div>
+                      <h2>Therapist Profile</h2>
+                      <p className="section-copy">Opened from the therapist name.</p>
+                    </div>
+                    <Badge tone={selectedTherapist.active ? "green" : "slate"}>
+                      {selectedTherapist.active ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+
+                  <dl className="record-detail-grid record-detail-grid--single">
+                    <div className="record-detail-item">
+                      <dt>Name</dt>
+                      <dd>{selectedTherapist.name}</dd>
+                    </div>
+                    <div className="record-detail-item">
+                      <dt>Department</dt>
+                      <dd>{selectedTherapist.department}</dd>
+                    </div>
+                    <div className="record-detail-item">
+                      <dt>Role</dt>
+                      <dd>{selectedTherapist.role}</dd>
+                    </div>
+                    <div className="record-detail-item">
+                      <dt>Experience</dt>
+                      <dd>{selectedTherapist.experience}</dd>
+                    </div>
+                  </dl>
+                </div>
+              ) : null}
+
+              <dl className="record-detail-grid">
+                {selectedChildEntries.map(([key, value]) => (
+                  <div key={key} className="record-detail-item">
+                    <dt>{formatRecordLabel(key)}</dt>
+                    <dd>{formatRecordValue(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
+
+          <div className="change-requests">
+            <div className="section-head">
+              <h2>Appointment Change Requests</h2>
+              <Badge tone={changeRequests.length ? "amber" : "slate"}>{changeRequests.length} pending</Badge>
+            </div>
+
+            {changeRequests.length ? (
+              <div className="change-request-list">
+                {changeRequests.map((request) => (
+                  <article className="change-request-item" key={request.id}>
+                    <div className="change-request-top">
+                      <strong>{request.childName}</strong>
+                      <Badge tone={request.type === "Cancellation requested" ? "red" : "amber"}>{request.type}</Badge>
+                    </div>
+                    <div className="change-request-meta">
+                      <span>{request.schedule}</span>
+                      <span>{request.therapist}</span>
+                      <span>{request.createdAt}</span>
+                    </div>
+                    <p>{request.note}</p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="note">No cancellation or reschedule requests yet.</div>
+            )}
+          </div>
+        </aside>
+      </div>
     </section>
   );
 }
@@ -428,8 +636,8 @@ function DonationsPage({ donations }) {
       <Table
         columns={["Donor Name", "Email", "Phone", "Amount", "Donation Type", "Method", "Status", "Date", "Purpose", "Message"]}
         rows={donations.map((donation) => [
-          maskDonorName(donation.donorName ?? donation.name),
-          maskEmail(donation.email),
+          donation.donorName ?? donation.name ?? "-",
+          donation.email ?? "-",
           maskPhone(donation.phone),
           `₹${Number(donation.amount ?? 0)}`,
           donation.donationType ?? donation.type ?? "-",
@@ -498,17 +706,12 @@ function OrdersPage({ orders, onUpdateOrder }) {
             ? order.items.map((item) => `${item.title} ×${item.quantity}`).join(", ")
             : "-",
           order.paymentMethod ?? "-",
-          <select
+          <Badge
             key={`${order.id}-payment-status`}
-            className="select-inline"
-            value={order.paymentStatus ?? "initiated"}
-            onChange={(e) => updateOrder(index, { paymentStatus: e.target.value })}
+            tone={order.paymentStatus === "paid" ? "green" : order.paymentStatus === "failed" ? "red" : "amber"}
           >
-            <option value="initiated">initiated</option>
-            <option value="pending">pending</option>
-            <option value="paid">paid</option>
-            <option value="failed">failed</option>
-          </select>,
+            {order.paymentStatus ?? "-"}
+          </Badge>,
           <select
             key={`${order.id}-order-status`}
             className="select-inline"
@@ -632,11 +835,60 @@ function VolunteersPage({ volunteers, onUpdateVolunteer }) {
   );
 }
 
-function TherapistManagementPage({ therapists, onUpdateTherapist }) {
+function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist, onRemoveTherapist, isAddFormOpen, onCloseAddForm }) {
+  const [form, setForm] = useState({
+    name: "",
+    department: "",
+    role: "",
+    experience: "",
+  });
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function updateForm(field, value) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleAddTherapist(event) {
+    event.preventDefault();
+    setError("");
+
+    const payload = {
+      name: form.name.trim(),
+      department: form.department.trim(),
+      role: form.role.trim(),
+      experience: form.experience.trim(),
+      active: true,
+    };
+
+    if (!payload.name || !payload.department || !payload.role || !payload.experience) {
+      setError("Name, department, role, and experience are required.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onAddTherapist(payload);
+      setForm({ name: "", department: "", role: "", experience: "" });
+      onCloseAddForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to add therapist.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function toggleActive(index) {
     const therapist = therapists[index];
     const nextActive = !(therapist.active !== false);
     await onUpdateTherapist(therapist.id, { active: nextActive });
+  }
+
+  async function removeTherapist(therapist) {
+    const shouldRemove = window.confirm(`Remove ${therapist.name} from Therapist Management?`);
+    if (!shouldRemove) return;
+
+    await onRemoveTherapist(therapist.id);
   }
 
   return (
@@ -645,9 +897,35 @@ function TherapistManagementPage({ therapists, onUpdateTherapist }) {
         <h2>Therapist Management</h2>
         <Badge tone="purple">Department roster</Badge>
       </div>
+      {isAddFormOpen ? (
+        <form className="therapist-add-form" onSubmit={handleAddTherapist}>
+          <Input label="Name" value={form.name} onChange={(event) => updateForm("name", event.target.value)} />
+          <Input
+            label="Department"
+            value={form.department}
+            onChange={(event) => updateForm("department", event.target.value)}
+          />
+          <Input label="Role" value={form.role} onChange={(event) => updateForm("role", event.target.value)} />
+          <Input
+            label="Experience"
+            value={form.experience}
+            placeholder="8 years"
+            onChange={(event) => updateForm("experience", event.target.value)}
+          />
+          {error && <div className="error-box wide">{error}</div>}
+          <div className="therapist-form-actions wide">
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+            <Button variant="secondary" onClick={onCloseAddForm}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      ) : null}
       <div className="therapist-grid">
         {therapists.map((therapist, index) => (
-          <article className="therapist-card" key={therapist.name}>
+          <article className="therapist-card" key={String(therapist.id ?? therapist.name)}>
             <div className="therapist-top">
               <div>
                 <h3>{therapist.name}</h3>
@@ -657,6 +935,10 @@ function TherapistManagementPage({ therapists, onUpdateTherapist }) {
             </div>
             <dl>
               <div>
+                <dt>Role</dt>
+                <dd>{therapist.role}</dd>
+              </div>
+              <div>
                 <dt>Department</dt>
                 <dd>{therapist.department}</dd>
               </div>
@@ -664,10 +946,19 @@ function TherapistManagementPage({ therapists, onUpdateTherapist }) {
                 <dt>Experience</dt>
                 <dd>{therapist.experience}</dd>
               </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{therapist.active ? "Active" : "Inactive"}</dd>
+              </div>
             </dl>
-            <Button variant="secondary" onClick={() => toggleActive(index)}>
-              {therapist.active !== false ? "Deactivate" : "Activate"}
-            </Button>
+            <div className="therapist-actions">
+              <Button variant="secondary" onClick={() => toggleActive(index)}>
+                {therapist.active !== false ? "Deactivate" : "Activate"}
+              </Button>
+              <Button variant="danger" onClick={() => removeTherapist(therapist)}>
+                Remove
+              </Button>
+            </div>
           </article>
         ))}
       </div>
@@ -691,21 +982,6 @@ function AvailabilityPage() {
           </div>
         ))}
       </div>
-    </section>
-  );
-}
-
-function RecordsPage() {
-  return (
-    <section className="content-card">
-      <div className="section-head">
-        <h2>Child / Parent Records</h2>
-        <Badge tone="blue">History</Badge>
-      </div>
-      <Table
-        columns={["Child", "Parent", "Concern", "Past Appointments"]}
-        rows={records.map((record) => [record.childName, record.parent, record.concern, record.pastAppointments])}
-      />
     </section>
   );
 }
@@ -739,6 +1015,115 @@ function NotificationsPage() {
           ))}
         </div>
       </div>
+    </section>
+  );
+}
+
+function SubscribersPage({ subscribers, onAddSubscriber }) {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const totalSubscribers = subscribers.length;
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    const value = email.trim().toLowerCase();
+
+    if (!value) {
+      setError("Email is required.");
+      setMessage("");
+      return;
+    }
+
+    setError("");
+
+    try {
+      await onAddSubscriber(value);
+      setMessage("Subscriber saved successfully.");
+      setEmail("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save subscriber.");
+      setMessage("");
+    }
+  }
+
+  return (
+    <section className="split-grid">
+      <div className="content-card">
+        <div className="section-head">
+          <h2>Subscribe</h2>
+          <Badge tone="blue">{totalSubscribers} saved</Badge>
+        </div>
+        <p className="note">Add email addresses here to record newsletter subscribers in the admin console.</p>
+
+        <form className="form-grid" onSubmit={handleSubmit}>
+          <Input
+            label="Email address"
+            className="wide"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="subscriber@example.com"
+          />
+          {error ? <div className="error-box wide">{error}</div> : null}
+          {message ? <div className="note wide">{message}</div> : null}
+          <div className="wide">
+            <Button type="submit">Save Subscriber</Button>
+          </div>
+        </form>
+      </div>
+
+      <div className="content-card">
+        <div className="section-head">
+          <h2>Saved Subscribers</h2>
+          <Badge tone={totalSubscribers ? "green" : "slate"}>{totalSubscribers}</Badge>
+        </div>
+        <div className="stack">
+          {subscribers.length ? (
+            subscribers.map((subscriber) => (
+              <div className="mini-row" key={subscriber.id}>
+                <span>{subscriber.email}</span>
+                <Badge tone="slate">{subscriber.createdAt ? new Date(subscriber.createdAt).toLocaleDateString() : "-"}</Badge>
+              </div>
+            ))
+          ) : (
+            <div className="note">No subscribers recorded yet.</div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ContactsPage({ contacts }) {
+  const totalContacts = contacts.length;
+
+  return (
+    <section className="content-card">
+      <div className="section-head">
+        <h2>Contact Messages</h2>
+        <Badge tone={totalContacts ? "green" : "slate"}>{totalContacts} received</Badge>
+      </div>
+      <p className="note">Messages submitted from the public Contact page appear here.</p>
+
+      <div className="panel-grid donations-stats">
+        <StatCard label="Total messages" value={totalContacts} hint="All contact submissions" />
+      </div>
+
+      {contacts.length ? (
+        <Table
+          columns={["Name", "Email", "Subject", "Message", "Date"]}
+          rows={contacts.map((contact) => [
+            contact.name ?? "-",
+            contact.email ?? "-",
+            contact.subject ?? "-",
+            contact.message ?? "-",
+            contact.createdAt ? new Date(contact.createdAt).toLocaleString() : "-",
+          ])}
+        />
+      ) : (
+        <div className="note">No contact messages recorded yet.</div>
+      )}
     </section>
   );
 }
@@ -816,7 +1201,7 @@ function SettingsPage() {
           <h2>Role Management</h2>
         </div>
         <div className="stack">
-          {["admin", "editor", "viewer"].map((role) => (
+          {["admin", "editor", "finance", "viewer"].map((role) => (
             <div className="mini-row" key={role}>
               <span>{role}</span>
               <Badge tone="slate">Active</Badge>
@@ -844,10 +1229,13 @@ export default function App() {
   const [orders, setOrders] = useState(fallbackOrders);
   const [volunteers, setVolunteers] = useState(fallbackVolunteers);
   const [therapists, setTherapists] = useState(fallbackTherapists);
+  const [subscribers, setSubscribers] = useState([]);
+  const [contacts, setContacts] = useState(fallbackContacts);
   const [dashboard, setDashboard] = useState(null);
   const [backendStatus, setBackendStatus] = useState("loading");
   const [isConnected, setIsConnected] = useState(false);
   const [backendError, setBackendError] = useState("");
+  const [isAddTherapistOpen, setIsAddTherapistOpen] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -880,6 +1268,8 @@ export default function App() {
         setDonations(bootstrap?.donations ?? fallbackDonations);
         setOrders(bootstrap?.orders ?? fallbackOrders);
         setVolunteers(bootstrap?.volunteers ?? fallbackVolunteers);
+        setSubscribers(bootstrap?.subscribers ?? []);
+        setContacts(bootstrap?.contacts ?? fallbackContacts);
         setDashboard(bootstrap?.dashboard ?? null);
         setIsConnected(true);
         setBackendStatus("connected");
@@ -894,6 +1284,8 @@ export default function App() {
         setDonations(fallbackDonations);
         setOrders(fallbackOrders);
         setVolunteers(fallbackVolunteers);
+        setSubscribers([]);
+        setContacts([]);
         setDashboard(null);
       }
     }
@@ -938,6 +1330,41 @@ export default function App() {
     }
   }
 
+  async function handleTherapistAdd(therapist) {
+    const saved = await createTherapist(therapist);
+    if (saved) {
+      setTherapists((prev) => [saved, ...prev]);
+    }
+    return saved;
+  }
+
+  async function handleTherapistRemove(id) {
+    const previousTherapists = therapists;
+    setTherapists((prev) => prev.filter((item) => String(item.id) !== String(id)));
+    try {
+      await deleteTherapist(id);
+    } catch (error) {
+      setTherapists(previousTherapists);
+      throw error;
+    }
+  }
+
+  async function handleSubscriberAdd(email) {
+    const saved = await addSubscriber(email);
+    if (saved) {
+      setSubscribers((prev) => {
+        if (prev.some((item) => String(item.email).trim().toLowerCase() === String(saved.email).trim().toLowerCase())) {
+          return prev.map((item) =>
+            String(item.email).trim().toLowerCase() === String(saved.email).trim().toLowerCase() ? { ...item, ...saved } : item,
+          );
+        }
+
+        return [saved, ...prev];
+      });
+    }
+    return saved;
+  }
+
   const page = useMemo(() => {
     switch (activeSection) {
       case "Dashboard":
@@ -956,6 +1383,7 @@ export default function App() {
         return (
           <InquiriesPage
             inquiries={inquiries}
+            therapists={therapists}
             therapistMap={therapistMap}
             onUpdateInquiry={handleInquiryUpdate}
           />
@@ -967,11 +1395,22 @@ export default function App() {
       case "Volunteers":
         return <VolunteersPage volunteers={volunteers} onUpdateVolunteer={handleVolunteerUpdate} />;
       case "Therapist Management":
-        return <TherapistManagementPage therapists={therapists} onUpdateTherapist={handleTherapistUpdate} />;
+        return (
+          <TherapistManagementPage
+            therapists={therapists}
+            onUpdateTherapist={handleTherapistUpdate}
+            onAddTherapist={handleTherapistAdd}
+            onRemoveTherapist={handleTherapistRemove}
+            isAddFormOpen={isAddTherapistOpen}
+            onCloseAddForm={() => setIsAddTherapistOpen(false)}
+          />
+        );
       case "Availability Manager":
         return <AvailabilityPage />;
-      case "Child / Parent Records":
-        return <RecordsPage />;
+      case "Subscribe":
+        return <SubscribersPage subscribers={subscribers} onAddSubscriber={handleSubscriberAdd} />;
+      case "Contacts":
+        return <ContactsPage contacts={contacts} />;
       case "Notifications Center":
         return <NotificationsPage />;
       case "Message Broadcast":
@@ -993,7 +1432,7 @@ export default function App() {
           />
         );
     }
-  }, [activeSection, currentUser, dashboard, donations, inquiries, isConnected, orders, therapistMap, therapists, volunteers]);
+  }, [activeSection, contacts, currentUser, dashboard, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers]);
 
   if (!currentUser) {
     return <LoginScreen onLogin={(user) => setCurrentUser(user)} />;
@@ -1016,6 +1455,16 @@ export default function App() {
             {allowedSections.includes("Appointments / Inquiries") && (
               <Button variant="secondary" onClick={() => setActiveSection("Appointments / Inquiries")}>
                 Open Inquiries
+              </Button>
+            )}
+            {allowedSections.includes("Therapist Management") && (
+              <Button
+                onClick={() => {
+                  setActiveSection("Therapist Management");
+                  setIsAddTherapistOpen(true);
+                }}
+              >
+                Add Therapist
               </Button>
             )}
           </div>

@@ -17,7 +17,7 @@ export const adminUsers = [
     name: "Admin Three",
     email: "admin3@udai.in",
     password: "333333",
-    role: "viewer",
+    role: "finance",
     isActive: true,
   },
 ];
@@ -35,6 +35,9 @@ export const therapists = [
   { id: 10, name: "Ms Tanu Rajput", department: "Counselling / Home Programme", role: "Counsellor", experience: "8 years", active: true },
   { id: 11, name: "Ms Harsimran", department: "Counselling / Home Programme", role: "Counsellor", experience: "6 years", active: true },
 ];
+
+export const subscribers = [];
+export const contacts = [];
 
 export const inquiries = [
   {

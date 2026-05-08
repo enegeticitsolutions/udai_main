@@ -1,12 +1,11 @@
-import { Mail, Phone, MapPin, Clock, Send } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import { useState } from "react";
-import { apiPost } from "../lib/api";
+import { adminApiPost, apiPost } from "../lib/api";
 
 export function Contact() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    subject: "",
     message: "",
   });
   const [submitted, setSubmitted] = useState(false);
@@ -17,9 +16,23 @@ export function Contact() {
 
     try {
       setError(null);
-      await apiPost("/forms/contact", formData);
+      const payload = {
+        ...formData,
+        subject: "Website Inquiry",
+      };
+
+      try {
+        await apiPost("/forms/contact", payload);
+      } catch (primaryError) {
+        const message = primaryError instanceof Error ? primaryError.message : "";
+        if (!/route not found|404/i.test(message)) {
+          throw primaryError;
+        }
+        await adminApiPost("/contacts", payload);
+      }
+
       setSubmitted(true);
-      setFormData({ name: "", email: "", subject: "", message: "" });
+      setFormData({ name: "", email: "", message: "" });
       window.setTimeout(() => {
         setSubmitted(false);
       }, 3000);
@@ -37,209 +50,89 @@ export function Contact() {
     });
   }
 
-  const contactInfo = [
-    {
-      icon: Mail,
-      title: "Email",
-      details: ["info@udairehab.org", "support@udairehab.org"],
-    },
-    {
-      icon: Phone,
-      title: "Phone",
-      details: ["+91 9899681972", "+91 8377066832"],
-    },
-    {
-      icon: MapPin,
-      title: "Address",
-      details: ["Plot 123, Main Street", "Kampala, Uganda"],
-    },
-    {
-      icon: Clock,
-      title: "Office Hours",
-      details: ["Monday - Friday: 8:00 AM - 5:00 PM", "Saturday: 9:00 AM - 1:00 PM"],
-    },
-  ];
-
   return (
     <div>
-      <section className="bg-gray-900 py-16 text-white sm:py-24">
+      <section className="bg-[#f6f7fb] py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <h1 className="mb-6 text-4xl sm:text-5xl">Contact Us</h1>
-            <p className="text-lg text-gray-300 sm:text-xl">
-              Have questions or want to get involved? We&apos;d love to hear from you. Reach out to us and we&apos;ll respond as soon as possible.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-2">
-            <div>
-              <h2 className="mb-6 text-3xl">Send Us a Message</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="mb-2 block text-sm text-gray-700">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                    placeholder="John Doe"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="mb-2 block text-sm text-gray-700">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                    placeholder="john@example.com"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="subject" className="mb-2 block text-sm text-gray-700">
-                    Subject *
-                  </label>
-                  <select
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="">Select a subject</option>
-                    <option value="General Inquiry">General Inquiry</option>
-                    <option value="Volunteer">Volunteer</option>
-                    <option value="Donation">Donation</option>
-                    <option value="Partnership">Partnership</option>
-                    <option value="Program Support">Program Support</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="message" className="mb-2 block text-sm text-gray-700">
-                    Message *
-                  </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                    rows={6}
-                    className="w-full resize-none rounded-md border border-gray-300 px-4 py-3 outline-none focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Tell us more about your inquiry..."
-                  />
-                </div>
-
-                {error ? (
-                  <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {error}
-                  </div>
-                ) : null}
-
-                <button
-                  type="submit"
-                  disabled={submitted}
-                  className="flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 py-3 text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400"
-                >
-                  {submitted ? (
-                    "Message Sent!"
-                  ) : (
-                    <>
-                      <Send className="size-4" />
-                      Send Message
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-
-            <div>
-              <h2 className="mb-6 text-3xl">Contact Information</h2>
-              <p className="mb-8 text-gray-600">
-                You can also reach us through any of the following channels. We&apos;re here to help and answer any questions you may have.
+          <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.05fr]">
+            <div className="max-w-xl pt-8 lg:pt-16">
+              <h1 className="mb-5 text-4xl font-semibold tracking-tight text-[#111111] sm:text-5xl">
+                Contact Us
+              </h1>
+              <p className="max-w-lg text-[17px] leading-8 text-[#6d6d6d]">
+                We are committed to processing the information in order to contact you and talk about your project.
               </p>
 
-              <div className="space-y-6">
-                {contactInfo.map((info, index) => {
-                  const Icon = info.icon;
+              <div className="mt-10 space-y-6">
+                {[
+                  { icon: MapPin, text: "Wz 12B, Asalatpur Rd, near A3 block, Block A3, Janakpuri, New Delhi, Delhi, 110058" },
+                  { icon: Mail, text: "info@udairehab.org" },
+                  { icon: Phone, text: "8377066832" },
+                ].map((item, index) => {
+                  const Icon = item.icon;
                   return (
-                    <div key={index} className="flex gap-4">
-                      <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                        <Icon className="size-6 text-emerald-600" />
+                    <div key={index} className="flex items-start gap-4">
+                      <div className="mt-1 flex size-9 items-center justify-center rounded-full bg-[#ffe4c8]">
+                        <Icon className="size-4 text-[#f2994a]" />
                       </div>
-                      <div>
-                        <h3 className="mb-2 text-lg">{info.title}</h3>
-                        {info.details.map((detail, detailIndex) => (
-                          <p key={detailIndex} className="text-sm text-gray-600">
-                            {detail}
-                          </p>
-                        ))}
-                      </div>
+                      <p className="whitespace-pre-line text-base leading-7 text-[#3d3d3d]">{item.text}</p>
                     </div>
                   );
                 })}
               </div>
-
-              <div className="mt-8 flex h-64 items-center justify-center rounded-lg bg-gray-200">
-                <div className="text-center text-gray-500">
-                  <MapPin className="mx-auto mb-2 size-12" />
-                  <p className="text-sm">Map Location</p>
-                </div>
-              </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <section className="bg-gray-50 py-16 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="mb-6 text-3xl sm:text-4xl">Make a Donation</h2>
-            <p className="mb-8 text-gray-600">
-              Your generous donations help us continue our mission to transform lives. Every contribution makes a difference.
-            </p>
+            <div className="rounded-[1.5rem] bg-[#fffdf8] p-4 shadow-[0_18px_40px_rgba(28,31,50,0.08)]">
+              <div className="rounded-[1.2rem] bg-white p-6 sm:p-8">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full rounded-md border border-[#e5e7eb] px-4 py-3 outline-none placeholder:text-[#9ca3af] focus:border-[#d1d5db]"
+                      placeholder="Name*"
+                    />
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full rounded-md border border-[#e5e7eb] px-4 py-3 outline-none placeholder:text-[#9ca3af] focus:border-[#d1d5db]"
+                      placeholder="Email*"
+                    />
+                    <textarea
+                      id="message"
+                      name="message"
+                      value={formData.message}
+                      onChange={handleChange}
+                      required
+                      rows={6}
+                      className="w-full resize-none rounded-md border border-[#e5e7eb] px-4 py-3 outline-none placeholder:text-[#9ca3af] focus:border-[#d1d5db]"
+                      placeholder="Message"
+                    />
+                  </div>
 
-            <div className="rounded-lg bg-white p-8 shadow-md">
-              <h3 className="mb-4 text-xl">Bank Transfer Details</h3>
-              <div className="mx-auto max-w-md space-y-3 text-left text-sm text-gray-600">
-                <div className="flex justify-between border-b border-gray-200 py-2">
-                  <span className="font-medium">Bank Name:</span>
-                  <span>Stanbic Bank Uganda</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-200 py-2">
-                  <span className="font-medium">Account Name:</span>
-                  <span>UDAI Rehabilitation Foundation</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-200 py-2">
-                  <span className="font-medium">Account Number:</span>
-                  <span>0123456789</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-200 py-2">
-                  <span className="font-medium">Swift Code:</span>
-                  <span>SBICUGKX</span>
-                </div>
+                  {error ? (
+                    <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={submitted}
+                    className="w-full rounded-md bg-gradient-to-r from-[#8b5cf6] via-[#e85c8d] to-[#ff8a34] px-8 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {submitted ? "Message Sent!" : "Submit"}
+                  </button>
+                </form>
               </div>
-              <p className="mt-6 text-sm text-gray-500">
-                For online donation intent capture, use the donation form on the homepage. It is connected to the backend now.
-              </p>
             </div>
           </div>
         </div>
