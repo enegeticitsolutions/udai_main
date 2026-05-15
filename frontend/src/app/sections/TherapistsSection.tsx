@@ -11,7 +11,7 @@ export function TherapistsSection() {
   const loopingTherapists = [...therapists, ...therapists];
 
   return (
-    <section className="bg-[#f7f4ef] py-16 sm:py-20" id="therapists">
+    <section className="scroll-mt-40 bg-[#f7f4ef] py-16 sm:py-20" id="therapists">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

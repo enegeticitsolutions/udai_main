@@ -111,3 +111,33 @@ export const orderSchema = z.object({
   orderStatus: z.enum(["new", "confirmed", "packed", "shipped", "delivered", "cancelled"]).default("new"),
   notes: z.string().trim().max(2000).default(""),
 });
+
+export const signupSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email(),
+  password: z.string().min(6).max(100),
+  phone: z.string().trim().optional(),
+});
+
+export const loginSchema = z.object({
+  identifier: z.string().trim(),
+  password: z.string().optional(),
+  otp: z.string().optional(),
+}).refine((data) => data.password || data.otp, {
+  message: "Password or OTP is required",
+  path: ["password"],
+});
+
+export const sendOtpSchema = z.object({
+  identifier: z.string().trim(),
+});
+
+export const addressSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  phone: z.string().trim().min(10).max(15),
+  city: z.string().trim().min(2).max(120),
+  state: z.string().trim().min(2).max(120),
+  pincode: z.string().trim().min(3).max(12),
+  addressLine1: z.string().trim().min(2).max(200),
+  addressLine2: z.string().trim().max(200).optional(),
+});

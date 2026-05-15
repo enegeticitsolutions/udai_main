@@ -34,6 +34,7 @@ body,
 body {
   margin: 0;
   color: var(--text);
+  font-size: 0.875rem;
   background:
     linear-gradient(180deg, #fcfdff 0%, var(--bg) 100%);
 }
@@ -78,7 +79,7 @@ button {
 
 .login-card h1 {
   margin: 0 0 10px;
-  font-size: 2rem;
+  font-size: 1.75rem;
   line-height: 1.15;
   letter-spacing: -0.03em;
 }
@@ -161,7 +162,7 @@ button {
 .eyebrow {
   margin: 0;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .nav {
@@ -175,10 +176,11 @@ button {
   border: 1px solid transparent;
   background: transparent;
   text-align: left;
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
   color: var(--text);
   font-weight: 600;
+  font-size: 0.875rem;
 }
 
 .nav-item:hover,
@@ -212,8 +214,8 @@ button {
 }
 
 .topbar h1 {
-  margin: 6px 0 0;
-  font-size: 1.9rem;
+  margin: 4px 0 0;
+  font-size: 1.5rem;
   letter-spacing: -0.03em;
 }
 
@@ -302,7 +304,7 @@ button {
 }
 
 .dashboard-hero-panel strong {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
 }
 
 .dashboard-hero-panel small {
@@ -346,8 +348,8 @@ button {
 }
 
 .stat-card h3 {
-  margin: 10px 0 8px;
-  font-size: 1.9rem;
+  margin: 8px 0 6px;
+  font-size: 1.6rem;
   letter-spacing: -0.04em;
 }
 
@@ -361,7 +363,7 @@ button {
 
 .section-head h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1rem;
   letter-spacing: -0.02em;
 }
 
@@ -411,9 +413,10 @@ button {
 
 .btn {
   border: none;
-  border-radius: 12px;
-  padding: 12px 15px;
+  border-radius: 10px;
+  padding: 10px 14px;
   font-weight: 700;
+  font-size: 0.85rem;
   transition:
     transform 0.16s ease,
     box-shadow 0.16s ease,
@@ -449,7 +452,7 @@ button {
 
 .field span {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
@@ -461,8 +464,9 @@ button {
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 12px;
   background: white;
-  padding: 12px 14px;
+  padding: 10px 12px;
   color: var(--text);
+  font-size: 0.875rem;
   outline: none;
 }
 
@@ -499,7 +503,8 @@ button {
 
 .table-wrap {
   width: 100%;
-  overflow: auto;
+  max-width: 100%;
+  overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 16px;
 }
@@ -511,10 +516,11 @@ table {
 
 th,
 td {
-  padding: 13px 12px;
+  padding: 12px 10px;
   text-align: left;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   vertical-align: top;
+  word-break: break-word;
 }
 
 th {

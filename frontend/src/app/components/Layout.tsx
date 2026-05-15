@@ -12,6 +12,21 @@ export function Layout() {
   const [newsletterMessage, setNewsletterMessage] = useState("");
   const location = useLocation();
 
+  const handleHashLink = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    setMobileMenuOpen(false);
+    if (href.startsWith("/#")) {
+      const targetId = href.replace("/#", "");
+      if (location.pathname === "/") {
+        const element = document.getElementById(targetId);
+        if (element) {
+          e.preventDefault();
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+          window.history.pushState(null, "", href);
+        }
+      }
+    }
+  };
+
   async function handleNewsletterSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNewsletterMessage("");
@@ -76,7 +91,9 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 bg-white border-b border-[#e7dfd7]">
+      {/* Sticky Header Group */}
+      <div className="sticky top-0 z-50 shadow-md">
+        {/* Top Contact Bar */}
         <div className="bg-[#2f5597] text-white">
           <div className="mx-auto flex max-w-7xl flex-col items-start justify-start gap-2 px-4 py-2 text-sm font-medium sm:px-6 md:flex-row md:items-center md:gap-10 lg:px-8">
             <a
@@ -96,7 +113,9 @@ export function Layout() {
           </div>
         </div>
 
-        <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Main Navigation */}
+        <header className="bg-white border-b border-[#e7dfd7]">
+          <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-[92px] items-center justify-between gap-6">
             <Link to="/" className="flex shrink-0 items-center">
               <img src={logo} alt="UDAI Logo" className="h-16 w-auto sm:h-20" />
@@ -109,9 +128,8 @@ export function Layout() {
                     <button
                       type="button"
                       onClick={() => setProjectsOpen((prev) => !prev)}
-                      className={`inline-flex items-center gap-1 text-[15px] font-medium transition-colors ${
-                        projectsOpen ? "text-[#2f5597]" : "text-[#2b1b15] hover:text-[#2f5597]"
-                      }`}
+                      className={`inline-flex items-center gap-1 text-[15px] font-medium transition-colors ${projectsOpen ? "text-[#2f5597]" : "text-[#2b1b15] hover:text-[#2f5597]"
+                        }`}
                     >
                       {item.name}
                       <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
@@ -135,11 +153,10 @@ export function Layout() {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`text-[15px] font-medium transition-colors ${
-                      isActive(item.href)
+                    className={`text-[15px] font-medium transition-colors ${isActive(item.href)
                         ? "text-[#2f5597]"
                         : "text-[#2b1b15] hover:text-[#2f5597]"
-                    }`}
+                      }`}
                   >
                     {item.name}
                   </Link>
@@ -147,16 +164,16 @@ export function Layout() {
                   <Link
                     key={item.name}
                     to={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={(e) => handleHashLink(e, item.href)}
                     className="text-[15px] font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
                   >
                     {item.name}
                   </Link>
                 ),
               )}
-              <Link
+               <Link
                 to="/#donate"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => handleHashLink(e, "/#donate")}
                 className="rounded-full bg-[#ef3c32] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(239,60,50,0.28)] transition hover:bg-[#da2f26]"
               >
                 Donate Now
@@ -213,11 +230,10 @@ export function Layout() {
                       key={item.name}
                       to={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`text-sm font-medium transition-colors ${
-                        isActive(item.href)
+                      className={`text-sm font-medium transition-colors ${isActive(item.href)
                           ? "text-[#2f5597]"
                           : "text-[#2b1b15] hover:text-[#2f5597]"
-                      }`}
+                        }`}
                     >
                       {item.name}
                     </Link>
@@ -225,7 +241,7 @@ export function Layout() {
                     <Link
                       key={item.name}
                       to={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={(e) => handleHashLink(e, item.href)}
                       className="text-left text-sm font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
                     >
                       {item.name}
@@ -234,7 +250,7 @@ export function Layout() {
                 )}
                 <Link
                   to="/#donate"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => handleHashLink(e, "/#donate")}
                   className="rounded-full bg-[#ef3c32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#da2f26]"
                 >
                   Donate Now
@@ -244,6 +260,7 @@ export function Layout() {
           )}
         </nav>
       </header>
+    </div>
 
       {/* Main Content */}
       <main className="flex-1">

@@ -52,3 +52,38 @@ export function adminApiPost<T>(path: string, body: unknown): Promise<T> {
 }
 
 export { API_BASE_URL, ADMIN_API_BASE_URL };
+
+export const AUTH_TOKEN_KEY = "udai_auth_token";
+
+export const apiClient = {
+  async get<T = any>(path: string) {
+    const token = typeof window !== "undefined" ? window.localStorage.getItem(AUTH_TOKEN_KEY) : null;
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    
+    const response = await fetch(`${API_BASE_URL}${path}`, { headers });
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("udai-auth-expired"));
+    }
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Request failed");
+    return { data };
+  },
+  async post<T = any>(path: string, body: any) {
+    const token = typeof window !== "undefined" ? window.localStorage.getItem(AUTH_TOKEN_KEY) : null;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("udai-auth-expired"));
+    }
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Request failed");
+    return { data };
+  }
+};

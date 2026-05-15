@@ -11,19 +11,25 @@
     "kill:port": "kill-port"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.1.1",
     "mongoose": "^9.3.3",
     "morgan": "^1.10.0",
+    "nodemailer": "^8.0.7",
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^24.5.2",
+    "@types/nodemailer": "^8.0.0",
     "kill-port": "^2.0.1",
     "tsx": "^4.20.5",
     "typescript": "^5.9.3"

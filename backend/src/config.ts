@@ -32,4 +32,6 @@ export const config = {
   backendDataDir: path.resolve(projectRoot, "src", "data"),
   frontendDataDir: path.resolve(projectRoot, "..", "frontend", "src", "app", "data"),
   storageDir: path.resolve(projectRoot, "storage"),
+  jwtSecret: process.env.JWT_SECRET || "default_jwt_secret",
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
 };

@@ -228,3 +228,34 @@ export interface CareerOpportunity {
   requirements: string[];
   applyLink: string;
 }
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserDocument extends Omit<User, "id"> {
+  _id?: import("mongodb").ObjectId;
+  password: string;
+  otp?: string;
+  otpExpiry?: string;
+}
+
+export interface Address {
+  id: string;
+  userId: string;
+  fullName: string;
+  phone: string;
+  city: string;
+  state: string;
+  pincode: string;
+  addressLine1: string;
+  addressLine2?: string;
+  createdAt: string;
+  updatedAt?: string;
+}

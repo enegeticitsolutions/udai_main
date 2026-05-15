@@ -10,6 +10,7 @@ import {
 } from "../schemas.js";
 import { getEvents } from "../services/contentService.js";
 import { getDepartmentAvailability, reserveDepartmentTherapist } from "../services/appointmentAvailabilityService.js";
+import { getDonationConfirmationTemplate, sendEmail } from "../services/emailService.js";
 export const formsRouter = Router();
 
 formsRouter.post("/contact", async (req, res, next) => {
@@ -35,8 +36,33 @@ formsRouter.post("/volunteers", async (req, res, next) => {
 formsRouter.post("/donations", async (req, res, next) => {
   try {
     const payload = donationIntentSchema.parse(req.body);
-    const record = await appendRecord("donations.json", payload);
-    res.status(201).json({ success: true, message: "Donation intent recorded", data: record });
+    const transactionId = `DON-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const record = await appendRecord("donations.json", {
+      ...payload,
+      transactionId,
+      date: new Date().toISOString(),
+    });
+
+    // Send confirmation email
+    const emailHtml = getDonationConfirmationTemplate({
+      donorName: payload.name,
+      transactionId,
+      amount: payload.amount,
+      date: new Date().toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    });
+
+    // Send confirmation email (non-blocking)
+    sendEmail({
+      to: payload.email,
+      subject: "Thank You for Investing in Their Future | Donation Confirmation - UDAI",
+      html: emailHtml,
+    }).catch(err => console.error("Background email sending error:", err));
+
+    res.status(201).json({ success: true, message: "Donation recorded successfully. A confirmation email has been sent to your address.", data: record });
   } catch (error) {
     next(error);
   }

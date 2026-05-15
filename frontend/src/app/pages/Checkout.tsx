@@ -6,6 +6,7 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { apiPost } from "../lib/api";
 import { clearCart, clearCheckoutProduct, getCart, getCheckoutProduct } from "../lib/cart";
+import { useAuth } from "../context/AuthContext";
 import type { CartItem } from "../lib/cart";
 import type { Order, Product } from "../types/api";
 
@@ -135,12 +136,31 @@ function loadRazorpayScript() {
 
 export function Checkout() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [checkoutProduct, setCheckoutProduct] = useState<Product | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [address, setAddress] = useState<AddressForm>(initialAddress);
   const [submitting, setSubmitting] = useState(false);
   const [qrPayment, setQrPayment] = useState<RazorpayQrCreateResponse | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast.error("Please sign in to continue to checkout");
+      navigate("/auth?redirect=/checkout");
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      setAddress((current) => ({
+        ...current,
+        fullName: current.fullName || user.name || "",
+        email: current.email || user.email || "",
+        mobile: current.mobile || user.phone || "",
+      }));
+    }
+  }, [user]);
 
   useEffect(() => {
     const selectedProduct = getCheckoutProduct();
@@ -234,7 +254,7 @@ export function Checkout() {
       }
 
       await new Promise<void>((resolve, reject) => {
-        const instance = new window.Razorpay({
+        const instance = new (window as any).Razorpay({
           key: checkout.razorpay.keyId,
           amount: checkout.razorpay.amount,
           currency: checkout.razorpay.currency,
@@ -249,7 +269,7 @@ export function Checkout() {
             localOrderId: checkout.order.id,
             paymentMethod,
           },
-          handler: async (response) => {
+          handler: async (response: any) => {
             try {
               const verified = await apiPost<RazorpayVerificationResponse>("/payments/razorpay/verify", {
                 localOrderId: checkout.order.id,
@@ -287,6 +307,14 @@ export function Checkout() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <p className="text-[#776a66]">Please wait...</p>
+      </div>
+    );
   }
 
   if (orderItems.length === 0) {

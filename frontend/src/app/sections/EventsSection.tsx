@@ -68,7 +68,7 @@ export function EventsSection() {
   }
 
   return (
-    <section className="bg-white py-16 sm:py-20" id="events">
+    <section className="scroll-mt-40 bg-white py-16 sm:py-20" id="events">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1.15fr_0.55fr] lg:items-start">
           <div>

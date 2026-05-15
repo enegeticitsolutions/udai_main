@@ -37,6 +37,16 @@ export function HeroSection() {
           <div className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center sm:gap-4">
             <Link
               to="/#donate"
+              onClick={(e) => {
+                if (window.location.pathname === "/") {
+                  const el = document.getElementById("donate");
+                  if (el) {
+                    e.preventDefault();
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    window.history.pushState(null, "", "/#donate");
+                  }
+                }
+              }}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-red-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-500/25 transition hover:bg-red-600 sm:min-w-[220px] sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
             >
               Donate Now

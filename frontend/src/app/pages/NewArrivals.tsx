@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, Plus } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { toast } from "sonner";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { apiGet } from "../lib/api";
 import { addToCart, setCheckoutProduct } from "../lib/cart";
+import { useAuth } from "../context/AuthContext";
 import fallbackProducts from "../data/products.json";
 import type { Product } from "../types/api";
 
 export function NewArrivals() {
   const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +47,23 @@ export function NewArrivals() {
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-12 rounded-[1.5rem] bg-[#2b1b15] px-6 py-8 text-white shadow-[0_18px_36px_rgba(43,27,21,0.14)] sm:px-8">
-            <div className="mb-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#ffd86b]">
-              New Arrivals
+            <div className="flex justify-between items-start mb-3">
+              <div className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#ffd86b]">
+                New Arrivals
+              </div>
+              <div className="flex gap-3">
+                {!isAuthenticated ? (
+                  <>
+                    <Link to="/auth?mode=login" className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20">Sign In</Link>
+                    <Link to="/auth?mode=signup" className="rounded-full bg-[#ef3c32] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#da2f26]">Sign Up</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/account/orders" className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20">My Orders</Link>
+                    <button onClick={() => logout()} className="rounded-full bg-[#ef3c32] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#da2f26]">Logout</button>
+                  </>
+                )}
+              </div>
             </div>
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl">
@@ -171,7 +188,12 @@ export function NewArrivals() {
                         type="button"
                         onClick={() => {
                           setCheckoutProduct(product);
-                          navigate("/checkout");
+                          if (!isAuthenticated) {
+                            toast.error("Please sign in or sign up to purchase products.");
+                            navigate("/auth?redirect=/checkout");
+                          } else {
+                            navigate("/checkout");
+                          }
                         }}
                         className="flex-1 rounded-full bg-[#2f5597] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(47,85,151,0.22)] transition hover:bg-[#264882]"
                       >

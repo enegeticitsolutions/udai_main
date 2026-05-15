@@ -25,21 +25,69 @@ export function About() {
     },
   ];
 
+  const governingBody = [
+    {
+      name: "Smt. Tanu Rajput",
+      role: "Business - Chairman",
+      image: "/images/tanu.jpeg",
+    },
+    {
+      name: "Dr. Kanchan Sharma",
+      role: "Sr. Consultant & Educator - Vice Chairman",
+      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_kanchan_sharma_1778844027897.png",
+    },
+    {
+      name: "Smt. Savita Sharma",
+      role: "Microbiologist - Secretary",
+      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_savita_sharma_1778844046994.png",
+    },
+    {
+      name: "Sh. Praveen Kumar",
+      role: "Rtd. Civil Engineer - Treasurer",
+      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_praveen_kumar_1778844063930.png",
+    },
+    {
+      name: "Sh. Surjeet Singh Duggal",
+      role: "Business - Executive Member",
+      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_surjeet_duggal_1778844078326.png",
+    },
+    {
+      name: "Smt. Kajal Chanana",
+      role: "Business - Executive Member",
+      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_kajal_chanana_1778844097284.png",
+    },
+    {
+      name: "Smt. Diksha Bharti",
+      role: "Consultant - Executive Member",
+      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_diksha_bharti_1778844112744.png",
+    },
+    {
+      name: "Sh. Harish Kumar Chandna",
+      role: "Rtd. Govt Servant - Executive Member",
+      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_harish_chandna_1778844129009.png",
+    },
+  ];
+
   const team = [
     {
-      name: "Dr. Sarah Mutesi",
-      role: "Executive Director",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhZnJpY2FuJTIwd29tYW4lMjBwcm9mZXNzaW9uYWx8ZW58MXx8fHwxNzM2ODU5MjA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      name: "Ms. Tanu Rajput",
+      role: "Founder Trustee",
+      image: "/images/tanu.jpeg",
     },
     {
-      name: "John Okello",
-      role: "Programs Director",
-      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhZnJpY2FuJTIwbWFuJTIwcHJvZmVzc2lvbmFsfGVufDF8fHx8MTczNjg1OTIwN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      name: "Ms. Harsimran Kaur",
+      role: "HOD - Occupational Therapy",
+      image: "/images/harsimran.jpeg",
     },
     {
-      name: "Grace Nalongo",
-      role: "Community Outreach Lead",
-      image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHdvbWFuJTIwc21pbGluZ3xlbnwxfHx8fDE3MzY4NTkyMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      name: "Ms. Poonam Sagar",
+      role: "Project Manager",
+      image: "/images/poonam.jpeg",
+    },
+    {
+      name: "Ms. Manisha Shandilya",
+      role: "Administration",
+      image: "/images/manisha.jpeg",
     },
   ];
 
@@ -130,6 +178,40 @@ export function About() {
         </div>
       </section>
 
+      {/* Governing Body Section */}
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl mb-4 text-[#111111]">Governing Body</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Our esteemed board members who provide strategic direction and governance to the organization.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {governingBody.map((member, index) => (
+              <div key={index} className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100">
+                <div className="aspect-[3/4] overflow-hidden bg-gray-50">
+                  <ImageWithFallback
+                    src={member.image}
+                    alt={member.name}
+                    className="w-full h-full object-cover object-top"
+                  />
+                </div>
+                <div className="p-6 text-center">
+                  <h3 className="text-lg font-semibold mb-2 text-[#111111]">{member.name}</h3>
+                  <div className="text-emerald-600 text-base font-bold leading-tight">
+                    {member.role.split(" - ").map((part, i) => (
+                      <span key={i} className="block">{part}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Team Section */}
       <section className="py-16 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -140,19 +222,23 @@ export function About() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {team.map((member, index) => (
               <div key={index} className="bg-white rounded-lg overflow-hidden shadow-md">
-                <div className="h-64 overflow-hidden">
+                <div className="aspect-[3/4] overflow-hidden bg-gray-100">
                   <ImageWithFallback
                     src={member.image}
                     alt={member.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                   />
                 </div>
                 <div className="p-6 text-center">
-                  <h3 className="text-xl mb-1">{member.name}</h3>
-                  <p className="text-emerald-600 text-sm">{member.role}</p>
+                  <h3 className="text-xl font-semibold mb-2">{member.name}</h3>
+                  <div className="text-emerald-600 text-lg font-bold leading-tight">
+                    {member.role.split(" - ").map((part, i) => (
+                      <span key={i} className="block">{part}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}

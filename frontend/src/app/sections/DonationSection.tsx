@@ -86,7 +86,7 @@ export function DonationSection() {
         purpose: formData.purpose || (donationType === "monthly" ? "Monthly support" : "One-time donation"),
         paymentMethod,
       });
-      setFeedback("Donation intent submitted successfully.");
+      setFeedback("Donation recorded! A confirmation email with your 80G tax benefit details has been sent to " + formData.email);
       setStage("amount");
       setFormData({
         name: "",
@@ -112,7 +112,7 @@ export function DonationSection() {
   }
 
   return (
-    <section id="donate" className="bg-[#f2f1ef] py-16 sm:py-20">
+    <section id="donate" className="scroll-mt-40 bg-[#f2f1ef] py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -434,15 +434,19 @@ export function DonationSection() {
               </div>
             ) : null}
 
-            <div className="mt-5 flex items-center justify-center gap-2 text-xs text-[#a1938c]">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Donation requests are now recorded in the backend. Payment gateway setup can be added next.</span>
+            <div className="mt-5 flex flex-col items-center justify-center gap-3 text-center text-xs text-[#a1938c]">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#2f6c3e]" />
+                <span className="font-medium text-[#5e5048]">80G Tax Benefits Available</span>
+              </div>
+              <p className="max-w-xs leading-5">
+                For assistance, contact us at:<br/>
+                <strong>+91 - 9899681972</strong> | <strong>info@udairehab.org</strong>
+              </p>
             </div>
           </div>
 
-          <div className="bg-[#f7f4f2] px-6 py-5 text-center text-xs font-medium text-[#8b7c75]">
-            <span className="font-semibold text-[#5e5048]">₹500</span> supports essentials for one child.
-          </div>
+
         </motion.div>
       </div>
     </section>

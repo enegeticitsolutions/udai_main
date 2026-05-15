@@ -14,7 +14,7 @@ export function VolunteerCTASection() {
   return (
     <section
       id="volunteer"
-      className="overflow-hidden bg-[#ff4b57] py-16 text-white sm:py-20"
+      className="scroll-mt-40 overflow-hidden bg-[#ff4b57] py-16 text-white sm:py-20"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">

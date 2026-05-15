@@ -13,6 +13,8 @@ import { BlogStoryDetail } from "./pages/BlogStoryDetail";
 import { Checkout } from "./pages/Checkout";
 import { Careers } from "./pages/Careers";
 import { Appointment } from "./pages/Appointment";
+import { AuthPage } from "./pages/AuthPage";
+import { AccountOrders } from "./pages/AccountOrders";
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +34,8 @@ export const router = createBrowserRouter([
       { path: "stories/:id", Component: BlogStoryDetail },
       { path: "get-involved", Component: GetInvolved },
       { path: "contact", Component: Contact },
+      { path: "auth", Component: AuthPage },
+      { path: "account/orders", Component: AccountOrders },
     ],
   },
 ]);

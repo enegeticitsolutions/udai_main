@@ -16,7 +16,7 @@ export function ShopSection() {
   const displayProducts = products.slice(0, 4);
 
   return (
-    <section className="bg-[#fbf6f3] py-16 sm:py-20" id="shop">
+    <section className="scroll-mt-40 bg-[#fbf6f3] py-16 sm:py-20" id="shop">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

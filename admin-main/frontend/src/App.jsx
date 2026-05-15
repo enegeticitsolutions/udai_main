@@ -628,27 +628,19 @@ function DonationsPage({ donations }) {
 
       <div className="panel-grid donations-stats">
         <StatCard label="Total donations" value={`₹${totalDonations}`} hint="All donations combined" />
-        <StatCard label="Paid" value={donations.filter((item) => item.status === "paid").length} hint="Successful payments" />
-        <StatCard label="Pending" value={donations.filter((item) => item.status === "pending").length} hint="Waiting for confirmation" />
-        <StatCard label="Failed" value={donations.filter((item) => item.status === "failed").length} hint="Payment issues" />
+
       </div>
 
       <Table
-        columns={["Donor Name", "Email", "Phone", "Amount", "Donation Type", "Method", "Status", "Date", "Purpose", "Message"]}
+        columns={["Donor Name", "Email", "Amount", "Method", "Date", "Purpose", "Message"]}
         rows={donations.map((donation) => [
           donation.donorName ?? donation.name ?? "-",
           donation.email ?? "-",
-          maskPhone(donation.phone),
+
           `₹${Number(donation.amount ?? 0)}`,
-          donation.donationType ?? donation.type ?? "-",
           donation.paymentMethod ?? "-",
-          <Badge
-            key={donation.id}
-            tone={donation.status === "paid" ? "green" : donation.status === "pending" ? "amber" : "slate"}
-          >
-            {donation.status ?? "pending"}
-          </Badge>,
-          donation.createdAt ?? "-",
+
+          donation.createdAt ? new Date(donation.createdAt).toLocaleDateString() : "-",
           donation.purpose ?? "-",
           donation.message ?? "-",
         ])}
@@ -694,7 +686,7 @@ function OrdersPage({ orders, onUpdateOrder }) {
       </div>
 
       <Table
-        columns={["Order", "Customer", "Contact", "Items", "Payment", "Payment Status", "Order Status", "Amount", "Created"]}
+        columns={["Order", "Customer", "Contact", "Items", "Payment", "Payment Status", "Amount", "Created"]}
         rows={items.map((order, index) => [
           <strong key={`${order.id}-number`}>{order.orderNumber ?? order.id}</strong>,
           order.customerName ?? "-",
@@ -712,19 +704,7 @@ function OrdersPage({ orders, onUpdateOrder }) {
           >
             {order.paymentStatus ?? "-"}
           </Badge>,
-          <select
-            key={`${order.id}-order-status`}
-            className="select-inline"
-            value={order.orderStatus ?? "new"}
-            onChange={(e) => updateOrder(index, { orderStatus: e.target.value })}
-          >
-            <option value="new">new</option>
-            <option value="confirmed">confirmed</option>
-            <option value="packed">packed</option>
-            <option value="shipped">shipped</option>
-            <option value="delivered">delivered</option>
-            <option value="cancelled">cancelled</option>
-          </select>,
+
           `₹${Number(order.totalAmount ?? order.subtotal ?? 0)}`,
           order.createdAt ?? "-",
         ])}
@@ -1457,10 +1437,9 @@ export default function App() {
                 Open Inquiries
               </Button>
             )}
-            {allowedSections.includes("Therapist Management") && (
+            {activeSection === "Therapist Management" && (
               <Button
                 onClick={() => {
-                  setActiveSection("Therapist Management");
                   setIsAddTherapistOpen(true);
                 }}
               >
