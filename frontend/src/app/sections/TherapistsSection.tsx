@@ -1,13 +1,16 @@
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { useApiData } from "../hooks/useApiData";
 import type { Therapist } from "../types/api";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { useState } from "react";
+import { WhatsAppBookingForm } from "../components/WhatsAppBookingForm";
 
 export function TherapistsSection() {
   const { data: therapists, isLoading, error } = useApiData<Therapist[]>(
     "/content/therapists",
     [],
   );
+  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
   const loopingTherapists = [...therapists, ...therapists];
 
   return (
@@ -35,15 +38,19 @@ export function TherapistsSection() {
             </p>
           </div>
 
-          <a
-            href="https://wa.me/919899681972?text=Hi%20UDAIREHAB%2C%20I%20want%20to%20book%20an%20appointment."
-            target="_blank"
-            rel="noreferrer"
+          <button
+            onClick={() => setIsWhatsAppOpen(true)}
             className="mt-6 inline-flex h-fit items-center justify-center rounded-full bg-[#ef3c32] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(239,60,50,0.24)] transition hover:bg-[#da2f26] lg:absolute lg:right-0 lg:top-24 lg:mt-0"
           >
             Book Appointment
-          </a>
+          </button>
         </motion.div>
+
+        <AnimatePresence>
+          {isWhatsAppOpen && (
+            <WhatsAppBookingForm onClose={() => setIsWhatsAppOpen(false)} />
+          )}
+        </AnimatePresence>
 
         {isLoading ? (
           <div className="rounded-[1.2rem] border border-dashed border-[#d7cfc8] bg-white/70 p-10 text-center text-sm text-[#776a66]">

@@ -5,6 +5,7 @@ import { formsRouter } from "./forms.js";
 import { paymentsRouter } from "./payments.js";
 import { authRouter } from "./auth.js";
 import { userRouter } from "./user.js";
+import whatsappRouter from "./whatsapp.js";
 import { isMongoConnected } from "../lib/mongodb.js";
 
 export const apiRouter = Router();
@@ -26,3 +27,4 @@ apiRouter.use("/payments", paymentsRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/user", userRouter);
 apiRouter.use("/admin", adminRouter);
+apiRouter.use("/whatsapp", whatsappRouter);

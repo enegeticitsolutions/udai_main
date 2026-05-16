@@ -91,9 +91,8 @@ export function NewLayout() {
                       <button
                         type="button"
                         onClick={() => setProjectsOpen((prev) => !prev)}
-                        className={`inline-flex items-center gap-1 font-medium transition-colors ${
-                          projectsOpen ? "text-blue-600" : "text-gray-700 hover:text-blue-600"
-                        }`}
+                        className={`inline-flex items-center gap-1 font-medium transition-colors ${projectsOpen ? "text-blue-600" : "text-gray-700 hover:text-blue-600"
+                          }`}
                       >
                         {item.name}
                         <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
@@ -131,9 +130,8 @@ export function NewLayout() {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`text-gray-700 hover:text-blue-600 transition-colors font-medium ${
-                      isActive(item.href) ? "text-blue-600" : ""
-                    }`}
+                    className={`text-gray-700 hover:text-blue-600 transition-colors font-medium ${isActive(item.href) ? "text-blue-600" : ""
+                      }`}
                   >
                     {item.name}
                   </Link>
@@ -166,54 +164,53 @@ export function NewLayout() {
             <div className="lg:hidden py-4 border-t">
               <div className="flex flex-col gap-4">
                 {navigation.map((item) => {
-                if (item.type === "dropdown") {
-                  return (
-                    <div key={item.name} className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-                      <button
-                        type="button"
-                        onClick={() => setProjectsOpen((prev) => !prev)}
-                        className="flex w-full items-center justify-between text-left text-gray-700 font-medium"
+                  if (item.type === "dropdown") {
+                    return (
+                      <div key={item.name} className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                        <button
+                          type="button"
+                          onClick={() => setProjectsOpen((prev) => !prev)}
+                          className="flex w-full items-center justify-between text-left text-gray-700 font-medium"
+                        >
+                          <span>{item.name}</span>
+                          <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {projectsOpen ? (
+                          <div className="mt-3 grid gap-2">
+                            {item.children.map((child) => (
+                              <Link
+                                key={child.name}
+                                to={child.href}
+                                onClick={closeMenus}
+                                className="rounded-xl px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-white hover:text-blue-600"
+                              >
+                                {child.name}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  }
+                  if (item.href.startsWith("/#")) {
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={closeMenus}
+                        className="text-gray-700 hover:text-blue-600 transition-colors font-medium text-left"
                       >
-                        <span>{item.name}</span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
-                      </button>
-                      {projectsOpen ? (
-                        <div className="mt-3 grid gap-2">
-                          {item.children.map((child) => (
-                            <Link
-                              key={child.name}
-                              to={child.href}
-                              onClick={closeMenus}
-                              className="rounded-xl px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-white hover:text-blue-600"
-                            >
-                              {child.name}
-                            </Link>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                }
-                if (item.href.startsWith("/#")) {
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      onClick={closeMenus}
-                      className="text-gray-700 hover:text-blue-600 transition-colors font-medium text-left"
-                    >
-                      {item.name}
-                    </Link>
-                  );
-                }
+                        {item.name}
+                      </Link>
+                    );
+                  }
                   return (
                     <Link
                       key={item.name}
                       to={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`text-gray-700 hover:text-blue-600 transition-colors font-medium ${
-                        isActive(item.href) ? "text-blue-600" : ""
-                      }`}
+                      className={`text-gray-700 hover:text-blue-600 transition-colors font-medium ${isActive(item.href) ? "text-blue-600" : ""
+                        }`}
                     >
                       {item.name}
                     </Link>
@@ -335,7 +332,7 @@ export function NewLayout() {
                 </button>
               </form>
               {newsletterMessage ? <p className="mb-4 text-xs text-gray-400">{newsletterMessage}</p> : null}
-              
+
               {/* Social Icons */}
               <div className="flex gap-3">
                 <a
