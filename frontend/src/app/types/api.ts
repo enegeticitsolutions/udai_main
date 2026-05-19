@@ -22,12 +22,38 @@ export interface EventItem {
 }
 
 export interface Product {
-  id: number;
+  id: string | number;
   title: string;
+  slug?: string;
+  description?: string;
+  short_description?: string;
   price: number;
+  originalPrice?: number;
+  discount?: string;
   image: string;
   category: string;
   inStock: boolean;
+  sku?: string;
+  stock_quantity: number;
+  low_stock_threshold: number;
+  product_type: string;
+  gallery: string[];
+  attributes?: Record<string, string[]>;
+  has_variants: boolean;
+  weight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  meta_title?: string;
+  meta_description?: string;
+  meta_keywords?: string;
+  status: string;
+  is_featured: boolean;
+  is_trending: boolean;
+  tags: string[];
+  extra_data?: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Testimonial {

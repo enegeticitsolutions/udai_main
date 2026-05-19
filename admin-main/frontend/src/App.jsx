@@ -27,8 +27,12 @@ import {
   patchVolunteer,
   toggleDeactivateDate,
   sendNotification,
+  createProduct,
+  patchProduct,
+  deleteProduct as removeProductApi,
 } from "./services/adminApi";
 import { adminLogin } from "./services/adminApi";
+import ProductsPage from "./components/ProductsPage";
 
 const tokenKey = "udai_standalone_admin_token";
 
@@ -41,6 +45,7 @@ const roleSections = {
     "Volunteers",
     "Therapist Management",
     "Availability Manager",
+    "Products",
     "Subscribe",
     "Contacts",
     "Notifications Center",
@@ -1954,6 +1959,7 @@ export default function App() {
   const [deactivatedDates, setDeactivatedDates] = useState([]);
   const [subscribers, setSubscribers] = useState([]);
   const [contacts, setContacts] = useState(fallbackContacts);
+  const [products, setProducts] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [backendStatus, setBackendStatus] = useState("loading");
   const [isConnected, setIsConnected] = useState(false);
@@ -1994,6 +2000,7 @@ export default function App() {
         setSubscribers(bootstrap?.subscribers ?? []);
         setContacts(bootstrap?.contacts ?? fallbackContacts);
         setDeactivatedDates(bootstrap?.deactivatedDates ?? []);
+        setProducts(bootstrap?.products ?? []);
         setDashboard(bootstrap?.dashboard ?? null);
         setIsConnected(true);
         setBackendStatus("connected");
@@ -2011,6 +2018,7 @@ export default function App() {
         setSubscribers([]);
         setContacts([]);
         setDeactivatedDates([]);
+        setProducts([]);
         setDashboard(null);
       }
     }
@@ -2116,6 +2124,30 @@ export default function App() {
     await sendNotification(payload);
   }
 
+  async function handleProductAdd(productData) {
+    const saved = await createProduct(productData);
+    if (saved) {
+      setProducts((prev) => [...prev, saved]);
+    }
+    return saved;
+  }
+
+  async function handleProductUpdate(id, updates) {
+    const saved = await patchProduct(id, updates);
+    if (saved) {
+      setProducts((prev) => prev.map((item) => (item.id === id ? { ...item, ...saved } : item)));
+    }
+    return saved;
+  }
+
+  async function handleProductRemove(id) {
+    const success = await removeProductApi(id);
+    if (success) {
+      setProducts((prev) => prev.filter((item) => item.id !== id));
+    }
+    return success;
+  }
+
   const page = useMemo(() => {
     switch (activeSection) {
       case "Dashboard":
@@ -2164,6 +2196,15 @@ export default function App() {
             onToggleDeactivate={handleToggleDeactivate}
           />
         );
+      case "Products":
+        return (
+          <ProductsPage
+            products={products}
+            onAddProduct={handleProductAdd}
+            onUpdateProduct={handleProductUpdate}
+            onDeleteProduct={handleProductRemove}
+          />
+        );
       case "Subscribe":
         return <SubscribersPage subscribers={subscribers} onAddSubscriber={handleSubscriberAdd} />;
       case "Contacts":
@@ -2189,7 +2230,7 @@ export default function App() {
           />
         );
     }
-  }, [activeSection, contacts, currentUser, dashboard, deactivatedDates, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers]);
+  }, [activeSection, contacts, currentUser, dashboard, deactivatedDates, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers, products]);
 
   if (!currentUser) {
     return <LoginScreen onLogin={(user) => setCurrentUser(user)} />;

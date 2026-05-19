@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { authenticateAdmin } from "../services/adminAuthService.js";
 import { createAdminRecord, deleteAdminRecord, getAdminBootstrap, updateAdminRecord } from "../services/adminService.js";
+import { upload } from "../middleware/upload.js";
+import { uploadToSupabase } from "../lib/supabase.js";
 
 export const adminRouter = Router();
 
@@ -155,6 +157,76 @@ adminRouter.delete("/therapists/:id", async (req, res, next) => {
     }
 
     res.json({ success: true, data: deleted, message: "Therapist removed successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+function slugify(text) {
+  return String(text)
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w ]+/g, "")
+    .replace(/ +/g, "-");
+}
+
+adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, message: "No file uploaded" });
+      return;
+    }
+    const fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+    res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/products", async (req, res, next) => {
+  try {
+    const payload = req.body ?? {};
+    if (!payload.title || !payload.price || !payload.image) {
+      res.status(400).json({ success: false, message: "Title, price, and image are required" });
+      return;
+    }
+    
+    if (!payload.slug) {
+      payload.slug = slugify(payload.title);
+    }
+    
+    const record = await createAdminRecord("products", payload);
+    res.status(201).json({ success: true, data: record, message: "Product added successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch("/products/:id", async (req, res, next) => {
+  try {
+    const updates = req.body ?? {};
+    if (updates.title && !updates.slug) {
+      updates.slug = slugify(updates.title);
+    }
+    const updated = await updateAdminRecord("products", req.params.id, updates);
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Product not found" });
+      return;
+    }
+    res.json({ success: true, data: updated, message: "Product updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/products/:id", async (req, res, next) => {
+  try {
+    const deleted = await deleteAdminRecord("products", req.params.id);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: "Product not found" });
+      return;
+    }
+    res.json({ success: true, data: deleted, message: "Product removed successfully" });
   } catch (error) {
     next(error);
   }

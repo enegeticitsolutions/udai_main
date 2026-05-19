@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
+import path from "node:path";
 import { config } from "./config.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
@@ -23,6 +24,7 @@ export function createApp() {
   );
   app.use(express.json());
   app.use(morgan("dev"));
+  app.use("/uploads", express.static(path.join(config.storageDir, "uploads")));
 
   app.get("/", (_req, res) => {
     res.json({

@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { authenticateAdmin } from "../services/adminAuthService.js";
 import { getAdminBootstrap, updateAdminRecord, toggleDeactivatedDate, appendNotification } from "../services/adminService.js";
+import { addProduct, updateProduct, deleteProduct } from "../services/contentService.js";
+import { productSchema } from "../schemas.js";
+import { upload } from "../middleware/upload.js";
+import { uploadToSupabase } from "../lib/supabase.js";
 
 export const adminRouter = Router();
 
@@ -124,6 +128,56 @@ adminRouter.post("/notifications/send", async (req, res, next) => {
     });
 
     res.json({ success: true, data: record, message: "Notification sent successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/products", async (req, res, next) => {
+  try {
+    const payload = productSchema.parse(req.body);
+    const product = await addProduct(payload);
+    res.status(201).json({ success: true, data: product, message: "Product added successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch("/products/:id", async (req, res, next) => {
+  try {
+    const payload = productSchema.partial().parse(req.body);
+    const updated = await updateProduct(req.params.id, payload);
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Product not found" });
+      return;
+    }
+    res.json({ success: true, data: updated, message: "Product updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/products/:id", async (req, res, next) => {
+  try {
+    const success = await deleteProduct(req.params.id);
+    if (!success) {
+      res.status(404).json({ success: false, message: "Product not found" });
+      return;
+    }
+    res.json({ success: true, message: "Product deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, message: "No file uploaded" });
+      return;
+    }
+    const fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+    res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
   } catch (error) {
     next(error);
   }

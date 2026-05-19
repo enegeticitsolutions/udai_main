@@ -23,4 +23,8 @@ export const config = {
   mongoDbName: process.env.MONGODB_DB_NAME ?? "udai",
   projectRoot,
   storageDir: path.resolve(projectRoot, "backend-storage"),
+  supabaseUrl: process.env.SUPABASE_URL ?? "",
+  supabaseAnon: process.env.SUPABASE_ANON ?? "",
+  supabaseServiceRole: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  supabaseBucketName: "product",
 };

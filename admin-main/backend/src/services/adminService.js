@@ -22,6 +22,7 @@ const storageByEntity = {
   orders: { fileName: "orders.json", collectionName: "orders", seed: seedOrders },
   therapists: { fileName: "therapists.json", collectionName: "therapists", seed: seedTherapists },
   subscribers: { fileName: "subscribers.json", collectionName: "subscribers", seed: seedSubscribers },
+  products: { fileName: "products.json", collectionName: "products", seed: [] },
 };
 
 function storagePath(fileName) {
@@ -204,7 +205,7 @@ async function createMongoRecord(entity, record) {
 }
 
 export async function getAdminBootstrap() {
-  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers] = await Promise.all([
+  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers, products] = await Promise.all([
     readRecords("inquiries"),
     readRecords("donations"),
     readRecords("volunteers"),
@@ -212,6 +213,7 @@ export async function getAdminBootstrap() {
     readRecords("orders"),
     readRecords("therapists"),
     readRecords("subscribers"),
+    readRecords("products"),
   ]);
 
   const totalDonations = donations.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
@@ -234,6 +236,7 @@ export async function getAdminBootstrap() {
     contacts,
     therapists,
     subscribers,
+    products,
     dashboard: {
       totalRequests: inquiries.length,
       pendingRequests,

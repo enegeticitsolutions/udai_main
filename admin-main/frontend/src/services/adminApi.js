@@ -94,3 +94,42 @@ export function sendNotification(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export function createProduct(product) {
+  return request("/products", {
+    method: "POST",
+    body: JSON.stringify(product),
+  });
+}
+
+export function patchProduct(id, updates) {
+  return request(`/products/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+}
+
+export function deleteProduct(id) {
+  return request(`/products/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function uploadImageFile(file) {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const response = await fetch(`${API_BASE}/upload`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.message ?? `Upload failed with ${response.status}`);
+  }
+  if (data && data.success === false) {
+    throw new Error(data.message ?? "Upload failed");
+  }
+  return data; // returns { success: true, url: "/uploads/filename", message: "..." }
+}

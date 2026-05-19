@@ -103,8 +103,14 @@ export function NewArrivals() {
                     <h2 className="mt-1 truncate text-lg font-semibold text-white">
                       {product.title}
                     </h2>
-                    <div className="mt-1 text-sm text-white/75">
-                      ₹{product.price.toFixed(2)}
+                    <div className="mt-1 text-sm text-white/75 flex items-center flex-wrap gap-2">
+                      <span>₹{product.price.toFixed(2)}</span>
+                      {product.originalPrice && (
+                        <span className="line-through text-white/50 text-xs">₹{product.originalPrice.toFixed(2)}</span>
+                      )}
+                      {product.discount && (
+                        <span className="text-[#ffd86b] text-xs font-semibold">({product.discount})</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -168,38 +174,50 @@ export function NewArrivals() {
                   <p className="mt-2 text-sm leading-6 text-[#776a66]">
                     Handcrafted product from the UDAI collection.
                   </p>
-                  <div className="mt-3 text-xl font-medium text-[#4f4038]">
-                    ₹{product.price.toFixed(2)}
+                  <div className="mt-3 text-xl font-medium text-[#4f4038] flex items-center flex-wrap gap-2">
+                    <span className="text-[#2b1b15]">₹{product.price.toFixed(2)}</span>
+                    {product.originalPrice && (
+                      <span className="line-through text-[#a0aec0] text-sm">₹{product.originalPrice.toFixed(2)}</span>
+                    )}
+                    {product.discount && (
+                      <span className="rounded bg-[#ebfbf3] px-2 py-0.5 text-xs font-semibold text-[#10b981]">{product.discount}</span>
+                    )}
                   </div>
                   <div className="mt-auto pt-5">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        aria-label={`Add ${product.title} to cart`}
-                        onClick={() => {
-                          addToCart(product);
-                          toast.success(`${product.title} added to cart.`);
-                        }}
-                        className="flex h-12 w-12 items-center justify-center rounded-full border border-[#2f5597] bg-white text-[#2f5597] transition hover:bg-[#f3f6ff]"
-                      >
-                        <Plus className="h-5 w-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCheckoutProduct(product);
-                          if (!isAuthenticated) {
-                            toast.error("Please sign in or sign up to purchase products.");
-                            navigate("/auth?redirect=/checkout");
-                          } else {
-                            navigate("/checkout");
-                          }
-                        }}
-                        className="flex-1 rounded-full bg-[#2f5597] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(47,85,151,0.22)] transition hover:bg-[#264882]"
-                      >
-                        Buy Now
-                      </button>
-                    </div>
+                    {product.inStock === false ? (
+                      <div className="rounded-full bg-gray-100 text-gray-400 py-3 text-center text-sm font-semibold border border-gray-200">
+                        Out of Stock
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          aria-label={`Add ${product.title} to cart`}
+                          onClick={() => {
+                            addToCart(product);
+                            toast.success(`${product.title} added to cart.`);
+                          }}
+                          className="flex h-12 w-12 items-center justify-center rounded-full border border-[#2f5597] bg-white text-[#2f5597] transition hover:bg-[#f3f6ff]"
+                        >
+                          <Plus className="h-5 w-5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCheckoutProduct(product);
+                            if (!isAuthenticated) {
+                              toast.error("Please sign in or sign up to purchase products.");
+                              navigate("/auth?redirect=/checkout");
+                            } else {
+                              navigate("/checkout");
+                            }
+                          }}
+                          className="flex-1 rounded-full bg-[#2f5597] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(47,85,151,0.22)] transition hover:bg-[#264882]"
+                        >
+                          Buy Now
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

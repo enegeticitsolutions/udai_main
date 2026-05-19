@@ -11,6 +11,8 @@ import {
   getProducts,
   getTestimonials,
   getTherapists,
+  updateProduct,
+  deleteProduct,
 } from "../services/contentService.js";
 import { productSchema } from "../schemas.js";
 

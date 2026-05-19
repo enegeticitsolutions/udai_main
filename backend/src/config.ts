@@ -34,4 +34,8 @@ export const config = {
   storageDir: path.resolve(projectRoot, "storage"),
   jwtSecret: process.env.JWT_SECRET || "default_jwt_secret",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
+  supabaseUrl: process.env.SUPABASE_URL ?? "",
+  supabaseAnon: process.env.SUPABASE_ANON ?? "",
+  supabaseServiceRole: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  supabaseBucketName: "product",
 };
