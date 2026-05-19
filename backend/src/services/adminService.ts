@@ -44,6 +44,8 @@ const storageByEntity: Record<string, { fileName: string; collectionName: string
   contacts: { fileName: "contacts.json", collectionName: "contacts" },
   orders: { fileName: "orders.json", collectionName: "orders" },
   therapists: { fileName: "therapists.json", collectionName: "therapists" },
+  deactivatedDates: { fileName: "deactivated-dates.json", collectionName: "deactivatedDates" },
+  notifications: { fileName: "notifications.json", collectionName: "notifications" },
 };
 
 function storagePath(fileName: string) {
@@ -219,12 +221,14 @@ async function updateMongoRecord(entity: keyof typeof storageByEntity, id: strin
 }
 
 export async function getAdminBootstrap() {
-  const [inquiries, donations, volunteers, orders, therapists] = await Promise.all([
+  const [inquiries, donations, volunteers, orders, therapists, deactivatedDates, notifications] = await Promise.all([
     readRecords("inquiries"),
     readRecords("donations"),
     readRecords("volunteers"),
     readRecords("orders"),
     readTherapists(),
+    readRecords("deactivatedDates"),
+    readRecords("notifications"),
   ]);
 
   const totalDonations = donations.reduce((sum, item) => {
@@ -251,6 +255,8 @@ export async function getAdminBootstrap() {
     orders,
     volunteers,
     therapists,
+    deactivatedDates,
+    notifications,
     dashboard: {
       totalRequests: inquiries.length,
       pendingRequests,
@@ -263,6 +269,72 @@ export async function getAdminBootstrap() {
       orderRevenue,
     },
   };
+}
+
+export async function toggleDeactivatedDate(therapistId: string, date: string) {
+  const records = await readRecords("deactivatedDates");
+  const existingIndex = records.findIndex(r => String(r.therapistId) === String(therapistId) && r.date === date);
+
+  if (existingIndex > -1) {
+    // Remove if exists (reactivate)
+    const id = records[existingIndex].id;
+    await connectMongoDb();
+    if (isMongoConnected()) {
+      await getMongoDb().collection("deactivatedDates").deleteOne({ _id: new ObjectId(id) });
+    } else {
+      const nextRecords = records.filter((_, i) => i !== existingIndex);
+      await writeJsonFile(storagePath("deactivated-dates.json"), nextRecords);
+    }
+    return { status: "reactivated" };
+  } else {
+    // Add (deactivate)
+    const newRecord = {
+      therapistId,
+      date,
+      createdAt: new Date().toISOString()
+    };
+
+    if (isMongoConnected()) {
+      const res = await getMongoDb().collection("deactivatedDates").insertOne(newRecord);
+      // Cancel existing inquiries for this therapist on this date
+      await getMongoDb().collection("therapistInquiries").updateMany(
+        { assignedTherapist: therapistId, appointmentDate: date, status: { $ne: "cancelled" } },
+        { $set: { status: "cancelled", cancellationReason: "Doctor unavailable on this date" } }
+      );
+    } else {
+      const inquiries = await readRecords("inquiries");
+      const updatedInquiries = inquiries.map(inq => {
+        if (String(inq.assignedTherapist) === therapistId && inq.appointmentDate === date && inq.status !== "cancelled") {
+          return { ...inq, status: "cancelled", cancellationReason: "Doctor unavailable on this date" };
+        }
+        return inq;
+      });
+      await writeJsonFile(storagePath("therapist-inquiries.json"), updatedInquiries);
+
+      const nextRecords = [...records, { id: Date.now().toString(), ...newRecord }];
+      await writeJsonFile(storagePath("deactivated-dates.json"), nextRecords);
+    }
+    return { status: "deactivated" };
+  }
+}
+
+export async function appendNotification(payload: Record<string, unknown>) {
+  const newRecord = {
+    ...payload,
+    createdAt: new Date().toISOString(),
+  };
+
+  await connectMongoDb();
+  if (isMongoConnected()) {
+    const res = await getMongoDb().collection("notifications").insertOne(newRecord);
+    return { id: res.insertedId.toString(), ...newRecord };
+  } else {
+    const records = await readRecords("notifications");
+    const recordWithId = { id: Date.now().toString(), ...newRecord };
+    const nextRecords = [recordWithId, ...records];
+    await writeJsonFile(storagePath("notifications.json"), nextRecords);
+    return recordWithId;
+  }
 }
 
 export async function updateAdminRecord(

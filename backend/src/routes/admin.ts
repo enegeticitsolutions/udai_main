@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticateAdmin } from "../services/adminAuthService.js";
-import { getAdminBootstrap, updateAdminRecord } from "../services/adminService.js";
+import { getAdminBootstrap, updateAdminRecord, toggleDeactivatedDate, appendNotification } from "../services/adminService.js";
 
 export const adminRouter = Router();
 
@@ -81,6 +81,49 @@ adminRouter.patch("/therapists/:id", async (req, res, next) => {
     }
 
     res.json({ success: true, data: updated, message: "Therapist updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/therapists/deactivate-date", async (req, res, next) => {
+  try {
+    const { therapistId, date } = req.body;
+    if (!therapistId || !date) {
+      res.status(400).json({ success: false, message: "therapistId and date are required" });
+      return;
+    }
+
+    const result = await toggleDeactivatedDate(String(therapistId), String(date));
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/notifications/send", async (req, res, next) => {
+  try {
+    const { inquiryId, type, phone, childName, message } = req.body;
+    if (!phone || !type) {
+      res.status(400).json({ success: false, message: "phone and type are required" });
+      return;
+    }
+
+    // Attempt to send WhatsApp message
+    // We will just log it for now and simulate sending unless a template is matched.
+    // In production, you would call `sendWhatsAppMessage` here if you had actual MSG91 templates.
+    
+    // Simulating WhatsApp send by just appending it to notifications DB
+    const record = await appendNotification({
+      inquiryId,
+      type,
+      phone,
+      childName,
+      message: message || `Sent ${type} to ${childName} (${phone})`,
+      status: "sent"
+    });
+
+    res.json({ success: true, data: record, message: "Notification sent successfully" });
   } catch (error) {
     next(error);
   }

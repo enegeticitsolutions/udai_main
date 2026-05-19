@@ -25,6 +25,8 @@ import {
   patchOrder,
   patchTherapist,
   patchVolunteer,
+  toggleDeactivateDate,
+  sendNotification,
 } from "./services/adminApi";
 import { adminLogin } from "./services/adminApi";
 
@@ -257,6 +259,8 @@ function LoginScreen({ onLogin }) {
 }
 
 function DashboardPage({ inquiries, therapists, donations, orders, currentUser, dashboard, isConnected }) {
+  const [visibleInquiriesCount, setVisibleInquiriesCount] = useState(10);
+  const [visibleOrdersCount, setVisibleOrdersCount] = useState(5);
   const totalDonations = dashboard?.donationTotal ?? donations.reduce((sum, donation) => sum + donation.amount, 0);
   const totalOrders = dashboard?.totalOrders ?? orders.length;
   const cancelledRequests = dashboard?.cancelledRequests ?? inquiries.filter((item) => item.status === "cancelled").length;
@@ -303,7 +307,7 @@ function DashboardPage({ inquiries, therapists, donations, orders, currentUser, 
         </div>
         <Table
           columns={["Child", "Concern", "Department", "Status", "Assigned Therapist"]}
-          rows={inquiries.map((item) => [
+          rows={inquiries.slice(0, visibleInquiriesCount).map((item) => [
             item.childName,
             item.concern,
             item.department,
@@ -316,6 +320,13 @@ function DashboardPage({ inquiries, therapists, donations, orders, currentUser, 
             item.assignedTherapist,
           ])}
         />
+        {visibleInquiriesCount < inquiries.length && (
+          <div style={{ marginTop: "16px", textAlign: "right" }}>
+            <Button variant="secondary" onClick={() => setVisibleInquiriesCount((prev) => prev + 10)}>
+              Load More
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="content-card wide">
@@ -325,7 +336,7 @@ function DashboardPage({ inquiries, therapists, donations, orders, currentUser, 
         </div>
         <Table
           columns={["Order", "Customer", "Items", "Payment", "Status", "Amount"]}
-          rows={orders.slice(0, 4).map((order) => [
+          rows={orders.slice(0, visibleOrdersCount).map((order) => [
             order.orderNumber ?? order.id,
             order.customerName ?? "-",
             Array.isArray(order.items)
@@ -347,6 +358,13 @@ function DashboardPage({ inquiries, therapists, donations, orders, currentUser, 
             `₹${Number(order.totalAmount ?? order.subtotal ?? 0)}`,
           ])}
         />
+        {visibleOrdersCount < orders.length && (
+          <div style={{ marginTop: "16px", textAlign: "right" }}>
+            <Button variant="secondary" onClick={() => setVisibleOrdersCount((prev) => prev + 5)}>
+              Load More
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="content-card wide">
@@ -715,102 +733,457 @@ function OrdersPage({ orders, onUpdateOrder }) {
 
 function VolunteersPage({ volunteers, onUpdateVolunteer }) {
   const [items, setItems] = useState(volunteers);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All Status");
+  const [sortOrder, setSortOrder] = useState("Newest First");
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
   useEffect(() => {
     setItems(volunteers);
   }, [volunteers]);
 
-  async function updateVolunteer(index, updates) {
-    const currentItem = items[index];
-    const nextItems = items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...updates } : item));
-    setItems(nextItems);
-
+  async function updateVolunteerStatus(volId, newStatus) {
+    setItems((prev) => prev.map((v) => v.id === volId ? { ...v, status: newStatus } : v));
     try {
-      const saved = await onUpdateVolunteer(currentItem.id, updates);
-      if (saved) {
-        setItems((prev) => prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item)));
-      }
+      await onUpdateVolunteer(volId, { status: newStatus });
     } catch (error) {
-      console.error(error);
+      console.error("Failed to update status:", error);
     }
   }
 
-  function assignTask(index) {
-    const task = window.prompt("Enter volunteer task");
-    if (!task) return;
-    updateVolunteer(index, { assignedTask: task, status: "task_assigned" });
-  }
+  // Derived metrics
+  const totalApplications = items.length;
+  const pendingCount = items.filter(v => ["new", "reviewed", "contacted"].includes(v.status)).length;
+  const approvedCount = items.filter(v => ["approved", "task_assigned"].includes(v.status)).length;
+  const rejectedCount = items.filter(v => v.status === "rejected").length;
+  const thisMonthCount = items.length; // Mock value
+
+  // Filtering
+  let filteredItems = items.filter(item => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = !query || 
+      (item.name && item.name.toLowerCase().includes(query)) ||
+      (item.email && item.email.toLowerCase().includes(query)) ||
+      (item.phone && item.phone.includes(query));
+
+    let matchesStatus = true;
+    if (statusFilter === "Pending") matchesStatus = ["new", "reviewed", "contacted"].includes(item.status);
+    if (statusFilter === "Approved") matchesStatus = ["approved", "task_assigned"].includes(item.status);
+    if (statusFilter === "Rejected") matchesStatus = item.status === "rejected";
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // Sorting
+  filteredItems = filteredItems.slice().sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return sortOrder === "Newest First" ? dateB - dateA : dateA - dateB;
+  });
+
+  const displayStatus = (status) => {
+    if (["new", "reviewed", "contacted"].includes(status)) return { label: "Pending", tone: "amber" };
+    if (["approved", "task_assigned"].includes(status)) return { label: "Approved", tone: "green" };
+    if (status === "rejected") return { label: "Rejected", tone: "red" };
+    return { label: status || "Unknown", tone: "slate" };
+  };
 
   return (
-    <section className="content-card">
-      <div className="section-head">
-        <h2>Volunteers</h2>
-        <Badge tone="blue">Volunteer requests</Badge>
-      </div>
-
-      <div className="stack" style={{ marginBottom: "16px" }}>
-        <div className="mini-row">
-          <strong>Flow</strong>
-          <span>submit → review → contact → approve / reject → assign task</span>
+    <section className="volunteers-page">
+      {/* Metrics Row */}
+      <div className="metrics-row">
+        <div className="metric-card blue">
+          <div className="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+          <div className="metric-info">
+            <h3>{totalApplications}</h3>
+            <span>Total Applications</span>
+          </div>
+        </div>
+        <div className="metric-card amber">
+          <div className="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+          <div className="metric-info">
+            <h3>{pendingCount}</h3>
+            <span>Pending</span>
+          </div>
+        </div>
+        <div className="metric-card green">
+          <div className="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
+          <div className="metric-info">
+            <h3>{approvedCount}</h3>
+            <span>Approved</span>
+          </div>
+        </div>
+        <div className="metric-card red">
+          <div className="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></div>
+          <div className="metric-info">
+            <h3>{rejectedCount}</h3>
+            <span>Rejected</span>
+          </div>
+        </div>
+        <div className="metric-card purple">
+          <div className="metric-icon"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+          <div className="metric-info">
+            <h3>{thisMonthCount}</h3>
+            <span>This Month</span>
+          </div>
         </div>
       </div>
 
-      <div className="volunteer-list">
-        {items.map((volunteer, index) => (
-          <article className="volunteer-card" key={volunteer.id}>
-            <div className="volunteer-top">
-              <div>
-                <h3>{volunteer.name}</h3>
-                <p>{volunteer.email}</p>
-              </div>
-              <Badge tone={volunteerTone(volunteer.status)}>{volunteerLabel(volunteer.status)}</Badge>
+      <div className="content-card mb-0">
+        <div className="filters-row">
+          <div className="search-box">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input 
+              type="text" 
+              placeholder="Search by name, email or phone..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          <div className="dropdown-group">
+            <div className="dropdown-box">
+              <label>Status</label>
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                <option>All Status</option>
+                <option>Pending</option>
+                <option>Approved</option>
+                <option>Rejected</option>
+              </select>
             </div>
-
-            <div className="volunteer-meta">
-              <div>
-                <span>Phone</span>
-                <strong>{volunteer.phone}</strong>
-              </div>
-              <div>
-                <span>Interest Area</span>
-                <strong>{volunteer.interestArea}</strong>
-              </div>
-              <div>
-                <span>Availability</span>
-                <strong>{volunteer.availability}</strong>
-              </div>
-              <div>
-                <span>Created At</span>
-                <strong>{volunteer.createdAt}</strong>
-              </div>
-              <div className="volunteer-note">
-                <span>Task</span>
-                <strong>{volunteer.assignedTask || "-"}</strong>
-              </div>
+            <div className="dropdown-box">
+              <label>Sort by</label>
+              <select value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+                <option>Newest First</option>
+                <option>Oldest First</option>
+              </select>
             </div>
+          </div>
 
-            <div className="volunteer-message">{volunteer.message}</div>
+          <button className="export-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export
+          </button>
+        </div>
 
-            <div className="volunteer-actions">
-              <Button variant="secondary" onClick={() => updateVolunteer(index, { status: "reviewed" })}>
-                Review
-              </Button>
-              <Button variant="secondary" onClick={() => updateVolunteer(index, { status: "contacted" })}>
-                Contact
-              </Button>
-              <Button variant="secondary" onClick={() => updateVolunteer(index, { status: "approved" })}>
-                Approve
-              </Button>
-              <Button variant="secondary" onClick={() => updateVolunteer(index, { status: "rejected" })}>
-                Reject
-              </Button>
-              <Button variant="secondary" onClick={() => assignTask(index)}>
-                Assign Task
-              </Button>
-            </div>
-          </article>
-        ))}
+        <div className="table-responsive">
+          <table className="volunteers-table">
+            <thead>
+              <tr>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Availability</th>
+                <th>Interest</th>
+                <th>Applied On</th>
+                <th>Status</th>
+                <th className="text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.map((vol) => {
+                const badge = displayStatus(vol.status);
+                const appliedOn = vol.createdAt 
+                  ? vol.createdAt.split(" ").slice(0, 3).join(" ")
+                  : "20 May 2026";
+
+                return (
+                  <tr key={vol.id}>
+                    <td>{vol.name}</td>
+                    <td>{vol.email}</td>
+                    <td>{vol.phone}</td>
+                    <td>{vol.availability}</td>
+                    <td>{vol.interestArea}</td>
+                    <td>{appliedOn}</td>
+                    <td>
+                      <Badge tone={badge.tone}>{badge.label}</Badge>
+                    </td>
+                    <td>
+                      <div className="actions-cell relative">
+                        <button className="action-icon more-btn" onClick={() => setActiveDropdown(activeDropdown === vol.id ? null : vol.id)} title="View Details">
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                        </button>
+                        
+                        {activeDropdown === vol.id && (
+                          <div className="message-dropdown shadow-lg" style={{ right: '0', top: '40px', width: '360px', padding: '16px', textAlign: 'left', zIndex: 100, cursor: 'default' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px', fontSize: '13px' }}>
+                              <div><strong>Aadhar:</strong><br/> {vol.aadhar || "—"}</div>
+                              <div><strong>PAN:</strong><br/> {vol.pan || "—"}</div>
+                              <div><strong>Address:</strong><br/> {vol.fullAddress || "—"}</div>
+                              {(vol.timeFrom || vol.timeTo) && (
+                                <div><strong>Time:</strong><br/> {vol.timeFrom || ""}{vol.timeTo ? ` – ${vol.timeTo}` : ""}</div>
+                              )}
+                            </div>
+                            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={() => { updateVolunteerStatus(vol.id, "approved"); setActiveDropdown(null); }}
+                                style={{ flex: 1, padding: '7px 0', borderRadius: '6px', border: 'none', background: '#22c55e', color: 'white', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                              >
+                                Approved
+                              </button>
+                              <button
+                                onClick={() => { updateVolunteerStatus(vol.id, "new"); setActiveDropdown(null); }}
+                                style={{ flex: 1, padding: '7px 0', borderRadius: '6px', border: 'none', background: '#f59e0b', color: 'white', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                              >
+                                Pending
+                              </button>
+                              <button
+                                onClick={() => { updateVolunteerStatus(vol.id, "rejected"); setActiveDropdown(null); }}
+                                style={{ flex: 1, padding: '7px 0', borderRadius: '6px', border: 'none', background: '#ef4444', color: 'white', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredItems.length === 0 && (
+                <tr>
+                  <td colSpan="11" className="text-center" style={{ padding: "32px" }}>No volunteers found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="pagination-row">
+          <span>Showing 1 to {filteredItems.length} of {totalApplications} entries</span>
+          <div className="pagination-controls">
+            <button>&lt;</button>
+            <button className="active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <span>...</span>
+            <button>19</button>
+            <button>&gt;</button>
+          </div>
+        </div>
       </div>
+
+      <style>{`
+        .volunteers-page {
+          min-height: 100vh;
+        }
+        .metrics-row {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 20px;
+          margin-bottom: 24px;
+        }
+        .metric-card {
+          border-radius: 12px;
+          padding: 20px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          border: 1px solid #e2e8f0;
+        }
+        .metric-card.blue { background: #f0f6ff; border-color: #dbeafe; }
+        .metric-card.blue .metric-icon { background: white; color: #3b82f6; }
+        .metric-card.amber { background: #fffbeb; border-color: #fef3c7; }
+        .metric-card.amber .metric-icon { background: white; color: #f59e0b; }
+        .metric-card.green { background: #f0fdf4; border-color: #dcfce7; }
+        .metric-card.green .metric-icon { background: white; color: #22c55e; }
+        .metric-card.red { background: #fef2f2; border-color: #fee2e2; }
+        .metric-card.red .metric-icon { background: white; color: #ef4444; }
+        .metric-card.purple { background: #faf5ff; border-color: #f3e8ff; }
+        .metric-card.purple .metric-icon { background: white; color: #a855f7; }
+
+        .metric-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .metric-info h3 {
+          font-size: 24px;
+          font-weight: 700;
+          color: #1e293b;
+          margin: 0;
+          line-height: 1;
+        }
+        .metric-info span {
+          font-size: 13px;
+          color: #64748b;
+          font-weight: 500;
+          margin-top: 4px;
+          display: block;
+        }
+
+        .mb-0 { margin-bottom: 0; }
+        .filters-row {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 20px;
+          border-bottom: 1px solid #e2e8f0;
+          flex-wrap: wrap;
+        }
+        .search-box {
+          position: relative;
+          flex: 1;
+          min-width: 250px;
+        }
+        .search-box svg {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #94a3b8;
+        }
+        .search-box input {
+          width: 100%;
+          padding: 10px 14px 10px 40px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 14px;
+          outline: none;
+        }
+        .search-box input:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
+        }
+        .dropdown-group {
+          display: flex;
+          gap: 16px;
+        }
+        .dropdown-box {
+          display: flex;
+          align-items: center;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 0 12px;
+          background: white;
+          position: relative;
+          height: 42px;
+        }
+        .dropdown-box label {
+          font-size: 11px;
+          color: #64748b;
+          position: absolute;
+          top: -8px;
+          left: 8px;
+          background: white;
+          padding: 0 4px;
+        }
+        .dropdown-box select {
+          border: none;
+          padding: 12px 0;
+          font-size: 14px;
+          color: #334155;
+          outline: none;
+          background: transparent;
+          cursor: pointer;
+          min-width: 120px;
+        }
+        .export-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #2563eb;
+          color: white;
+          border: none;
+          padding: 11px 20px;
+          border-radius: 8px;
+          font-weight: 500;
+          cursor: pointer;
+          font-size: 14px;
+          margin-left: auto;
+        }
+        .export-btn:hover {
+          background: #1d4ed8;
+        }
+
+        .table-responsive {
+          overflow-x: auto;
+        }
+        .volunteers-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        .volunteers-table th, .volunteers-table td {
+          padding: 12px 10px;
+          border-bottom: 1px solid #f1f5f9;
+          font-size: 12px;
+          color: #475569;
+          text-align: left;
+          word-break: break-word;
+        }
+        .volunteers-table th {
+          font-weight: 600;
+          color: #1e293b;
+          background: white;
+          font-size: 13px;
+        }
+        .volunteers-table tr:hover td {
+          background: #f8fafc;
+        }
+        .action-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          background: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .action-icon.view { color: #3b82f6; border-color: #bfdbfe; }
+        .action-icon.view:hover { background: #eff6ff; }
+        .action-icon.more-btn { color: #475569; border-color: #cbd5e1; }
+        .action-icon.more-btn:hover { background: #f1f5f9; }
+        .action-icon.delete { color: #ef4444; border-color: #fecaca; }
+        .action-icon.delete:hover { background: #fef2f2; }
+        
+        .pagination-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px;
+          border-top: 1px solid #e2e8f0;
+          font-size: 13px;
+          color: #64748b;
+        }
+        .pagination-controls {
+          display: flex;
+          gap: 4px;
+        }
+        .pagination-controls button {
+          min-width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #e2e8f0;
+          background: white;
+          color: #475569;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+        }
+        .pagination-controls button.active {
+          background: #2563eb;
+          color: white;
+          border-color: #2563eb;
+        }
+        .pagination-controls button:hover:not(.active) {
+          background: #f1f5f9;
+        }
+        .pagination-controls span {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+        }
+      `}</style>
     </section>
   );
 }
@@ -946,55 +1319,424 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
   );
 }
 
-function AvailabilityPage() {
+function AvailabilityPage({ therapists, deactivatedDates, onToggleDeactivate }) {
+  const days = useMemo(() => {
+    const arr = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      arr.push({
+        iso: d.toISOString().split("T")[0],
+        display: d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
+      });
+    }
+    return arr;
+  }, []);
+
+  const isDeactivated = (therapistId, date) => {
+    return deactivatedDates.some((d) => String(d.therapistId) === String(therapistId) && d.date === date);
+  };
+
   return (
     <section className="content-card">
       <div className="section-head">
-        <h2>Availability Manager</h2>
-        <Badge tone="amber">Slots</Badge>
+        <div>
+          <h2>Availability Manager</h2>
+          <p className="section-copy">Manage doctor availability for the next 7 days. Click a date to deactivate/activate.</p>
+        </div>
+        <Badge tone="amber">Next 7 Days</Badge>
       </div>
-      <div className="stack">
-        {availabilitySlots.map((slot) => (
-          <div className="mini-row" key={`${slot.therapist}-${slot.day}`}>
-            <strong>{slot.therapist}</strong>
-            <span>{slot.day}</span>
-            <span>{slot.time}</span>
-          </div>
-        ))}
+
+      <div className="availability-grid-container">
+        <div className="availability-scroll">
+          <table className="availability-table">
+            <thead>
+              <tr>
+                <th className="sticky-col">Doctor / Therapist</th>
+                {days.map((day) => (
+                  <th key={day.iso}>{day.display}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {therapists.map((therapist) => (
+                <tr key={therapist.id}>
+                  <td className="sticky-col">
+                    <div className="doctor-info">
+                      <strong>{therapist.name}</strong>
+                      <span>{therapist.department}</span>
+                    </div>
+                  </td>
+                  {days.map((day) => {
+                    const deactivated = isDeactivated(therapist.id, day.iso);
+                    return (
+                      <td key={day.iso}>
+                        <button
+                          type="button"
+                          className={`date-toggle ${deactivated ? "deactivated" : "active"}`}
+                          onClick={() => onToggleDeactivate(therapist.id, day.iso)}
+                          title={deactivated ? "Click to Activate" : "Click to Deactivate"}
+                        >
+                          {deactivated ? "Unavailable" : "Available"}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <style>{`
+        .availability-grid-container {
+          margin-top: 24px;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        .availability-scroll {
+          overflow-x: auto;
+        }
+        .availability-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+        }
+        .availability-table th, .availability-table td {
+          padding: 16px;
+          border-bottom: 1px solid #e2e8f0;
+          min-width: 120px;
+        }
+        .availability-table th {
+          background: #f8fafc;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: #64748b;
+        }
+        .sticky-col {
+          position: sticky;
+          left: 0;
+          background: white;
+          z-index: 10;
+          border-right: 2px solid #e2e8f0;
+          min-width: 200px !important;
+        }
+        .doctor-info strong {
+          display: block;
+          color: #1e293b;
+          font-size: 14px;
+        }
+        .doctor-info span {
+          font-size: 11px;
+          color: #64748b;
+        }
+        .date-toggle {
+          width: 100%;
+          padding: 8px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
+        }
+        .date-toggle.active {
+          background: #ecfdf5;
+          color: #059669;
+          border: 1px solid #10b981;
+        }
+        .date-toggle.active:hover {
+          background: #fecaca;
+          color: #dc2626;
+          border-color: #ef4444;
+        }
+        .date-toggle.deactivated {
+          background: #fef2f2;
+          color: #dc2626;
+          border: 1px solid #ef4444;
+        }
+        .date-toggle.deactivated:hover {
+          background: #d1fae5;
+          color: #059669;
+          border-color: #10b981;
+        }
+      `}</style>
     </section>
   );
 }
 
-function NotificationsPage() {
+function NotificationsPage({ inquiries = [], onSendNotification }) {
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
+  const [filterLocation, setFilterLocation] = useState("New Delhi Clinic");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sendingState, setSendingState] = useState({});
+
+  const filteredInquiries = inquiries.filter(item => {
+    if (filterDate && item.appointmentDate !== filterDate) return false;
+    if (searchQuery && !item.childName?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  const messageOptions = ["Appointment confirmed", "Reminder", "Reschedule", "Cancel"];
+
+  const handleSend = async (item, opt) => {
+    setSendingState(prev => ({ ...prev, [`${item.id}-${opt}`]: "sending" }));
+    try {
+      await onSendNotification({
+        inquiryId: item.id,
+        type: opt,
+        phone: item.phone,
+        childName: item.childName
+      });
+      setSendingState(prev => ({ ...prev, [`${item.id}-${opt}`]: "sent" }));
+      setTimeout(() => {
+        setActiveDropdown(null);
+        setSendingState(prev => ({ ...prev, [`${item.id}-${opt}`]: null }));
+      }, 1000);
+    } catch (error) {
+      console.error(error);
+      setSendingState(prev => ({ ...prev, [`${item.id}-${opt}`]: "error" }));
+    }
+  };
+
   return (
-    <section className="split-grid">
-      <div className="content-card">
-        <div className="section-head">
-          <h2>Notifications Center</h2>
-          <Badge tone="green">WhatsApp + Email</Badge>
+    <section className="content-card notifications-page">
+      {/* Filters Bar */}
+      <div className="filters-bar">
+        <div className="filter-group">
+          <label>Manage by Appointment Date</label>
+          <input 
+            type="date" 
+            value={filterDate} 
+            onChange={(e) => setFilterDate(e.target.value)} 
+            className="filter-input"
+          />
         </div>
-        <div className="stack">
-          {["Appointment confirmed", "Reminder", "Reschedule", "Cancel"].map((item) => (
-            <div className="mini-row" key={item}>
-              <span>{item}</span>
-              <Button variant="secondary">Send</Button>
-            </div>
-          ))}
+        <div className="filter-group">
+          <label>Select Location</label>
+          <select 
+            value={filterLocation} 
+            onChange={(e) => setFilterLocation(e.target.value)}
+            className="filter-input"
+          >
+            <option>New Delhi Clinic</option>
+            <option>Online</option>
+          </select>
+        </div>
+        <div className="filter-group">
+          <label>Search Patients</label>
+          <input 
+            type="text" 
+            placeholder="Search Patients" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="filter-input"
+          />
         </div>
       </div>
-      <div className="content-card">
-        <div className="section-head">
-          <h2>Recent Notifications</h2>
-        </div>
-        <div className="stack">
-          {notifications.map((note) => (
-            <div className="notification-item" key={note}>
-              {note}
-            </div>
-          ))}
-        </div>
+
+      <div className="section-head mt-6">
+        <h2>{filterDate ? `Appointments for Therapy on ${formatDisplayDate(filterDate)}` : "All Appointments for Therapy"}</h2>
       </div>
+
+      <div className="table-responsive">
+        <table className="notifications-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Child Name</th>
+              <th>Parent's Name</th>
+              <th>Phone Number</th>
+              <th>Therapist</th>
+              <th>Status</th>
+              <th className="text-center">Send Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredInquiries.length > 0 ? filteredInquiries.map((item, index) => (
+              <tr key={item.id}>
+                <td>{item.appointmentTime || "-"}</td>
+                <td>{item.childName || "-"}</td>
+                <td>{item.parent || "-"}</td>
+                <td>
+                  {item.parentPhone || item.phone || "-"}
+                </td>
+                <td>{item.assignedTherapist || "-"}</td>
+                <td>
+                  <Badge tone={inquiryTone(item.status)}>{item.status}</Badge>
+                </td>
+                <td>
+                  <div className="actions-cell relative">
+                    <button 
+                      className="action-btn more-btn" 
+                      onClick={() => setActiveDropdown(activeDropdown === index ? null : index)}
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                    </button>
+                    
+                    {activeDropdown === index && (
+                      <div className="message-dropdown shadow-lg">
+                        {messageOptions.map((opt) => {
+                          const state = sendingState[`${item.id}-${opt}`];
+                          return (
+                            <div key={opt} className="message-dropdown-item">
+                              <span>{opt}</span>
+                              <button 
+                                className={`send-btn ${state === "sent" ? "success" : state === "error" ? "error" : ""}`} 
+                                onClick={() => handleSend(item, opt)}
+                                disabled={state === "sending" || state === "sent"}
+                              >
+                                {state === "sending" ? "Sending..." : state === "sent" ? "Sent ✓" : state === "error" ? "Failed" : "Send"}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", padding: "24px" }}>No appointments found for this filter.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <style>{`
+        .notifications-page {
+          padding: 24px;
+        }
+        .filters-bar {
+          display: flex;
+          gap: 20px;
+          background: #f8fafc;
+          padding: 16px;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+        }
+        .filter-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          flex: 1;
+          min-width: 200px;
+        }
+        .filter-group label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #475569;
+        }
+        .filter-input {
+          padding: 10px 14px;
+          border-radius: 8px;
+          border: 1px solid #cbd5e1;
+          background: white;
+          font-size: 14px;
+          outline: none;
+        }
+        .filter-input:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        .mt-6 { margin-top: 24px; }
+        .table-responsive {
+          overflow-x: auto;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+        }
+        .notifications-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+        }
+        .notifications-table th, .notifications-table td {
+          padding: 16px;
+          border-bottom: 1px solid #e2e8f0;
+          font-size: 14px;
+          color: #334155;
+        }
+        .notifications-table th {
+          background: #f8fafc;
+          font-weight: 600;
+          color: #64748b;
+        }
+        .actions-cell {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          justify-content: center;
+        }
+        .action-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          cursor: pointer;
+          color: white;
+          transition: opacity 0.2s;
+        }
+        .action-btn:hover {
+          opacity: 0.9;
+        }
+        .more-btn {
+          background: #3b82f6;
+        }
+        .message-dropdown {
+          position: absolute;
+          right: 0;
+          top: 40px;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          width: 250px;
+          z-index: 50;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+        }
+        .message-dropdown-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          border-bottom: 1px solid #f1f5f9;
+        }
+        .message-dropdown-item:last-child {
+          border-bottom: none;
+        }
+        .message-dropdown-item span {
+          font-size: 13px;
+          font-weight: 500;
+          color: #334155;
+        }
+        .send-btn {
+          background: transparent;
+          border: 1px solid #3b82f6;
+          color: #3b82f6;
+          padding: 4px 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .send-btn:hover {
+          background: #eff6ff;
+        }
+        .relative { position: relative; }
+        .text-center { text-align: center !important; }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+      `}</style>
     </section>
   );
 }
@@ -1209,6 +1951,7 @@ export default function App() {
   const [orders, setOrders] = useState(fallbackOrders);
   const [volunteers, setVolunteers] = useState(fallbackVolunteers);
   const [therapists, setTherapists] = useState(fallbackTherapists);
+  const [deactivatedDates, setDeactivatedDates] = useState([]);
   const [subscribers, setSubscribers] = useState([]);
   const [contacts, setContacts] = useState(fallbackContacts);
   const [dashboard, setDashboard] = useState(null);
@@ -1250,6 +1993,7 @@ export default function App() {
         setVolunteers(bootstrap?.volunteers ?? fallbackVolunteers);
         setSubscribers(bootstrap?.subscribers ?? []);
         setContacts(bootstrap?.contacts ?? fallbackContacts);
+        setDeactivatedDates(bootstrap?.deactivatedDates ?? []);
         setDashboard(bootstrap?.dashboard ?? null);
         setIsConnected(true);
         setBackendStatus("connected");
@@ -1266,6 +2010,7 @@ export default function App() {
         setVolunteers(fallbackVolunteers);
         setSubscribers([]);
         setContacts([]);
+        setDeactivatedDates([]);
         setDashboard(null);
       }
     }
@@ -1310,6 +2055,28 @@ export default function App() {
     }
   }
 
+  async function handleToggleDeactivate(therapistId, date) {
+    // Optimistic update
+    setDeactivatedDates((prev) => {
+      const exists = prev.some((d) => String(d.therapistId) === String(therapistId) && d.date === date);
+      if (exists) {
+        return prev.filter((d) => !(String(d.therapistId) === String(therapistId) && d.date === date));
+      }
+      return [...prev, { therapistId, date }];
+    });
+
+    try {
+      const result = await toggleDeactivateDate(therapistId, date);
+      // Refresh bootstrap to get latest cancelled inquiries and deactivated dates
+      const bootstrap = await getAdminBootstrap();
+      setDeactivatedDates(bootstrap?.deactivatedDates ?? []);
+      setInquiries(autoAssignInquiries(bootstrap?.inquiries ?? [], buildDepartmentMap(bootstrap?.therapists ?? therapists)));
+    } catch (error) {
+      console.error(error);
+      // Revert on error could be added here
+    }
+  }
+
   async function handleTherapistAdd(therapist) {
     const saved = await createTherapist(therapist);
     if (saved) {
@@ -1343,6 +2110,10 @@ export default function App() {
       });
     }
     return saved;
+  }
+
+  async function handleSendNotification(payload) {
+    await sendNotification(payload);
   }
 
   const page = useMemo(() => {
@@ -1386,13 +2157,19 @@ export default function App() {
           />
         );
       case "Availability Manager":
-        return <AvailabilityPage />;
+        return (
+          <AvailabilityPage
+            therapists={therapists}
+            deactivatedDates={deactivatedDates}
+            onToggleDeactivate={handleToggleDeactivate}
+          />
+        );
       case "Subscribe":
         return <SubscribersPage subscribers={subscribers} onAddSubscriber={handleSubscriberAdd} />;
       case "Contacts":
         return <ContactsPage contacts={contacts} />;
       case "Notifications Center":
-        return <NotificationsPage />;
+        return <NotificationsPage inquiries={inquiries} onSendNotification={handleSendNotification} />;
       case "Message Broadcast":
         return <BroadcastPage />;
       case "Reports / Analytics":
@@ -1412,7 +2189,7 @@ export default function App() {
           />
         );
     }
-  }, [activeSection, contacts, currentUser, dashboard, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers]);
+  }, [activeSection, contacts, currentUser, dashboard, deactivatedDates, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers]);
 
   if (!currentUser) {
     return <LoginScreen onLogin={(user) => setCurrentUser(user)} />;

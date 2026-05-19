@@ -80,3 +80,17 @@ export function addSubscriber(email) {
     body: JSON.stringify({ email }),
   });
 }
+
+export function toggleDeactivateDate(therapistId, date) {
+  return request("/therapists/deactivate-date", {
+    method: "POST",
+    body: JSON.stringify({ therapistId, date }),
+  });
+}
+
+export function sendNotification(payload) {
+  return request("/notifications/send", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

@@ -21,7 +21,9 @@ export const volunteerSchema = z.object({
   interestArea: z.string().trim().min(2).max(120),
   interestAreaOther: z.string().trim().max(120).default(""),
   availability: z.string().trim().min(2).max(120),
-  message: z.string().trim().min(10).max(2000),
+  timeFrom: z.string().trim().optional(),
+  timeTo: z.string().trim().optional(),
+  message: z.string().trim().max(2000).default(""),
 });
 
 export const donationIntentSchema = z.object({

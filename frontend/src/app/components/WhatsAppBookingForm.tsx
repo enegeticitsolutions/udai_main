@@ -72,7 +72,7 @@ export function WhatsAppBookingForm({ onClose }: WhatsAppBookingFormProps) {
                 <input
                   type="tel"
                   required
-                  placeholder="e.g. +91 9876543210"
+                  placeholder="e.g. 9876543210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:ring-2 focus:ring-[#ef3c32]/20"

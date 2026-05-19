@@ -52,13 +52,16 @@ export function Layout() {
       name: "Projects",
       type: "dropdown" as const,
       children: [
-        { name: "Special School", href: "/projects#special-school" },
-        { name: "School Readiness Program", href: "/projects#school-readiness-program" },
-        { name: "Ek Prayas Vocational Training Center", href: "/projects#ek-prayas-vocational-training-center" },
-        { name: "Living Home", href: "/projects#living-home" },
-        { name: "Community", href: "/projects#community" },
-        { name: "Parents And Teacher w/s", href: "/projects#parents-and-teacher-ws" },
-        { name: "Courses Offered", href: "/projects#courses-offered" },
+        { name: "Early Intervention Programme", href: "/projects#early-intervention-programme" },
+        { name: "School Readiness Programme", href: "/projects#school-readiness-programme" },
+        { name: "Therapy Services", href: "/projects#therapy-services" },
+        { name: "Special Education and Life-Skills Development", href: "/projects#special-education-life-skills" },
+        { name: "Ek Prayas – Intervention on Wheels", href: "/projects#ek-prayas-intervention-on-wheels" },
+        { name: "Ek Prayas – Vocational Training and Employability Support", href: "/projects#ek-prayas-vocational-training" },
+        { name: "Assistive Living Hostel for Boys", href: "/projects#assistive-living-hostel" },
+        { name: "Community Outreach Program", href: "/projects#community-outreach" },
+        { name: "Assistive Living Programme (Residential facility for Boys)", href: "/projects#assistive-living-programme" },
+        { name: "Teachers Training & Parent Empowerment Program", href: "/projects#teachers-training-parent-empowerment" },
       ],
     },
     { name: "Therapist", href: "/#therapists", type: "section" as const },
@@ -92,7 +95,7 @@ export function Layout() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Sticky Header Group */}
-      <div className="sticky top-0 z-50 shadow-md">
+      <div className="fixed top-0 left-0 right-0 z-50 shadow-md">
         {/* Top Contact Bar */}
         <div className="bg-[#2f5597] text-white">
           <div className="mx-auto flex max-w-7xl flex-col items-start justify-start gap-2 px-4 py-2 text-sm font-medium sm:px-6 md:flex-row md:items-center md:gap-10 lg:px-8">
@@ -114,110 +117,34 @@ export function Layout() {
         </div>
 
         {/* Main Navigation */}
-        <header className="bg-white border-b border-[#e7dfd7]">
+        <header className="bg-white border-b border-[#e7dfd7] z-50 shadow-sm">
           <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex min-h-[92px] items-center justify-between gap-6">
-            <Link to="/" className="flex shrink-0 items-center">
-              <img src={logo} alt="UDAI Logo" className="h-16 w-auto sm:h-20" />
-            </Link>
-
-            <div className="hidden items-center gap-8 lg:flex">
-              {navigation.map((item) =>
-                item.type === "dropdown" ? (
-                  <div key={item.name} className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setProjectsOpen((prev) => !prev)}
-                      className={`inline-flex items-center gap-1 text-[15px] font-medium transition-colors ${projectsOpen ? "text-[#2f5597]" : "text-[#2b1b15] hover:text-[#2f5597]"
-                        }`}
-                    >
-                      {item.name}
-                      <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
-                    </button>
-                    {projectsOpen ? (
-                      <div className="absolute left-0 top-full z-50 mt-3 w-72 rounded-2xl border border-[#e7dfd7] bg-white p-2 shadow-[0_18px_40px_rgba(41,29,22,0.12)]">
-                        {item.children.map((child) => (
-                          <Link
-                            key={child.name}
-                            to={child.href}
-                            onClick={() => setProjectsOpen(false)}
-                            className="block rounded-xl px-4 py-3 text-sm font-medium text-[#2b1b15] transition hover:bg-[#f7f4ef] hover:text-[#2f5597]"
-                          >
-                            {child.name}
-                          </Link>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : item.type === "route" ? (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`text-[15px] font-medium transition-colors ${isActive(item.href)
-                        ? "text-[#2f5597]"
-                        : "text-[#2b1b15] hover:text-[#2f5597]"
-                      }`}
-                  >
-                    {item.name}
-                  </Link>
-                ) : (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onClick={(e) => handleHashLink(e, item.href)}
-                    className="text-[15px] font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
-                  >
-                    {item.name}
-                  </Link>
-                ),
-              )}
-               <Link
-                to="/#donate"
-                onClick={(e) => handleHashLink(e, "/#donate")}
-                className="rounded-full bg-[#ef3c32] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(239,60,50,0.28)] transition hover:bg-[#da2f26]"
-              >
-                Donate Now
+            <div className="flex min-h-[92px] items-center justify-between gap-6">
+              <Link to="/" className="flex shrink-0 items-center">
+                <img src={logo} alt="UDAI Logo" className="h-16 w-auto sm:h-20" />
               </Link>
-            </div>
 
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 lg:hidden"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? (
-                <X className="size-6 text-gray-900" />
-              ) : (
-                <Menu className="size-6 text-gray-900" />
-              )}
-            </button>
-          </div>
-
-          {mobileMenuOpen && (
-            <div className="border-t border-slate-200 py-4 lg:hidden">
-              <div className="flex flex-col gap-4">
+              <div className="hidden items-center gap-8 lg:flex">
                 {navigation.map((item) =>
                   item.type === "dropdown" ? (
-                    <div key={item.name} className="rounded-2xl border border-[#e7dfd7] bg-[#fbfaf8] p-3">
+                    <div key={item.name} className="relative">
                       <button
                         type="button"
                         onClick={() => setProjectsOpen((prev) => !prev)}
-                        className="flex w-full items-center justify-between text-left text-sm font-medium text-[#2b1b15]"
+                        className={`inline-flex items-center gap-1 text-[15px] font-medium transition-colors ${projectsOpen ? "text-[#2f5597]" : "text-[#2b1b15] hover:text-[#2f5597]"
+                          }`}
                       >
-                        <span>{item.name}</span>
+                        {item.name}
                         <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
                       </button>
                       {projectsOpen ? (
-                        <div className="mt-3 grid gap-2">
+                        <div className="absolute left-0 top-full z-50 mt-3 w-72 rounded-2xl border border-[#e7dfd7] bg-white p-2 shadow-[0_18px_40px_rgba(41,29,22,0.12)]">
                           {item.children.map((child) => (
                             <Link
                               key={child.name}
                               to={child.href}
-                              onClick={() => {
-                                setProjectsOpen(false);
-                                setMobileMenuOpen(false);
-                              }}
-                              className="rounded-xl px-3 py-2 text-sm font-medium text-[#2b1b15] transition hover:bg-white hover:text-[#2f5597]"
+                              onClick={() => setProjectsOpen(false)}
+                              className="block rounded-xl px-4 py-3 text-sm font-medium text-[#2b1b15] transition hover:bg-[#f7f4ef] hover:text-[#2f5597]"
                             >
                               {child.name}
                             </Link>
@@ -229,10 +156,9 @@ export function Layout() {
                     <Link
                       key={item.name}
                       to={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`text-sm font-medium transition-colors ${isActive(item.href)
-                          ? "text-[#2f5597]"
-                          : "text-[#2b1b15] hover:text-[#2f5597]"
+                      className={`text-[15px] font-medium transition-colors ${isActive(item.href)
+                        ? "text-[#2f5597]"
+                        : "text-[#2b1b15] hover:text-[#2f5597]"
                         }`}
                     >
                       {item.name}
@@ -242,7 +168,7 @@ export function Layout() {
                       key={item.name}
                       to={item.href}
                       onClick={(e) => handleHashLink(e, item.href)}
-                      className="text-left text-sm font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
+                      className="text-[15px] font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
                     >
                       {item.name}
                     </Link>
@@ -251,19 +177,96 @@ export function Layout() {
                 <Link
                   to="/#donate"
                   onClick={(e) => handleHashLink(e, "/#donate")}
-                  className="rounded-full bg-[#ef3c32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#da2f26]"
+                  className="rounded-full bg-[#ef3c32] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(239,60,50,0.28)] transition hover:bg-[#da2f26]"
                 >
                   Donate Now
                 </Link>
               </div>
+
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 lg:hidden"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? (
+                  <X className="size-6 text-gray-900" />
+                ) : (
+                  <Menu className="size-6 text-gray-900" />
+                )}
+              </button>
             </div>
-          )}
-        </nav>
-      </header>
-    </div>
+
+            {mobileMenuOpen && (
+              <div className="border-t border-slate-200 py-4 lg:hidden">
+                <div className="flex flex-col gap-4">
+                  {navigation.map((item) =>
+                    item.type === "dropdown" ? (
+                      <div key={item.name} className="rounded-2xl border border-[#e7dfd7] bg-[#fbfaf8] p-3">
+                        <button
+                          type="button"
+                          onClick={() => setProjectsOpen((prev) => !prev)}
+                          className="flex w-full items-center justify-between text-left text-sm font-medium text-[#2b1b15]"
+                        >
+                          <span>{item.name}</span>
+                          <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {projectsOpen ? (
+                          <div className="mt-3 grid gap-2">
+                            {item.children.map((child) => (
+                              <Link
+                                key={child.name}
+                                to={child.href}
+                                onClick={() => {
+                                  setProjectsOpen(false);
+                                  setMobileMenuOpen(false);
+                                }}
+                                className="rounded-xl px-3 py-2 text-sm font-medium text-[#2b1b15] transition hover:bg-white hover:text-[#2f5597]"
+                              >
+                                {child.name}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : item.type === "route" ? (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`text-sm font-medium transition-colors ${isActive(item.href)
+                          ? "text-[#2f5597]"
+                          : "text-[#2b1b15] hover:text-[#2f5597]"
+                          }`}
+                      >
+                        {item.name}
+                      </Link>
+                    ) : (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={(e) => handleHashLink(e, item.href)}
+                        className="text-left text-sm font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
+                      >
+                        {item.name}
+                      </Link>
+                    ),
+                  )}
+                  <Link
+                    to="/#donate"
+                    onClick={(e) => handleHashLink(e, "/#donate")}
+                    className="rounded-full bg-[#ef3c32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#da2f26]"
+                  >
+                    Donate Now
+                  </Link>
+                </div>
+              </div>
+            )}
+          </nav>
+        </header>
+      </div>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 pt-[126px]">
         <Outlet />
       </main>
 

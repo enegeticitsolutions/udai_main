@@ -13,6 +13,11 @@ const interestAreaOptions = [
   "Other",
 ];
 
+const timeOptions = [
+  "12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM",
+  "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM", "10 PM", "11 PM"
+];
+
 export function GetInvolved() {
   const [formData, setFormData] = useState({
     name: "",
@@ -27,6 +32,8 @@ export function GetInvolved() {
     interestArea: "Community outreach",
     interestAreaOther: "",
     availability: "Weekends",
+    timeFrom: "",
+    timeTo: "",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -143,6 +150,8 @@ export function GetInvolved() {
         interestArea: "Community outreach",
         interestAreaOther: "",
         availability: "Weekends",
+        timeFrom: "",
+        timeTo: "",
         message: "",
       });
     } catch (err) {
@@ -347,6 +356,37 @@ export function GetInvolved() {
                       className="bg-white"
                     />
                   ) : null}
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col">
+                  <label className="mb-1 ml-1 text-xs font-medium text-gray-600">Preferred Time (From)</label>
+                  <select
+                    value={formData.timeFrom}
+                    onChange={(event) => setFormData((current) => ({ ...current, timeFrom: event.target.value }))}
+                    className="h-11 w-full rounded-md border border-input bg-white px-3 text-sm outline-none"
+                    required
+                  >
+                    <option value="" disabled>Select time</option>
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>{time}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col">
+                  <label className="mb-1 ml-1 text-xs font-medium text-gray-600">Preferred Time (To)</label>
+                  <select
+                    value={formData.timeTo}
+                    onChange={(event) => setFormData((current) => ({ ...current, timeTo: event.target.value }))}
+                    className="h-11 w-full rounded-md border border-input bg-white px-3 text-sm outline-none"
+                    required
+                  >
+                    <option value="" disabled>Select time</option>
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>{time}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

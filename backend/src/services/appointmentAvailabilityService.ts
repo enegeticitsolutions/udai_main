@@ -35,6 +35,10 @@ const slotTimes = [
   "17:00",
 ];
 
+function deactivatedDatesPath() {
+  return path.join(config.storageDir, "deactivated-dates.json");
+}
+
 function inquiriesPath() {
   return path.join(config.storageDir, "therapist-inquiries.json");
 }
@@ -54,6 +58,18 @@ function normalizeInquiry(record: Record<string, unknown>): TherapistInquiryReco
     id: _id ? _id.toString() : String((rest as Record<string, unknown>).id ?? ""),
     ...rest,
   } as TherapistInquiryRecord;
+}
+
+async function readDeactivatedDates(): Promise<Array<{ therapistId: string; date: string }>> {
+  await connectMongoDb();
+  if (isMongoConnected()) {
+    return await getMongoDb().collection("deactivatedDates").find({}).toArray() as any;
+  }
+  try {
+    return await readJsonFile<any[]>(deactivatedDatesPath());
+  } catch {
+    return [];
+  }
 }
 
 async function readInquiryRecords(): Promise<TherapistInquiryRecord[]> {
@@ -81,9 +97,23 @@ function isActiveTherapist(therapist: Therapist & { active?: boolean; isActive?:
 }
 
 export async function getDepartmentAvailability(department: string, date: string) {
-  const [therapists, inquiries] = await Promise.all([getTherapists(), readInquiryRecords()]);
+  const [therapists, inquiries, deactivatedDates] = await Promise.all([
+    getTherapists(),
+    readInquiryRecords(),
+    readDeactivatedDates()
+  ]);
+
+  const deactivatedTherapistIds = new Set(
+    deactivatedDates
+      .filter(d => d.date === date)
+      .map(d => String(d.therapistId))
+  );
+
   const departmentTherapists = therapists.filter(
-    (therapist) => therapist.department === department && isActiveTherapist(therapist),
+    (therapist) =>
+      therapist.department === department &&
+      isActiveTherapist(therapist) &&
+      !deactivatedTherapistIds.has(String(therapist.id)),
   );
 
   const bookedByTime = inquiries.filter(
@@ -111,9 +141,23 @@ export async function getDepartmentAvailability(department: string, date: string
 }
 
 export async function reserveDepartmentTherapist(department: string, date: string, time: string) {
-  const [therapists, inquiries] = await Promise.all([getTherapists(), readInquiryRecords()]);
+  const [therapists, inquiries, deactivatedDates] = await Promise.all([
+    getTherapists(),
+    readInquiryRecords(),
+    readDeactivatedDates()
+  ]);
+
+  const deactivatedTherapistIds = new Set(
+    deactivatedDates
+      .filter(d => d.date === date)
+      .map(d => String(d.therapistId))
+  );
+
   const departmentTherapists = therapists.filter(
-    (therapist) => therapist.department === department && isActiveTherapist(therapist),
+    (therapist) =>
+      therapist.department === department &&
+      isActiveTherapist(therapist) &&
+      !deactivatedTherapistIds.has(String(therapist.id)),
   );
 
   const activeBookings = inquiries.filter(

@@ -22,7 +22,12 @@ export async function sendWhatsAppMessage({
   }
 
   // Clean the phone number (remove +, spaces, etc.)
-  const cleanTo = to.replace(/\D/g, "");
+  let cleanTo = to.replace(/\D/g, "");
+
+  // If it's a 10-digit number, prepend '91' (default for India)
+  if (cleanTo.length === 10) {
+    cleanTo = "91" + cleanTo;
+  }
 
   const data = {
     integrated_number: "919911883075",
