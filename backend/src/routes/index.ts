@@ -6,6 +6,7 @@ import { paymentsRouter } from "./payments.js";
 import { authRouter } from "./auth.js";
 import { userRouter } from "./user.js";
 import whatsappRouter from "./whatsapp.js";
+import webhookRouter from "./webhook.js";
 import { isMongoConnected } from "../lib/mongodb.js";
 
 export const apiRouter = Router();
@@ -28,3 +29,4 @@ apiRouter.use("/auth", authRouter);
 apiRouter.use("/user", userRouter);
 apiRouter.use("/admin", adminRouter);
 apiRouter.use("/whatsapp", whatsappRouter);
+apiRouter.use("/webhook", webhookRouter);

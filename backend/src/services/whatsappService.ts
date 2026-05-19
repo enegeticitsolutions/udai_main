@@ -1,73 +1,104 @@
 import axios from "axios";
 
-export interface WhatsAppPayload {
-  to: string;
-  templateName: string;
-  languageCode?: string;
-  components?: any;
-}
-
-export async function sendWhatsAppMessage({
-  to,
-  templateName,
-  languageCode = "en",
-  components = {}
-}: WhatsAppPayload) {
-  const url = "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/";
+/**
+ * Sends a free-form text message via MSG91 WhatsApp API.
+ * MSG91 supports free-form messages only for replies within 24h window.
+ * For outbound (first contact), templates are required.
+ */
+export async function sendWhatsAppText(to: string, message: string): Promise<void> {
   const authKey = process.env.MSG91_AUTH_KEY;
+  const integratedNumber = process.env.MSG91_NUMBER || "919911883075";
 
   if (!authKey) {
-    console.error("MSG91_AUTH_KEY not found in environment variables.");
+    console.error("[WhatsApp] MSG91_AUTH_KEY not set in environment.");
+    return;
+  }
+
+  // Normalize phone to E.164 without '+'
+  let phone = to.replace(/\D/g, "");
+  if (phone.length === 10) phone = "91" + phone;
+
+  const payload = {
+    integrated_number: integratedNumber,
+    content_type: "text",
+    payload: {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: phone,
+      type: "text",
+      text: { body: message },
+    },
+  };
+
+  try {
+    const response = await axios.post(
+      "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/",
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          authkey: authKey,
+        },
+      }
+    );
+    console.log(`[WhatsApp] Message sent to ${phone}:`, response.data);
+  } catch (error: any) {
+    console.error(
+      `[WhatsApp] Failed to send message to ${phone}:`,
+      error.response?.data || error.message
+    );
+  }
+}
+
+/**
+ * Sends a template message via MSG91 WhatsApp API.
+ * Used for outbound (first contact) messages.
+ */
+export async function sendWhatsAppTemplate(
+  to: string,
+  templateName: string,
+  languageCode = "en",
+  components: any = {}
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  const authKey = process.env.MSG91_AUTH_KEY;
+  const integratedNumber = process.env.MSG91_NUMBER || "919911883075";
+
+  if (!authKey) {
+    console.error("[WhatsApp] MSG91_AUTH_KEY not set in environment.");
     return { success: false, error: "Configuration error" };
   }
 
-  // Clean the phone number (remove +, spaces, etc.)
-  let cleanTo = to.replace(/\D/g, "");
+  let phone = to.replace(/\D/g, "");
+  if (phone.length === 10) phone = "91" + phone;
 
-  // If it's a 10-digit number, prepend '91' (default for India)
-  if (cleanTo.length === 10) {
-    cleanTo = "91" + cleanTo;
-  }
-
-  const data = {
-    integrated_number: "919911883075",
+  const payload = {
+    integrated_number: integratedNumber,
     content_type: "template",
     payload: {
       messaging_product: "whatsapp",
       type: "template",
       template: {
         name: templateName,
-        language: {
-          code: languageCode,
-          policy: "deterministic"
-        },
+        language: { code: languageCode, policy: "deterministic" },
         namespace: null,
-        to_and_components: [
-          {
-            to: [cleanTo],
-            components: components
-          }
-        ]
-      }
-    }
+        to_and_components: [{ to: [phone], components }],
+      },
+    },
   };
 
   try {
-    console.log(`Sending WhatsApp message to ${cleanTo} using template ${templateName}...`);
-    const response = await axios.post(url, data, {
-      headers: {
-        "Content-Type": "application/json",
-        "authkey": authKey
+    console.log(`[WhatsApp] Sending template "${templateName}" to ${phone}...`);
+    const response = await axios.post(
+      "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/",
+      payload,
+      {
+        headers: { "Content-Type": "application/json", authkey: authKey },
       }
-    });
-
-    console.log("MSG91 Response:", response.data);
+    );
+    console.log("[WhatsApp] MSG91 Response:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
-    console.error("MSG91 API Error:", error.response?.data || error.message);
-    return { 
-      success: false, 
-      error: error.response?.data?.message || "Failed to send WhatsApp message" 
-    };
+    console.error("[WhatsApp] API Error:", error.response?.data || error.message);
+    return { success: false, error: error.response?.data?.message || "Failed to send" };
   }
 }

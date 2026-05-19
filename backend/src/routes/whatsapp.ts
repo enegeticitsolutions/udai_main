@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { sendWhatsAppMessage } from "../services/whatsappService.js";
+import { sendWhatsAppTemplate } from "../services/whatsappService.js";
 
 const router = Router();
 
@@ -12,11 +12,7 @@ router.post("/book-appointment", async (req, res) => {
   }
 
   // Use the 'udai' template as provided in the user's curl command
-  const result = await sendWhatsAppMessage({
-    to: phone,
-    templateName: "udai",
-    languageCode: "en"
-  });
+  const result = await sendWhatsAppTemplate(phone, "udai", "en");
 
   if (result.success) {
     res.json({ success: true, message: "WhatsApp message sent successfully", data: result.data });
