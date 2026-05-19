@@ -38,12 +38,14 @@ export function TherapistsSection() {
             </p>
           </div>
 
-          <button
-            onClick={() => setIsWhatsAppOpen(true)}
+          <a
+            href="https://wa.me/918882724057?text=Hello%20I%20want%20to%20book%20an%20appointment"
+            target="_blank"
+            rel="noopener noreferrer"
             className="mt-6 inline-flex h-fit items-center justify-center rounded-full bg-[#ef3c32] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(239,60,50,0.24)] transition hover:bg-[#da2f26] lg:absolute lg:right-0 lg:top-24 lg:mt-0"
           >
             Book Appointment
-          </button>
+          </a>
         </motion.div>
 
         <AnimatePresence>
