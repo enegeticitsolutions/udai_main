@@ -37,6 +37,7 @@ export interface Product {
   stock_quantity: number;
   low_stock_threshold: number;
   product_type: string;
+  isCorporateGift?: boolean;
   gallery: string[];
   attributes?: Record<string, string[]>;
   has_variants: boolean;

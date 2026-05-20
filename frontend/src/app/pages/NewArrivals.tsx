@@ -21,7 +21,7 @@ export function NewArrivals() {
     async function loadProducts() {
       try {
         setIsLoading(true);
-        const nextProducts = await apiGet<Product[]>("/content/products");
+        const nextProducts = await apiGet<Product[]>("/content/products?type=product");
         setProducts(nextProducts);
         setError(null);
       } catch (err) {
@@ -46,6 +46,32 @@ export function NewArrivals() {
     <div className="bg-[#f8f3ef]">
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Corporate Gifting Banner */}
+          <div className="mb-12 rounded-[1.5rem] bg-[#1a2d42] px-6 py-8 text-white shadow-[0_18px_36px_rgba(26,45,66,0.14)] sm:px-8">
+            <div className="flex justify-between items-start mb-3">
+              <div className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#ffd86b]">
+                Corporate Gifts
+              </div>
+            </div>
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                  Handcrafted corporate gifting solutions.
+                </h1>
+                <p className="mt-3 text-sm leading-7 text-white/75 sm:text-base">
+                  Delight your clients and partners with sustainable, socially conscious gift packs. Handcrafted with care by the UDAI team.
+                </p>
+              </div>
+              <Link
+                to="/corporate-gifting"
+                className="inline-flex items-center justify-center rounded-full bg-[#ffd86b] px-5 py-3 text-sm font-semibold text-[#1a2d42] transition hover:bg-[#ffcf4a]"
+              >
+                Explore Corporate Gifts
+              </Link>
+            </div>
+          </div>
+
+          {/* New Arrivals Card */}
           <div className="mb-12 rounded-[1.5rem] bg-[#2b1b15] px-6 py-8 text-white shadow-[0_18px_36px_rgba(43,27,21,0.14)] sm:px-8">
             <div className="flex justify-between items-start mb-3">
               <div className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#ffd86b]">

@@ -51,6 +51,7 @@ export interface Product {
   is_featured: boolean;
   is_trending: boolean;
   tags: string[];
+  isCorporateGift?: boolean;
   extra_data?: Record<string, any>;
   createdAt?: string;
   updatedAt?: string;

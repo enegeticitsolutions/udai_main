@@ -133,6 +133,23 @@ adminRouter.post("/notifications/send", async (req, res, next) => {
   }
 });
 
+adminRouter.get("/products", async (req, res, next) => {
+  try {
+    const { getProducts } = await import("../services/contentService.js");
+    const all = await getProducts();
+    const typeFilter = req.query.type as string | undefined;
+    const data =
+      typeFilter === "gift"
+        ? all.filter((p) => p.isCorporateGift === true)
+        : typeFilter === "product"
+        ? all.filter((p) => !p.isCorporateGift)
+        : all;
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminRouter.post("/products", async (req, res, next) => {
   try {
     const payload = productSchema.parse(req.body);

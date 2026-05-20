@@ -8,6 +8,7 @@ import { Contact } from "./pages/Contact";
 import { GetInvolved } from "./pages/GetInvolved";
 import { Products } from "./pages/Products";
 import { NewArrivals } from "./pages/NewArrivals";
+import { CorporateGifting } from "./pages/CorporateGifting";
 import { EducationProgramDetail } from "./pages/EducationProgramDetail";
 import { BlogStoryDetail } from "./pages/BlogStoryDetail";
 import { Checkout } from "./pages/Checkout";
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
       { path: "projects", Component: Projects },
       { path: "products", Component: Products },
       { path: "new-arrivals", Component: NewArrivals },
+      { path: "corporate-gifting", Component: CorporateGifting },
       { path: "checkout", Component: Checkout },
       { path: "careers", Component: Careers },
       { path: "appointment", Component: Appointment },

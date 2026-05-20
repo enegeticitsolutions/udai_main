@@ -95,6 +95,7 @@ export const productSchema = z.object({
   is_featured: z.boolean().default(false),
   is_trending: z.boolean().default(false),
   tags: z.array(z.string().trim()).default([]),
+  isCorporateGift: z.boolean().optional().default(false),
   extra_data: z.record(z.any()).optional(),
 });
 

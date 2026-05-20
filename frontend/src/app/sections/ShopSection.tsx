@@ -9,7 +9,7 @@ import type { Product } from "../types/api";
 export function ShopSection() {
   const navigate = useNavigate();
   const { data: products, isLoading, error } = useApiData<Product[]>(
-    "/content/products",
+    "/content/products?type=product",
     [],
     fallbackProducts as Product[],
   );

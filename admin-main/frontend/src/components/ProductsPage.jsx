@@ -10,6 +10,7 @@ export default function ProductsPage({ products, onAddProduct, onUpdateProduct, 
   const [editingProduct, setEditingProduct] = useState(null);
   const [activeTab, setActiveTab] = useState("basic");
   const [isUploading, setIsUploading] = useState(false);
+  const [currentTab, setCurrentTab] = useState("product"); // "product" or "gift"
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -43,8 +44,16 @@ export default function ProductsPage({ products, onAddProduct, onUpdateProduct, 
     tags: "", // comma separated list
   });
 
-  const totalProducts = products.length;
-  const inStockProducts = products.filter((p) => p.inStock).length;
+  const filteredProducts = products.filter((product) => {
+    if (currentTab === "gift") {
+      return product.isCorporateGift === true;
+    } else {
+      return product.isCorporateGift !== true;
+    }
+  });
+
+  const totalProducts = filteredProducts.length;
+  const inStockProducts = filteredProducts.filter((p) => p.inStock).length;
   const outOfStockProducts = totalProducts - inStockProducts;
 
   const handleOpenAddModal = () => {
@@ -220,6 +229,7 @@ export default function ProductsPage({ products, onAddProduct, onUpdateProduct, 
       is_featured: formData.is_featured,
       is_trending: formData.is_trending,
       tags: formData.tags ? formData.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      isCorporateGift: editingProduct ? editingProduct.isCorporateGift : (currentTab === "gift"),
     };
 
     try {
@@ -246,20 +256,72 @@ export default function ProductsPage({ products, onAddProduct, onUpdateProduct, 
 
   return (
     <section className="content-card">
+      {/* Tab Navigation */}
+      <div style={{ display: "flex", gap: "12px", borderBottom: "1px solid #edf2f7", paddingBottom: "12px", marginBottom: "20px" }}>
+        <button
+          type="button"
+          onClick={() => setCurrentTab("product")}
+          style={{
+            padding: "10px 20px",
+            borderRadius: "8px",
+            border: currentTab === "product" ? "none" : "1px solid #cbd5e0",
+            backgroundColor: currentTab === "product" ? "#2f5597" : "white",
+            color: currentTab === "product" ? "white" : "#4a5568",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+        >
+          Product
+        </button>
+        <button
+          type="button"
+          onClick={() => setCurrentTab("gift")}
+          style={{
+            padding: "10px 20px",
+            borderRadius: "8px",
+            border: currentTab === "gift" ? "none" : "1px solid #cbd5e0",
+            backgroundColor: currentTab === "gift" ? "#2f5597" : "white",
+            color: currentTab === "gift" ? "white" : "#4a5568",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+        >
+          Gift
+        </button>
+      </div>
+
       <div className="section-head">
         <div>
-          <h2>Product Inventory</h2>
+          <h2>{currentTab === "gift" ? "Corporate Gift Inventory" : "Product Inventory"}</h2>
           <p style={{ margin: 0, color: "#718096", fontSize: "14px" }}>
-            Production-ready catalog management with variants, SEO, and filters
+            {currentTab === "gift"
+              ? "Production-ready corporate gifting catalog management with custom specs"
+              : "Production-ready catalog management with variants, SEO, and filters"}
           </p>
         </div>
-        <Button onClick={handleOpenAddModal}>Add Product</Button>
+        <Button onClick={handleOpenAddModal}>
+          {currentTab === "gift" ? "Add Corporate Gift" : "Add Product"}
+        </Button>
       </div>
 
       <div className="panel-grid">
-        <StatCard label="Total Products" value={totalProducts} hint="All items in store" />
-        <StatCard label="In Stock" value={inStockProducts} hint="Available for purchase" />
-        <StatCard label="Out of Stock" value={outOfStockProducts} hint="Need restocking" />
+        <StatCard
+          label={currentTab === "gift" ? "Total Gifts" : "Total Products"}
+          value={totalProducts}
+          hint={currentTab === "gift" ? "All corporate gifts" : "All items in store"}
+        />
+        <StatCard
+          label="In Stock"
+          value={inStockProducts}
+          hint={currentTab === "gift" ? "Available gifts" : "Available for purchase"}
+        />
+        <StatCard
+          label="Out of Stock"
+          value={outOfStockProducts}
+          hint="Need restocking"
+        />
       </div>
 
       <div className="table-wrap" style={{ marginTop: "24px" }}>
@@ -277,14 +339,16 @@ export default function ProductsPage({ products, onAddProduct, onUpdateProduct, 
             </tr>
           </thead>
           <tbody>
-            {products.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <tr>
                 <td colSpan="8" style={{ textAlign: "center", padding: "24px", color: "#666" }}>
-                  No products found. Add a product to get started!
+                  {currentTab === "gift"
+                    ? "No corporate gifts found. Add a gift to get started!"
+                    : "No products found. Add a product to get started!"}
                 </td>
               </tr>
             ) : (
-              products.map((product) => (
+              filteredProducts.map((product) => (
                 <tr key={product.id}>
                   <td>
                     <img

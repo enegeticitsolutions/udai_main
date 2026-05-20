@@ -94,9 +94,16 @@ contentRouter.get("/events", async (_req, res, next) => {
   }
 });
 
-contentRouter.get("/products", async (_req, res, next) => {
+contentRouter.get("/products", async (req, res, next) => {
   try {
-    const products = await getProducts();
+    const all = await getProducts();
+    const typeFilter = req.query.type as string | undefined;
+    const products =
+      typeFilter === "gift"
+        ? all.filter((p) => (p as any).isCorporateGift === true)
+        : typeFilter === "product"
+        ? all.filter((p) => !(p as any).isCorporateGift)
+        : all;
     res.json({ success: true, data: products });
   } catch (error) {
     next(error);
