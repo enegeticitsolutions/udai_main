@@ -32,9 +32,7 @@ export async function getEvents() {
 }
 
 export async function getProducts() {
-  const seedProducts = await readJsonFile<Product[]>(contentPath("products.json"));
-  const storedProducts = await readStoredProducts();
-  return [...seedProducts, ...storedProducts];
+  return readStoredProducts();
 }
 
 export async function getTestimonials() {

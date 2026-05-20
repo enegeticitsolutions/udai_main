@@ -12,6 +12,7 @@ import {
   subscribers as seedSubscribers,
   therapists as seedTherapists,
   volunteers as seedVolunteers,
+  products as seedProducts,
 } from "../data/seedData.js";
 
 const storageByEntity = {
@@ -22,7 +23,7 @@ const storageByEntity = {
   orders: { fileName: "orders.json", collectionName: "orders", seed: seedOrders },
   therapists: { fileName: "therapists.json", collectionName: "therapists", seed: seedTherapists },
   subscribers: { fileName: "subscribers.json", collectionName: "subscribers", seed: seedSubscribers },
-  products: { fileName: "products.json", collectionName: "products", seed: [] },
+  products: { fileName: "products.json", collectionName: "products", seed: seedProducts },
 };
 
 function storagePath(fileName) {
