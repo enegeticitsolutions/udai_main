@@ -124,15 +124,34 @@ body {
     overflow-x: hidden;
   }
 
+  p,
+  a,
+  button,
+  label,
+  h1,
+  h2,
+  h3,
+  h4 {
+    overflow-wrap: anywhere;
+  }
+
+  input,
+  textarea,
+  select {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  table {
+    min-width: 100%;
+  }
+
   img,
   video,
   canvas,
   svg {
     display: block;
     max-width: 100%;
-    height: auto;
-    margin-left: auto;
-    margin-right: auto;
   }
 
   .therapist-marquee {
@@ -175,5 +194,19 @@ body {
 
   .grid {
     gap: 1rem;
+  }
+}
+
+@media (max-width: 420px) {
+  html {
+    font-size: 14px;
+  }
+
+  .therapist-marquee-card {
+    width: 196px;
+  }
+
+  .therapist-marquee-image {
+    height: 188px;
   }
 }

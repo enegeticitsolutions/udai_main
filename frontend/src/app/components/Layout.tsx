@@ -98,20 +98,20 @@ export function Layout() {
       <div className="fixed top-0 left-0 right-0 z-50 shadow-md">
         {/* Top Contact Bar */}
         <div className="bg-[#2f5597] text-white">
-          <div className="mx-auto flex max-w-7xl flex-col items-start justify-start gap-2 px-4 py-2 text-sm font-medium sm:px-6 md:flex-row md:items-center md:gap-10 lg:px-8">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 text-[11px] font-medium sm:px-6 sm:text-sm md:justify-start md:gap-10 lg:px-8">
             <a
               href="tel:+919899681972"
-              className="flex items-center gap-3 transition hover:text-white/80"
+              className="flex min-w-0 items-center gap-2 transition hover:text-white/80 sm:gap-3"
             >
-              <Phone className="h-4 w-4" />
-              <span>+91 - 9899681972, 8377066832</span>
+              <Phone className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+              <span className="truncate">+91 - 9899681972<span className="hidden sm:inline">, 8377066832</span></span>
             </a>
             <a
               href="mailto:info@udairehab.org"
-              className="flex items-center gap-3 transition hover:text-white/80"
+              className="flex min-w-0 items-center gap-2 transition hover:text-white/80 sm:gap-3"
             >
-              <Mail className="h-4 w-4" />
-              <span>info@udairehab.org, udai.march@gmail.com</span>
+              <Mail className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+              <span className="truncate">info@udairehab.org<span className="hidden md:inline">, udai.march@gmail.com</span></span>
             </a>
           </div>
         </div>
@@ -119,9 +119,9 @@ export function Layout() {
         {/* Main Navigation */}
         <header className="bg-white border-b border-[#e7dfd7] z-50 shadow-sm">
           <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex min-h-[92px] items-center justify-between gap-6">
+            <div className="flex min-h-[60px] items-center justify-between gap-4 sm:min-h-[92px] sm:gap-6">
               <Link to="/" className="flex shrink-0 items-center">
-                <img src={logo} alt="UDAI Logo" className="h-16 w-auto sm:h-20" />
+                <img src={logo} alt="UDAI Logo" className="h-10 w-auto sm:h-20" />
               </Link>
 
               <div className="hidden items-center gap-8 lg:flex">
@@ -197,8 +197,8 @@ export function Layout() {
             </div>
 
             {mobileMenuOpen && (
-              <div className="border-t border-slate-200 py-4 lg:hidden">
-                <div className="flex flex-col gap-4">
+              <div className="max-h-[calc(100vh-104px)] overflow-y-auto border-t border-slate-200 py-4 lg:hidden">
+                <div className="flex flex-col gap-4 pb-2">
                   {navigation.map((item) =>
                     item.type === "dropdown" ? (
                       <div key={item.name} className="rounded-2xl border border-[#e7dfd7] bg-[#fbfaf8] p-3">
@@ -266,7 +266,7 @@ export function Layout() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 pt-[126px]">
+      <main className="flex-1 pt-[92px] sm:pt-[126px]">
         <Outlet />
       </main>
 
@@ -356,7 +356,7 @@ export function Layout() {
 
           <div className="mt-12 flex flex-col gap-4 border-t border-white/12 pt-6 text-xs text-white/65 sm:flex-row sm:items-center sm:justify-between">
             <p>&copy; {new Date().getFullYear()} UDAIREHAB NGO. All rights reserved.</p>
-            <div className="flex items-center gap-8">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
               <a href="#">Privacy Policy</a>
               <a href="#">Terms of Service</a>
             </div>

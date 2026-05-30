@@ -66,16 +66,16 @@ export function EducationProgramDetail() {
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-[1.3rem] bg-white p-8 shadow-[0_16px_30px_rgba(44,29,20,0.08)]">
-              <h2 className="text-3xl font-semibold text-[#20325c]">Program Overview</h2>
-              <div className="mt-6 space-y-5 text-base leading-8 text-[#5b504a]">
+            <div className="rounded-[1.3rem] bg-white p-5 shadow-[0_16px_30px_rgba(44,29,20,0.08)] sm:p-8">
+              <h2 className="text-2xl font-semibold text-[#20325c] sm:text-3xl">Program Overview</h2>
+              <div className="mt-5 space-y-4 text-sm leading-7 text-[#5b504a] sm:mt-6 sm:space-y-5 sm:text-base sm:leading-8">
                 {program.overview.map((paragraph) => (
                   <p key={paragraph}>{paragraph}</p>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-[1.3rem] bg-[#fffaf4] p-8 shadow-[0_16px_30px_rgba(44,29,20,0.06)]">
+            <div className="rounded-[1.3rem] bg-[#fffaf4] p-5 shadow-[0_16px_30px_rgba(44,29,20,0.06)] sm:p-8">
               <h2 className="text-2xl font-semibold text-[#20325c]">Key Highlights</h2>
               <div className="mt-6 space-y-4">
                 {program.highlights.map((item) => (
@@ -103,7 +103,7 @@ export function EducationProgramDetail() {
             ))}
           </div>
 
-          <div className="mt-10 rounded-[1.3rem] bg-white p-8 shadow-[0_16px_30px_rgba(44,29,20,0.08)]">
+          <div className="mt-10 rounded-[1.3rem] bg-white p-5 shadow-[0_16px_30px_rgba(44,29,20,0.08)] sm:p-8">
             <h2 className="text-2xl font-semibold text-[#20325c]">Expected Outcomes</h2>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {program.outcomes.map((item) => (
@@ -117,7 +117,7 @@ export function EducationProgramDetail() {
             </div>
           </div>
 
-          <div className="mt-10 flex flex-col gap-4 rounded-[1.3rem] bg-[#20325c] px-8 py-8 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-10 flex flex-col gap-4 rounded-[1.3rem] bg-[#20325c] px-5 py-6 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-8">
             <div>
               <h3 className="text-2xl font-semibold">Interested In This Program?</h3>
               <p className="mt-2 text-sm leading-7 text-white/75">

@@ -69,9 +69,9 @@ export function ImpactSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mx-auto mb-12 max-w-3xl text-center"
+          className="mx-auto mb-8 max-w-3xl text-center sm:mb-12"
         >
-          <h2 className="mb-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          <h2 className="mb-4 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
             Our Impact at a Glance
           </h2>
           <p className="mx-auto max-w-2xl text-sm leading-7 text-white/68">
@@ -79,7 +79,7 @@ export function ImpactSection() {
           </p>
         </motion.div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -89,12 +89,12 @@ export function ImpactSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="rounded-[1.1rem] border border-[#c8a85d]/35 bg-white/5 px-6 py-7 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                className="rounded-[1.1rem] border border-[#c8a85d]/35 bg-white/5 px-3 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:px-6 sm:py-7"
               >
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-white/8">
-                  <Icon className="h-8 w-8 text-[#f6d46d]" />
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/8 sm:mb-5 sm:h-16 sm:w-16">
+                  <Icon className="h-6 w-6 text-[#f6d46d] sm:h-8 sm:w-8" />
                 </div>
-                <div className="text-4xl font-semibold text-[#f6d46d]">
+                <div className="text-2xl font-semibold text-[#f6d46d] sm:text-4xl">
                   {stat.prefix}
                   <CountUp end={stat.value} />
                   {stat.suffix}

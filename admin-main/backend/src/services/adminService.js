@@ -24,6 +24,7 @@ const storageByEntity = {
   therapists: { fileName: "therapists.json", collectionName: "therapists", seed: seedTherapists },
   subscribers: { fileName: "subscribers.json", collectionName: "subscribers", seed: seedSubscribers },
   products: { fileName: "products.json", collectionName: "products", seed: seedProducts },
+  whatsappBookings: { fileName: "whatsapp-bookings.json", collectionName: "chatbotusers", seed: [] },
 };
 
 function storagePath(fileName) {
@@ -44,6 +45,14 @@ async function readStorageRecords(entity) {
   try {
     return await readJsonFile(storagePath(fileName));
   } catch {
+    if (entity === "donations") {
+      try {
+        return await readJsonFile(path.resolve(config.projectRoot, "..", "backend", "storage", fileName));
+      } catch {
+        return seed;
+      }
+    }
+
     return seed;
   }
 }
@@ -206,7 +215,7 @@ async function createMongoRecord(entity, record) {
 }
 
 export async function getAdminBootstrap() {
-  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers, products] = await Promise.all([
+  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers, products, whatsappBookings] = await Promise.all([
     readRecords("inquiries"),
     readRecords("donations"),
     readRecords("volunteers"),
@@ -215,6 +224,7 @@ export async function getAdminBootstrap() {
     readRecords("therapists"),
     readRecords("subscribers"),
     readRecords("products"),
+    readRecords("whatsappBookings"),
   ]);
 
   const totalDonations = donations.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
@@ -238,6 +248,7 @@ export async function getAdminBootstrap() {
     therapists,
     subscribers,
     products,
+    whatsappBookings,
     dashboard: {
       totalRequests: inquiries.length,
       pendingRequests,

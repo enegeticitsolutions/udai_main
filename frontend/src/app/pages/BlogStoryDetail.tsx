@@ -71,8 +71,8 @@ export function BlogStoryDetail() {
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-            <article className="rounded-[1.4rem] bg-white p-8 shadow-[0_16px_30px_rgba(44,29,20,0.08)]">
-              <div className="space-y-5 text-base leading-8 text-[#5a4f4a]">
+            <article className="rounded-[1.4rem] bg-white p-5 shadow-[0_16px_30px_rgba(44,29,20,0.08)] sm:p-8">
+              <div className="space-y-4 text-sm leading-7 text-[#5a4f4a] sm:space-y-5 sm:text-base sm:leading-8">
                 {story.intro.map((paragraph) => (
                   <p key={paragraph}>{paragraph}</p>
                 ))}
@@ -84,7 +84,7 @@ export function BlogStoryDetail() {
                     <h2 className="text-2xl font-semibold text-[#2b1b15]">
                       {section.heading}
                     </h2>
-                    <div className="mt-4 space-y-4 text-base leading-8 text-[#5a4f4a]">
+                    <div className="mt-4 space-y-4 text-sm leading-7 text-[#5a4f4a] sm:text-base sm:leading-8">
                       {section.body.map((paragraph) => (
                         <p key={paragraph}>{paragraph}</p>
                       ))}
@@ -110,7 +110,7 @@ export function BlogStoryDetail() {
             </div>
           </div>
 
-          <div className="mt-10 rounded-[1.4rem] bg-[#20325c] px-8 py-8 text-white">
+          <div className="mt-10 rounded-[1.4rem] bg-[#20325c] px-5 py-6 text-white sm:px-8 sm:py-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-2xl font-semibold">Want To Know More?</h3>

@@ -83,7 +83,7 @@ export function Projects() {
             <article
               key={project.id}
               id={project.id}
-              className="scroll-mt-32 rounded-[1.8rem] border border-[#e8dfd7] bg-white p-7 shadow-[0_14px_30px_rgba(36,24,18,0.06)]"
+              className="scroll-mt-32 rounded-[1.4rem] border border-[#e8dfd7] bg-white p-5 shadow-[0_14px_30px_rgba(36,24,18,0.06)] sm:rounded-[1.8rem] sm:p-7"
             >
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d36f47]">
               Project
@@ -91,10 +91,10 @@ export function Projects() {
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#2b1b15]">
               {project.title}
             </h2>
-            <p className="mt-4 text-base leading-8 text-[#7b706a]">{project.description}</p>
+            <p className="mt-4 text-sm leading-7 text-[#7b706a] sm:text-base sm:leading-8">{project.description}</p>
             {project.id === "special-school" ? (
               <div className="mt-8 space-y-8">
-                <div className="rounded-[1.4rem] bg-[#fbf7f2] p-6">
+                <div className="rounded-[1.4rem] bg-[#fbf7f2] p-4 sm:p-6">
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d36f47]">
                     Special School (Janakpuri)
                   </p>
@@ -103,7 +103,7 @@ export function Projects() {
                 </div>
 
                 {project.sections?.map((section) => (
-                  <section key={section.heading} className="rounded-[1.4rem] border border-[#eee4db] p-6">
+                  <section key={section.heading} className="rounded-[1.4rem] border border-[#eee4db] p-4 sm:p-6">
                     <h3 className="text-xl font-semibold tracking-tight text-[#2b1b15]">
                       {section.heading}
                     </h3>

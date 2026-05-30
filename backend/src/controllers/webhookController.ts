@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import mongoose from "mongoose";
 import { ChatbotUser } from "../models/ChatbotUser.js";
 import { sendWhatsAppText } from "../services/whatsappService.js";
+import { appendRecord } from "../lib/fileStore.js";
 import { config } from "../config.js";
 
 /**
@@ -132,6 +133,24 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
           age: user.age,
           doctor: user.doctor,
         });
+
+        // Store as a formal inquiry in the DB for the Appointments dashboard
+        try {
+          await appendRecord("therapist-inquiries.json", {
+            childName: user.name,
+            parent: user.name,
+            email: "N/A (WhatsApp)",
+            phone: fromPhone,
+            appointmentDate: "",
+            appointmentTime: "",
+            department: user.doctor,
+            concern: `WhatsApp Chatbot Booking. Age: ${user.age}`,
+            status: "new",
+          });
+          console.log(`[Chatbot] Synced appointment to therapistInquiries collection.`);
+        } catch (err) {
+          console.error("[Chatbot] Failed to store inquiry:", err);
+        }
 
         await sendWhatsAppText(
           fromPhone,

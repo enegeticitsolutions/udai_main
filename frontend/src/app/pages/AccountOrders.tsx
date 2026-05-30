@@ -54,9 +54,9 @@ export function AccountOrders() {
         <div className="grid gap-5">
           {orders.length ? (
             orders.map((order) => (
-              <article key={order.id} className="rounded-[1.2rem] bg-white p-6 shadow-[0_12px_24px_rgba(48,32,22,0.07)]">
-                <div id={`invoice-${order.id}`}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 20 }}>
+              <article key={order.id} className="rounded-[1.2rem] bg-white p-4 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:p-6">
+                <div id={`invoice-${order.id}`} className="overflow-x-auto">
+                  <div className="flex min-w-0 flex-col justify-between gap-3 sm:flex-row sm:gap-5">
                     <div>
                       <h2>UDAI Invoice</h2>
                       <p>Order: {order.orderNumber ?? order.id}</p>
@@ -69,7 +69,7 @@ export function AccountOrders() {
                     </div>
                   </div>
                   <hr />
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <table style={{ width: "100%", minWidth: 420, borderCollapse: "collapse" }}>
                     <tbody>
                       {order.items?.map((item) => (
                         <tr key={`${order.id}-${item.productId}`}>

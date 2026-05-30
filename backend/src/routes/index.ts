@@ -7,6 +7,7 @@ import { authRouter } from "./auth.js";
 import { userRouter } from "./user.js";
 import whatsappRouter from "./whatsapp.js";
 import webhookRouter from "./webhook.js";
+import msg91BookingRouter from "./msg91Booking.js";
 import { isMongoConnected } from "../lib/mongodb.js";
 
 export const apiRouter = Router();
@@ -30,3 +31,5 @@ apiRouter.use("/user", userRouter);
 apiRouter.use("/admin", adminRouter);
 apiRouter.use("/whatsapp", whatsappRouter);
 apiRouter.use("/webhook", webhookRouter);
+apiRouter.use("/msg91-booking", msg91BookingRouter);
+

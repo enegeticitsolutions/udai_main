@@ -34,6 +34,9 @@ export const donationIntentSchema = z.object({
   purpose: z.string().trim().min(2).max(120),
   message: z.string().trim().max(2000).default(""),
   paymentMethod: z.enum(["qr", "upi", "netbanking", "card"]).optional(),
+  donationCategory: z.enum(["meal", "future"]).optional().default("future"),
+  campaignName: z.string().trim().max(160).optional(),
+  meals: z.coerce.number().int().positive().optional(),
 });
 
 export const eventRsvpSchema = z.object({

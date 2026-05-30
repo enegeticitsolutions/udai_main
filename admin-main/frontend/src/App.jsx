@@ -33,6 +33,7 @@ import {
 } from "./services/adminApi";
 import { adminLogin } from "./services/adminApi";
 import ProductsPage from "./components/ProductsPage";
+import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
 
 const tokenKey = "udai_standalone_admin_token";
 
@@ -40,6 +41,7 @@ const roleSections = {
   admin: [
     "Dashboard",
     "Appointments / Inquiries",
+    "WhatsApp Bookings",
     "Orders / Purchases",
     "Donations",
     "Volunteers",
@@ -55,6 +57,7 @@ const roleSections = {
   ],
   editor: [
     "Appointments / Inquiries",
+    "WhatsApp Bookings",
     "Therapist Management",
     "Availability Manager",
   ],
@@ -640,23 +643,80 @@ function InquiriesPage({ inquiries, therapists, therapistMap, onUpdateInquiry })
 }
 
 function DonationsPage({ donations }) {
-  const totalDonations = donations.reduce((sum, donation) => sum + donation.amount, 0);
+  const [currentTab, setCurrentTab] = useState("meal");
+  const mealDonations = donations.filter((donation) => donation.donationCategory === "meal" || /meal/i.test(String(donation.purpose ?? "")));
+  const futureDonations = donations.filter((donation) => !(donation.donationCategory === "meal" || /meal/i.test(String(donation.purpose ?? ""))));
+  const visibleDonations = currentTab === "meal" ? mealDonations : futureDonations;
+  const totalDonations = visibleDonations.reduce((sum, donation) => sum + Number(donation.amount ?? 0), 0);
+  const totalMeals = visibleDonations.reduce((sum, donation) => sum + Number(donation.meals ?? 0), 0);
 
   return (
     <section className="content-card">
+      <div style={{ display: "flex", gap: "12px", borderBottom: "1px solid #edf2f7", paddingBottom: "12px", marginBottom: "20px" }}>
+        <button
+          type="button"
+          onClick={() => setCurrentTab("meal")}
+          style={{
+            padding: "10px 20px",
+            borderRadius: "8px",
+            border: currentTab === "meal" ? "none" : "1px solid #cbd5e0",
+            backgroundColor: currentTab === "meal" ? "#2f5597" : "white",
+            color: currentTab === "meal" ? "white" : "#4a5568",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+        >
+          Donation for Meal
+        </button>
+        <button
+          type="button"
+          onClick={() => setCurrentTab("future")}
+          style={{
+            padding: "10px 20px",
+            borderRadius: "8px",
+            border: currentTab === "future" ? "none" : "1px solid #cbd5e0",
+            backgroundColor: currentTab === "future" ? "#2f5597" : "white",
+            color: currentTab === "future" ? "white" : "#4a5568",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+        >
+          Donation for Future
+        </button>
+      </div>
+
       <div className="section-head">
-        <h2>Donations</h2>
+        <h2>{currentTab === "meal" ? "Meal Donations" : "Future Donations"}</h2>
         <Badge tone="green">Private donor view</Badge>
       </div>
 
       <div className="panel-grid donations-stats">
-        <StatCard label="Total donations" value={`₹${totalDonations}`} hint="All donations combined" />
-
+        <StatCard
+          label={currentTab === "meal" ? "Meal donation total" : "Future donation total"}
+          value={`₹${totalDonations}`}
+          hint={currentTab === "meal" ? "Mid-Day Meal donations" : "Invest in Their Future donations"}
+        />
+        {currentTab === "meal" ? (
+          <StatCard label="Meals sponsored" value={totalMeals || "-"} hint="Known meal-count selections" />
+        ) : null}
       </div>
 
       <Table
-        columns={["Donor Name", "Email", "Amount", "Method", "Date", "Purpose", "Message"]}
-        rows={donations.map((donation) => [
+        columns={currentTab === "meal"
+          ? ["Donor Name", "Email", "Amount", "Meals", "Method", "Date", "Purpose", "Message"]
+          : ["Donor Name", "Email", "Amount", "Method", "Date", "Purpose", "Message"]}
+        rows={visibleDonations.map((donation) => currentTab === "meal" ? [
+          donation.donorName ?? donation.name ?? "-",
+          donation.email ?? "-",
+          `₹${Number(donation.amount ?? 0)}`,
+          donation.meals ?? "-",
+          donation.paymentMethod ?? "-",
+          donation.createdAt ? new Date(donation.createdAt).toLocaleDateString() : "-",
+          donation.purpose ?? "-",
+          donation.message ?? "-",
+        ] : [
           donation.donorName ?? donation.name ?? "-",
           donation.email ?? "-",
 
@@ -1960,6 +2020,7 @@ export default function App() {
   const [subscribers, setSubscribers] = useState([]);
   const [contacts, setContacts] = useState(fallbackContacts);
   const [products, setProducts] = useState([]);
+  const [whatsappBookings, setWhatsappBookings] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [backendStatus, setBackendStatus] = useState("loading");
   const [isConnected, setIsConnected] = useState(false);
@@ -2001,6 +2062,7 @@ export default function App() {
         setContacts(bootstrap?.contacts ?? fallbackContacts);
         setDeactivatedDates(bootstrap?.deactivatedDates ?? []);
         setProducts(bootstrap?.products ?? []);
+        setWhatsappBookings(bootstrap?.whatsappBookings ?? []);
         setDashboard(bootstrap?.dashboard ?? null);
         setIsConnected(true);
         setBackendStatus("connected");
@@ -2019,6 +2081,7 @@ export default function App() {
         setContacts([]);
         setDeactivatedDates([]);
         setProducts([]);
+        setWhatsappBookings([]);
         setDashboard(null);
       }
     }
@@ -2205,6 +2268,8 @@ export default function App() {
             onDeleteProduct={handleProductRemove}
           />
         );
+      case "WhatsApp Bookings":
+        return <WhatsAppBookingsPage bookings={whatsappBookings} />;
       case "Subscribe":
         return <SubscribersPage subscribers={subscribers} onAddSubscriber={handleSubscriberAdd} />;
       case "Contacts":
@@ -2230,7 +2295,7 @@ export default function App() {
           />
         );
     }
-  }, [activeSection, contacts, currentUser, dashboard, deactivatedDates, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers, products]);
+  }, [activeSection, contacts, currentUser, dashboard, deactivatedDates, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers, products, whatsappBookings]);
 
   if (!currentUser) {
     return <LoginScreen onLogin={(user) => setCurrentUser(user)} />;

@@ -24,7 +24,7 @@ export function HealthWellnessSection() {
   return (
     <section className="bg-white py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="grid items-center gap-8 sm:gap-12 lg:grid-cols-[0.9fr_1.1fr]">
           <motion.div
             initial={{ opacity: 0, x: -40 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -34,16 +34,16 @@ export function HealthWellnessSection() {
             <div className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-[#f2a007]">
               Health & Wellness
             </div>
-            <h2 className="text-5xl font-semibold leading-tight tracking-tight text-[#2b1b15] sm:text-6xl">
+            <h2 className="text-3xl font-semibold leading-tight tracking-tight text-[#2b1b15] sm:text-6xl">
               <span className="block">Strong Bodies,</span>
               <span className="block">Strong Minds</span>
             </h2>
 
-            <p className="mt-8 max-w-xl text-lg leading-10 text-[#6f625c]">
+            <p className="mt-5 max-w-xl text-base leading-7 text-[#6f625c] sm:mt-8 sm:text-lg sm:leading-10">
               Physical health is the foundation of a child's development. We organize regular sports activities, health check-ups, and nutrition workshops to ensure our children grow up healthy and active.
             </p>
 
-            <div className="mt-10 space-y-7">
+            <div className="mt-7 space-y-5 sm:mt-10 sm:space-y-7">
               {features.map((feature, index) => {
                 const Icon = feature.icon;
 
@@ -60,8 +60,8 @@ export function HealthWellnessSection() {
                       <Icon className="h-5 w-5 text-[#d66943]" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-semibold text-[#2b1b15]">{feature.title}</h3>
-                      <p className="mt-2 max-w-lg text-base leading-8 text-[#776a66]">
+                      <h3 className="text-xl font-semibold text-[#2b1b15] sm:text-2xl">{feature.title}</h3>
+                      <p className="mt-2 max-w-lg text-sm leading-6 text-[#776a66] sm:text-base sm:leading-8">
                         {feature.description}
                       </p>
                     </div>
@@ -76,20 +76,20 @@ export function HealthWellnessSection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="grid grid-cols-[1fr_1fr] gap-5"
+            className="grid grid-cols-2 gap-3 sm:gap-5"
           >
             <div className="self-end overflow-hidden rounded-[1.15rem] shadow-[0_16px_28px_rgba(40,28,19,0.14)]">
               <ImageWithFallback
                 src="/images/item1.png"
                 alt="Children in outdoor wellness activity"
-                className="h-[300px] w-full object-cover"
+                className="h-[190px] w-full object-cover sm:h-[300px]"
               />
             </div>
-            <div className="mt-[-40px] overflow-hidden rounded-[1.15rem] shadow-[0_16px_28px_rgba(40,28,19,0.14)]">
+            <div className="mt-[-20px] overflow-hidden rounded-[1.15rem] shadow-[0_16px_28px_rgba(40,28,19,0.14)] sm:mt-[-40px]">
               <ImageWithFallback
                 src="/images/item2.png"
                 alt="Physical wellness session"
-                className="h-[360px] w-full object-cover"
+                className="h-[230px] w-full object-cover sm:h-[360px]"
               />
             </div>
           </motion.div>

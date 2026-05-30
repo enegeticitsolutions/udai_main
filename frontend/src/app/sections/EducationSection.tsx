@@ -18,12 +18,12 @@ export function EducationSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mx-auto mb-14 max-w-3xl text-center"
+          className="mx-auto mb-9 max-w-3xl text-center sm:mb-14"
         >
           <div className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-[#f2a007]">
             Our Core Pillars
           </div>
-          <h2 className="mb-4 text-4xl font-semibold tracking-tight text-[#2f5597] sm:text-5xl">
+          <h2 className="mb-4 text-3xl font-semibold tracking-tight text-[#2f5597] sm:text-5xl">
             Education for All
           </h2>
           <p className="mx-auto max-w-2xl text-base leading-8 text-[#776a66]">
@@ -51,11 +51,11 @@ export function EducationSection() {
               className="flex h-full flex-col overflow-hidden rounded-[1.1rem] bg-white shadow-[0_12px_24px_rgba(48,32,22,0.12)]"
             >
               <div className={`h-6 w-full bg-gradient-to-r ${program.accent}`} />
-              <div className="flex min-h-[238px] flex-1 flex-col p-6 pb-4">
-                <h3 className="max-w-[220px] text-2xl font-semibold leading-tight text-[#20325c]">
+              <div className="flex min-h-0 flex-1 flex-col p-5 pb-3 sm:min-h-[238px] sm:p-6 sm:pb-4">
+                <h3 className="max-w-[220px] text-xl font-semibold leading-tight text-[#20325c] sm:text-2xl">
                   {program.title}
                 </h3>
-                <p className="mt-5 text-sm leading-8 text-[#5a4f4a]">{program.shortDescription}</p>
+                <p className="mt-3 text-sm leading-6 text-[#5a4f4a] sm:mt-5 sm:leading-8">{program.shortDescription}</p>
               </div>
               <div className="overflow-hidden">
                 <ImageWithFallback
