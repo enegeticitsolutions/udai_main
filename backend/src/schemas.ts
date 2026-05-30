@@ -102,6 +102,19 @@ export const productSchema = z.object({
   extra_data: z.record(z.any()).optional(),
 });
 
+export const careerSchema = z.object({
+  title: z.string().trim().min(2).max(160),
+  department: z.string().trim().min(2).max(120),
+  location: z.string().trim().min(2).max(160),
+  type: z.string().trim().min(2).max(80),
+  experience: z.string().trim().min(1).max(120),
+  description: z.string().trim().min(10).max(5000),
+  responsibilities: z.array(z.string().trim().min(1).max(500)).default([]),
+  requirements: z.array(z.string().trim().min(1).max(500)).default([]),
+  applyLink: z.string().trim().min(1).max(500),
+  status: z.enum(["open", "closed"]).default("open"),
+});
+
 const shippingAddressSchema = z.object({
   country: z.string().trim().min(2).max(80),
   fullName: z.string().trim().min(2).max(120),

@@ -115,6 +115,26 @@ export function deleteProduct(id) {
   });
 }
 
+export function createCareer(career) {
+  return request("/careers", {
+    method: "POST",
+    body: JSON.stringify(career),
+  });
+}
+
+export function patchCareer(id, updates) {
+  return request(`/careers/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+}
+
+export function deleteCareer(id) {
+  return request(`/careers/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export async function uploadImageFile(file) {
   const formData = new FormData();
   formData.append("image", file);

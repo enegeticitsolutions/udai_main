@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { authenticateAdmin } from "../services/adminAuthService.js";
 import { getAdminBootstrap, updateAdminRecord, toggleDeactivatedDate, appendNotification } from "../services/adminService.js";
-import { addProduct, updateProduct, deleteProduct } from "../services/contentService.js";
-import { productSchema } from "../schemas.js";
+import { addCareer, addProduct, deleteCareer, updateCareer, updateProduct, deleteProduct } from "../services/contentService.js";
+import { careerSchema, productSchema } from "../schemas.js";
 import { upload } from "../middleware/upload.js";
 import { uploadToSupabase } from "../lib/supabase.js";
 
@@ -182,6 +182,42 @@ adminRouter.delete("/products/:id", async (req, res, next) => {
       return;
     }
     res.json({ success: true, message: "Product deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/careers", async (req, res, next) => {
+  try {
+    const payload = careerSchema.parse(req.body);
+    const career = await addCareer(payload);
+    res.status(201).json({ success: true, data: career, message: "Career added successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch("/careers/:id", async (req, res, next) => {
+  try {
+    const payload = careerSchema.partial().parse(req.body);
+    const career = await updateCareer(req.params.id, payload);
+    if (!career) {
+      res.status(404).json({ success: false, message: "Career not found" });
+      return;
+    }
+    res.json({ success: true, data: career, message: "Career updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/careers/:id", async (req, res, next) => {
+  try {
+    if (!(await deleteCareer(req.params.id))) {
+      res.status(404).json({ success: false, message: "Career not found" });
+      return;
+    }
+    res.json({ success: true, message: "Career deleted successfully" });
   } catch (error) {
     next(error);
   }

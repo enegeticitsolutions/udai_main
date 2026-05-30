@@ -231,3 +231,70 @@ adminRouter.delete("/products/:id", async (req, res, next) => {
     next(error);
   }
 });
+
+function normalizeList(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  return String(value ?? "")
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeCareerPayload(body) {
+  return {
+    title: String(body?.title ?? "").trim(),
+    department: String(body?.department ?? "").trim(),
+    location: String(body?.location ?? "").trim(),
+    type: String(body?.type ?? "").trim(),
+    experience: String(body?.experience ?? "").trim(),
+    description: String(body?.description ?? "").trim(),
+    responsibilities: normalizeList(body?.responsibilities),
+    requirements: normalizeList(body?.requirements),
+    applyLink: String(body?.applyLink ?? "").trim(),
+    status: body?.status === "closed" ? "closed" : "open",
+  };
+}
+
+adminRouter.post("/careers", async (req, res, next) => {
+  try {
+    const payload = normalizeCareerPayload(req.body);
+    if (!payload.title || !payload.department || !payload.location || !payload.type || !payload.experience || !payload.description || !payload.applyLink) {
+      res.status(400).json({ success: false, message: "Complete all required career fields" });
+      return;
+    }
+
+    const record = await createAdminRecord("careers", payload);
+    res.status(201).json({ success: true, data: record, message: "Career added successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch("/careers/:id", async (req, res, next) => {
+  try {
+    const updated = await updateAdminRecord("careers", req.params.id, normalizeCareerPayload(req.body));
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Career not found" });
+      return;
+    }
+    res.json({ success: true, data: updated, message: "Career updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/careers/:id", async (req, res, next) => {
+  try {
+    const deleted = await deleteAdminRecord("careers", req.params.id);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: "Career not found" });
+      return;
+    }
+    res.json({ success: true, data: deleted, message: "Career removed successfully" });
+  } catch (error) {
+    next(error);
+  }
+});

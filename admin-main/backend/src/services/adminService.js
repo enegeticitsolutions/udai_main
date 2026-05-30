@@ -24,11 +24,28 @@ const storageByEntity = {
   therapists: { fileName: "therapists.json", collectionName: "therapists", seed: seedTherapists },
   subscribers: { fileName: "subscribers.json", collectionName: "subscribers", seed: seedSubscribers },
   products: { fileName: "products.json", collectionName: "products", seed: seedProducts },
+  careers: { fileName: "careers.json", collectionName: "careers", seed: [] },
   whatsappBookings: { fileName: "whatsapp-bookings.json", collectionName: "chatbotusers", seed: [] },
 };
 
 function storagePath(fileName) {
   return path.join(config.storageDir, fileName);
+}
+
+function entityStoragePath(entity, fileName) {
+  if (entity === "careers") {
+    return path.resolve(config.projectRoot, "..", "backend", "storage", fileName);
+  }
+
+  return storagePath(fileName);
+}
+
+async function readCareerSeedRecords() {
+  try {
+    return await readJsonFile(path.resolve(config.projectRoot, "..", "backend", "src", "data", "careers.json"));
+  } catch {
+    return [];
+  }
 }
 
 function normalizeMongoDocument(document) {
@@ -39,11 +56,34 @@ function normalizeMongoDocument(document) {
   };
 }
 
+async function writeCareerStorageSnapshot(collection) {
+  const records = (await collection.find({}).sort({ createdAt: -1 }).toArray()).map((doc) => normalizeMongoDocument(doc));
+  const targetPath = entityStoragePath("careers", storageByEntity.careers.fileName);
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
+  await writeJsonFile(targetPath, records);
+}
+
+function mongoRecordFilter(id) {
+  const stringId = String(id);
+  const numericId = Number(stringId);
+  const filters = [{ id: stringId }];
+
+  if (!Number.isNaN(numericId)) {
+    filters.push({ id: numericId });
+  }
+
+  if (ObjectId.isValid(stringId)) {
+    filters.unshift({ _id: new ObjectId(stringId) });
+  }
+
+  return { $or: filters };
+}
+
 async function readStorageRecords(entity) {
   const { fileName, seed } = storageByEntity[entity];
 
   try {
-    return await readJsonFile(storagePath(fileName));
+    return await readJsonFile(entityStoragePath(entity, fileName));
   } catch {
     if (entity === "donations") {
       try {
@@ -51,6 +91,10 @@ async function readStorageRecords(entity) {
       } catch {
         return seed;
       }
+    }
+
+    if (entity === "careers") {
+      return readCareerSeedRecords();
     }
 
     return seed;
@@ -67,8 +111,21 @@ async function readRecords(entity) {
   }
 
   if (isMongoConnected()) {
-    const docs = await getMongoDb().collection(collectionName).find({}).sort({ createdAt: -1 }).toArray();
-    if (docs.length > 0) {
+    const db = getMongoDb();
+    const collectionExists = entity === "careers"
+      ? await db.listCollections({ name: collectionName }, { nameOnly: true }).hasNext()
+      : true;
+    const collection = db.collection(collectionName);
+    if (entity === "careers" && !collectionExists) {
+      const seedCareers = await readCareerSeedRecords();
+      if (seedCareers.length > 0) {
+        const now = new Date().toISOString();
+        await collection.insertMany(seedCareers.map((career) => ({ ...career, status: career.status ?? "open", createdAt: now, updatedAt: now })));
+      }
+    }
+
+    const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    if (docs.length > 0 || entity === "careers") {
       return docs.map((doc) => normalizeMongoDocument(doc));
     }
   }
@@ -86,8 +143,9 @@ async function updateStorageRecord(entity, id, updates) {
     return null;
   }
 
-  await fs.mkdir(config.storageDir, { recursive: true });
-  await writeJsonFile(storagePath(fileName), nextRecords);
+  const targetPath = entityStoragePath(entity, fileName);
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
+  await writeJsonFile(targetPath, nextRecords);
 
   return nextRecords.find((record) => String(record.id) === String(id)) ?? null;
 }
@@ -105,7 +163,7 @@ async function updateMongoRecord(entity, id, updates) {
   }
 
   const collection = getMongoDb().collection(collectionName);
-  const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };
+  const filter = mongoRecordFilter(id);
   const existing = await collection.findOne(filter);
 
   if (!existing) {
@@ -119,6 +177,9 @@ async function updateMongoRecord(entity, id, updates) {
   };
 
   await collection.updateOne(filter, { $set: merged });
+  if (entity === "careers") {
+    await writeCareerStorageSnapshot(collection);
+  }
 
   return normalizeMongoDocument({ ...existing, ...merged });
 }
@@ -132,8 +193,9 @@ async function deleteStorageRecord(entity, id) {
     return null;
   }
 
-  await fs.mkdir(config.storageDir, { recursive: true });
-  await writeJsonFile(storagePath(fileName), nextRecords);
+  const targetPath = entityStoragePath(entity, fileName);
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
+  await writeJsonFile(targetPath, nextRecords);
 
   return { id };
 }
@@ -151,11 +213,15 @@ async function deleteMongoRecord(entity, id) {
   }
 
   const collection = getMongoDb().collection(collectionName);
-  const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };
+  const filter = mongoRecordFilter(id);
   const result = await collection.deleteOne(filter);
 
   if (result.deletedCount === 0) {
     return null;
+  }
+
+  if (entity === "careers") {
+    await writeCareerStorageSnapshot(collection);
   }
 
   return { id };
@@ -178,8 +244,9 @@ async function createStorageRecord(entity, record) {
   };
   const nextRecords = [nextRecord, ...records];
 
-  await fs.mkdir(config.storageDir, { recursive: true });
-  await writeJsonFile(storagePath(fileName), nextRecords);
+  const targetPath = entityStoragePath(entity, fileName);
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
+  await writeJsonFile(targetPath, nextRecords);
 
   return nextRecord;
 }
@@ -194,6 +261,10 @@ async function createMongoRecord(entity, record) {
 
   if (!isMongoConnected()) {
     return null;
+  }
+
+  if (entity === "careers") {
+    await readRecords("careers");
   }
 
   const collection = getMongoDb().collection(collectionName);
@@ -211,11 +282,14 @@ async function createMongoRecord(entity, record) {
   };
 
   await collection.insertOne(nextRecord);
+  if (entity === "careers") {
+    await writeCareerStorageSnapshot(collection);
+  }
   return normalizeMongoDocument(nextRecord);
 }
 
 export async function getAdminBootstrap() {
-  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers, products, whatsappBookings] = await Promise.all([
+  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers, products, careers, whatsappBookings] = await Promise.all([
     readRecords("inquiries"),
     readRecords("donations"),
     readRecords("volunteers"),
@@ -224,6 +298,7 @@ export async function getAdminBootstrap() {
     readRecords("therapists"),
     readRecords("subscribers"),
     readRecords("products"),
+    readRecords("careers"),
     readRecords("whatsappBookings"),
   ]);
 
@@ -248,6 +323,7 @@ export async function getAdminBootstrap() {
     therapists,
     subscribers,
     products,
+    careers,
     whatsappBookings,
     dashboard: {
       totalRequests: inquiries.length,
@@ -271,6 +347,10 @@ export async function updateAdminRecord(entity, id, updates) {
     return mongoUpdated;
   }
 
+  if (entity === "careers" && isMongoConnected()) {
+    return null;
+  }
+
   return updateStorageRecord(entity, id, updates);
 }
 
@@ -287,6 +367,10 @@ export async function deleteAdminRecord(entity, id) {
   const mongoDeleted = await deleteMongoRecord(entity, id);
   if (mongoDeleted) {
     return mongoDeleted;
+  }
+
+  if (entity === "careers" && isMongoConnected()) {
+    return null;
   }
 
   return deleteStorageRecord(entity, id);

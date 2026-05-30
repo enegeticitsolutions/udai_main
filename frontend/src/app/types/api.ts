@@ -193,7 +193,7 @@ export interface BlogStoryDetail {
 }
 
 export interface CareerOpportunity {
-  id: number;
+  id: string | number;
   title: string;
   department: string;
   location: string;
@@ -203,4 +203,5 @@ export interface CareerOpportunity {
   responsibilities: string[];
   requirements: string[];
   applyLink: string;
+  status?: "open" | "closed";
 }

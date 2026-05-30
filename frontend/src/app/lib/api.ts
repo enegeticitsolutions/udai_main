@@ -34,7 +34,7 @@ async function request<T>(baseUrl: string, path: string, options?: RequestInit):
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-  return request<T>(API_BASE_URL, path);
+  return request<T>(API_BASE_URL, path, { cache: "no-store" });
 }
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {

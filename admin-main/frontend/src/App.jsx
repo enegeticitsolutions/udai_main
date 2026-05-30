@@ -30,9 +30,13 @@ import {
   createProduct,
   patchProduct,
   deleteProduct as removeProductApi,
+  createCareer,
+  patchCareer,
+  deleteCareer as removeCareerApi,
 } from "./services/adminApi";
 import { adminLogin } from "./services/adminApi";
 import ProductsPage from "./components/ProductsPage";
+import CareersPage from "./components/CareersPage";
 import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
 
 const tokenKey = "udai_standalone_admin_token";
@@ -48,6 +52,7 @@ const roleSections = {
     "Therapist Management",
     "Availability Manager",
     "Products",
+    "Career Management",
     "Subscribe",
     "Contacts",
     "Notifications Center",
@@ -2020,6 +2025,7 @@ export default function App() {
   const [subscribers, setSubscribers] = useState([]);
   const [contacts, setContacts] = useState(fallbackContacts);
   const [products, setProducts] = useState([]);
+  const [careers, setCareers] = useState([]);
   const [whatsappBookings, setWhatsappBookings] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [backendStatus, setBackendStatus] = useState("loading");
@@ -2062,6 +2068,7 @@ export default function App() {
         setContacts(bootstrap?.contacts ?? fallbackContacts);
         setDeactivatedDates(bootstrap?.deactivatedDates ?? []);
         setProducts(bootstrap?.products ?? []);
+        setCareers(bootstrap?.careers ?? []);
         setWhatsappBookings(bootstrap?.whatsappBookings ?? []);
         setDashboard(bootstrap?.dashboard ?? null);
         setIsConnected(true);
@@ -2081,6 +2088,7 @@ export default function App() {
         setContacts([]);
         setDeactivatedDates([]);
         setProducts([]);
+        setCareers([]);
         setWhatsappBookings([]);
         setDashboard(null);
       }
@@ -2211,6 +2219,30 @@ export default function App() {
     return success;
   }
 
+  async function handleCareerAdd(careerData) {
+    const saved = await createCareer(careerData);
+    if (saved) {
+      setCareers((prev) => [saved, ...prev]);
+    }
+    return saved;
+  }
+
+  async function handleCareerUpdate(id, updates) {
+    const saved = await patchCareer(id, updates);
+    if (saved) {
+      setCareers((prev) => prev.map((item) => (String(item.id) === String(id) ? { ...item, ...saved } : item)));
+    }
+    return saved;
+  }
+
+  async function handleCareerRemove(id) {
+    const success = await removeCareerApi(id);
+    if (success) {
+      setCareers((prev) => prev.filter((item) => String(item.id) !== String(id)));
+    }
+    return success;
+  }
+
   const page = useMemo(() => {
     switch (activeSection) {
       case "Dashboard":
@@ -2268,6 +2300,15 @@ export default function App() {
             onDeleteProduct={handleProductRemove}
           />
         );
+      case "Career Management":
+        return (
+          <CareersPage
+            careers={careers}
+            onAddCareer={handleCareerAdd}
+            onUpdateCareer={handleCareerUpdate}
+            onDeleteCareer={handleCareerRemove}
+          />
+        );
       case "WhatsApp Bookings":
         return <WhatsAppBookingsPage bookings={whatsappBookings} />;
       case "Subscribe":
@@ -2295,7 +2336,7 @@ export default function App() {
           />
         );
     }
-  }, [activeSection, contacts, currentUser, dashboard, deactivatedDates, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers, products, whatsappBookings]);
+  }, [activeSection, careers, contacts, currentUser, dashboard, deactivatedDates, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers, products, whatsappBookings]);
 
   if (!currentUser) {
     return <LoginScreen onLogin={(user) => setCurrentUser(user)} />;

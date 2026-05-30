@@ -5,7 +5,7 @@ import { config } from "../config.js";
 import { readJsonFile, writeJsonFile } from "../lib/fileStore.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 import type { Therapist } from "../types.js";
-import { getTherapists, getProducts } from "./contentService.js";
+import { getCareers, getTherapists, getProducts } from "./contentService.js";
 
 type AdminRecord = {
   id: string;
@@ -221,7 +221,7 @@ async function updateMongoRecord(entity: keyof typeof storageByEntity, id: strin
 }
 
 export async function getAdminBootstrap() {
-  const [inquiries, donations, volunteers, orders, therapists, deactivatedDates, notifications, products] = await Promise.all([
+  const [inquiries, donations, volunteers, orders, therapists, deactivatedDates, notifications, products, careers] = await Promise.all([
     readRecords("inquiries"),
     readRecords("donations"),
     readRecords("volunteers"),
@@ -230,6 +230,7 @@ export async function getAdminBootstrap() {
     readRecords("deactivatedDates"),
     readRecords("notifications"),
     getProducts(),
+    getCareers(),
   ]);
 
   const totalDonations = donations.reduce((sum, item) => {
@@ -259,6 +260,7 @@ export async function getAdminBootstrap() {
     deactivatedDates,
     notifications,
     products,
+    careers,
     dashboard: {
       totalRequests: inquiries.length,
       pendingRequests,

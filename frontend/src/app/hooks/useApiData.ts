@@ -46,9 +46,18 @@ export function useApiData<T>(path: string, initialData: T, fallbackData?: T) {
     }
 
     load();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    };
 
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       active = false;
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [path]);
 

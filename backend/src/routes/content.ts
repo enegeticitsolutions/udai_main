@@ -38,7 +38,7 @@ contentRouter.get("/education-programs", async (_req, res, next) => {
 
 contentRouter.get("/careers", async (_req, res, next) => {
   try {
-    const careers = await getCareers();
+    const careers = (await getCareers()).filter((career) => career.status !== "closed");
     res.json({ success: true, data: careers });
   } catch (error) {
     next(error);
