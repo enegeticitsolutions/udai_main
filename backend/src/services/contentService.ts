@@ -381,7 +381,7 @@ export async function deleteCareer(id: string | number): Promise<boolean> {
   await connectMongoDb();
 
   if (isMongoConnected()) {
-    const result = await getMongoDb().collection("careers").deleteOne(careerMongoFilter(id));
+    const result = await getMongoDb().collection("career").deleteOne(careerMongoFilter(id));
     return result.deletedCount > 0;
   }
 
@@ -391,3 +391,5 @@ export async function deleteCareer(id: string | number): Promise<boolean> {
   await writeJsonFile(storedCareersPath(), nextCareers);
   return true;
 }
+
+
