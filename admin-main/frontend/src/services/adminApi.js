@@ -1,4 +1,5 @@
 const API_BASE = (import.meta.env.VITE_ADMIN_API_BASE ?? "http://localhost:5003/api/admin").replace(/\/$/, "");
+export const APPOINTMENT_EVENTS_URL = `${API_BASE}/appointments/events`;
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -44,6 +45,13 @@ export function patchVolunteer(id, updates) {
   return request(`/volunteers/${id}`, {
     method: "PATCH",
     body: JSON.stringify(updates),
+  });
+}
+
+export function approveVolunteer(volunteer) {
+  return request("/approve-volunteer", {
+    method: "POST",
+    body: JSON.stringify({ volunteer }),
   });
 }
 
@@ -132,6 +140,29 @@ export function patchCareer(id, updates) {
 export function deleteCareer(id) {
   return request(`/careers/${id}`, {
     method: "DELETE",
+  });
+}
+
+export function getAppointments(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== "") query.set(key, value);
+  });
+  return request(`/appointments?${query.toString()}`);
+}
+
+export function getAppointment(id) {
+  return request(`/appointments/${id}`);
+}
+
+export function getAppointmentMetrics() {
+  return request("/appointments/metrics");
+}
+
+export function patchAppointmentStatus(id, bookingStatus) {
+  return request(`/appointments/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ bookingStatus }),
   });
 }
 

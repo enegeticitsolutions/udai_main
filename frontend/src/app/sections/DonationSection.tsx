@@ -30,11 +30,11 @@ const mealAmountOptions: AmountOption[] = [
 ];
 
 const futureAmountOptions: AmountOption[] = [
-  { amount: 500 },
   { amount: 1000 },
-  { amount: 1500 },
   { amount: 2000 },
-  { amount: 2500 },
+  { amount: 3000 },
+  { amount: 4000 },
+  { amount: 5000 },
   { amount: null },
 ];
 
@@ -97,6 +97,11 @@ function DonationPanel({
     category === "meal"
       ? `Donate ${amountLabel || "Custom Amount"} for Meals`
       : `Donate ${donationLabel || "Custom Amount"}`;
+  const requiresThousandMultiple = category === "future";
+
+  function isValidAmount(amount: number) {
+    return Number.isFinite(amount) && amount > 0 && (!requiresThousandMultiple || amount % 1000 === 0);
+  }
 
   function selectDonationType(nextType: DonationType) {
     setDonationType(nextType);
@@ -107,8 +112,8 @@ function DonationPanel({
   }
 
   function continueDonation() {
-    if (selectedAmount === null && (!customAmount || Number(customAmount) <= 0)) {
-      setFeedback("Please enter a valid custom amount.");
+    if (!isValidAmount(effectiveAmount)) {
+      setFeedback(requiresThousandMultiple ? "Please enter an amount in multiples of ₹1000." : "Please enter a valid custom amount.");
       return;
     }
 
@@ -118,8 +123,8 @@ function DonationPanel({
 
   async function completeDonation() {
     try {
-      if (!effectiveAmount || Number.isNaN(effectiveAmount) || effectiveAmount <= 0) {
-        setFeedback("Please enter a valid amount.");
+      if (!isValidAmount(effectiveAmount)) {
+        setFeedback(requiresThousandMultiple ? "Please enter an amount in multiples of ₹1000." : "Please enter a valid amount.");
         return;
       }
 
@@ -235,10 +240,11 @@ function DonationPanel({
           {selectedAmount === null ? (
             <Input
               type="number"
-              min="1"
+              min={requiresThousandMultiple ? "1000" : "1"}
+              step={requiresThousandMultiple ? "1000" : "1"}
               value={customAmount}
               onChange={(event) => setCustomAmount(event.target.value)}
-              placeholder="Enter custom amount"
+              placeholder={requiresThousandMultiple ? "Enter amount, e.g. 1000" : "Enter custom amount"}
               className="mt-3 border-transparent bg-white"
             />
           ) : null}
@@ -363,7 +369,6 @@ export function DonationSection() {
                 <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl">Nourish a Mind: The Mid-Day Meal Initiative</h3>
                 <p className="mt-3 text-sm leading-6 text-[#3f332c] sm:text-base sm:leading-7">A warm, balanced meal ensures children stay focused and healthy.</p>
                 <div className="mt-5">
-                  <div className="h-3 overflow-hidden rounded-full bg-[#eadfce]"><div className="h-full w-3/4 rounded-full bg-[#c95b38]" /></div>
                   <div className="mt-3 flex justify-between text-xs text-[#5c4a40]"><span>Goal: 10,000 meals</span><span>Current: 7,500 meals</span></div>
                 </div>
               </div>
@@ -380,7 +385,7 @@ export function DonationSection() {
                 <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-3xl">Empower a Child: Invest in Their Future</h3>
                 <p className="mt-3 text-sm leading-6 text-[#252525] sm:text-base sm:leading-7">Your donation provides immediate relief and long-term support for children in need.</p>
               </div>
-              <DonationPanel category="future" title="Invest in Their Future" description="Every rupee counts toward long-term support for children in need." options={futureAmountOptions} defaultAmount={500} allowMonthly accentClass="bg-[#df4d4d] hover:bg-[#cf4141]" selectedClass="border-[#d2a885] bg-[#fff1df] text-[#8b4d34] shadow-sm" />
+              <DonationPanel category="future" title="Invest in Their Future" description="Every rupee counts toward long-term support for children in need." options={futureAmountOptions} defaultAmount={1000} allowMonthly accentClass="bg-[#df4d4d] hover:bg-[#cf4141]" selectedClass="border-[#d2a885] bg-[#fff1df] text-[#8b4d34] shadow-sm" />
             </div>
           </article>
         </motion.div>

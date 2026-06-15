@@ -1,15 +1,24 @@
-import { useEffect, useState } from "react";
-import { Mail, Phone, MapPin, Gift, Check, Send } from "lucide-react";
-import { Link } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, Gift, Check, Send, Plus, Search, ShoppingCart, UserCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { apiGet, apiPost, adminApiPost } from "../lib/api";
+import { addToCart, setCheckoutProduct } from "../lib/cart";
+import { useAuth } from "../context/AuthContext";
 import fallbackProducts from "../data/products.json";
 import type { Product } from "../types/api";
 
+function money(total: number) {
+  return `₹${total.toFixed(2)}`;
+}
+
 export function CorporateGifting() {
+  const navigate = useNavigate();
+  const { cart, isAuthenticated, logout, user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     companyName: "",
@@ -41,8 +50,18 @@ export function CorporateGifting() {
     loadProducts();
   }, []);
 
-  // All fetched products are already gift products — no additional filtering needed
-  const displayGifts = products;
+  const cartQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const displayGifts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return products;
+    return products.filter((product) => {
+      return (
+        product.title.toLowerCase().includes(query) ||
+        product.category?.toLowerCase().includes(query)
+      );
+    });
+  }, [products, searchQuery]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -97,38 +116,120 @@ export function CorporateGifting() {
     });
   }
 
+  function handleAddToCart(product: Product) {
+    addToCart(product);
+    toast.success(`${product.title} added to cart.`);
+  }
+
+  function handleBuyNow(product: Product) {
+    setCheckoutProduct(product);
+    if (!isAuthenticated) {
+      toast.error("Please sign in or sign up to purchase this gift.");
+      navigate("/auth?redirect=/checkout");
+      return;
+    }
+
+    navigate("/checkout");
+  }
+
   return (
-    <div className="bg-[#f8f3ef]">
+    <div className="overflow-x-hidden bg-[#f8f3ef]">
+      <section className="border-b border-[#d9e2ec] bg-[#0f263d] text-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2.5 sm:flex-nowrap sm:gap-3 sm:px-6 sm:py-3 lg:px-8">
+          <div className="order-3 flex min-w-full overflow-hidden rounded-full border border-white/20 bg-white text-[#1f2937] shadow-sm sm:order-none sm:min-w-0 sm:flex-1">
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search corporate gifts..."
+              className="min-w-0 flex-1 px-5 py-3 text-sm outline-none"
+            />
+            <button
+              type="button"
+              className="flex w-16 items-center justify-center bg-[#f58220] text-white transition hover:bg-[#e26f12]"
+              aria-label="Search corporate gifts"
+            >
+              <Search className="size-6" />
+            </button>
+          </div>
+
+          <div className="ml-auto flex items-center gap-3 text-xs sm:text-sm">
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="flex items-center gap-2 rounded-full px-2 py-1 text-left transition hover:bg-white/10"
+              >
+                <UserCircle className="size-7 text-white/90 sm:size-8" />
+                <span className="hidden sm:block">
+                  <span className="block text-white/75">My Account</span>
+                  <span className="font-semibold">{user?.name ?? "Account"}</span>
+                </span>
+                <ChevronDown className="size-4" />
+              </button>
+            ) : (
+              <Link
+                to="/auth?mode=login"
+                className="inline-flex rounded-full px-3 py-2 font-semibold transition hover:bg-white/10"
+              >
+                Sign In
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={() => navigate("/cart")}
+              className="relative flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10"
+            >
+              <ShoppingCart className="size-8" />
+              {cartQuantity > 0 ? (
+                <span className="absolute -top-1 left-6 rounded-full bg-[#f7c948] px-1.5 text-[11px] font-bold text-[#0f263d]">
+                  {cartQuantity}
+                </span>
+              ) : null}
+              <span className="hidden text-left font-semibold sm:block">
+                Cart
+                <span className="block text-white/75">{money(cartTotal)}</span>
+              </span>
+            </button>
+
+            <Link to="/account/orders" className="hidden font-semibold leading-tight transition hover:text-[#f7c948] md:block">
+              Returns
+              <span className="block">& Orders</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Premium Dark Slate Hero Banner */}
-      <section className="py-16 sm:py-20">
+      <section className="py-8 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 rounded-[1.5rem] bg-[#1a2d42] px-6 py-10 text-white shadow-[0_18px_36px_rgba(26,45,66,0.14)] sm:px-10">
-            <div className="flex justify-between items-start mb-4">
+          <div className="mb-8 rounded-[1rem] bg-[#1a2d42] px-4 py-7 text-white shadow-[0_18px_36px_rgba(26,45,66,0.14)] sm:mb-12 sm:rounded-[1.5rem] sm:px-10 sm:py-10">
+            <div className="mb-4 flex items-start justify-between gap-3">
               <div className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#ffd86b]">
                 Corporate Gifting
               </div>
               <Link
                 to="/new-arrivals"
-                className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+                className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20 sm:px-4 sm:text-sm"
               >
                 Back to Shop
               </Link>
             </div>
             <div className="max-w-3xl">
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
+              <h1 className="text-2xl font-semibold tracking-tight min-[390px]:text-3xl sm:text-5xl">
                 Gifts that Empower, Connect, and Inspire.
               </h1>
-              <p className="mt-4 text-sm leading-8 text-white/75 sm:text-lg">
+              <p className="mt-3 text-sm leading-6 text-white/75 sm:mt-4 sm:text-lg sm:leading-8">
                 Delight your clients and partners with sustainable, socially conscious gift packs. Every item is handcrafted by the talented team at UDAI rehabilitation and training center, making your brand values shine.
               </p>
             </div>
           </div>
 
-          <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.1fr]">
+          <div className="grid items-start gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-12">
             {/* Curated Products List */}
             <div>
               <div className="mb-8">
-                <h2 className="text-3xl font-semibold text-[#2b1b15]">Curated Corporate Collection</h2>
+                <h2 className="text-2xl font-semibold text-[#2b1b15] sm:text-3xl">Curated Corporate Collection</h2>
                 <p className="mt-2 text-sm text-[#776a66]">
                   Select from our top handcrafted items ready for branding & custom packaging.
                 </p>
@@ -144,45 +245,67 @@ export function CorporateGifting() {
                   <p>Add gift products from the <strong>Admin Panel → Products → Gift</strong> tab.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                   {displayGifts.map((product) => (
-                    <div
+                    <article
                       key={product.id}
                       onClick={() => {
                         setFormData((prev) => ({ ...prev, selectedProduct: product.title }));
                         toast.info(`Selected "${product.title}" for your inquiry.`);
                       }}
-                      className={`flex items-center gap-4 rounded-[1.2rem] bg-white p-4 cursor-pointer border-2 transition shadow-[0_12px_24px_rgba(48,32,22,0.05)] ${
+                      className={`flex min-h-[20rem] cursor-pointer flex-col rounded-[0.85rem] bg-white p-2.5 border-2 transition shadow-[0_12px_24px_rgba(48,32,22,0.06)] sm:min-h-[23rem] sm:rounded-[1rem] sm:p-3 ${
                         formData.selectedProduct === product.title
                           ? "border-[#2f5597] ring-2 ring-[#2f5597]/25"
                           : "border-transparent hover:border-[#d9d2cb]"
                       }`}
                     >
-                      <div className="size-20 shrink-0 overflow-hidden rounded-[0.9rem] bg-[#f0ece7]">
+                      <div className="aspect-[4/3] overflow-hidden rounded-[0.8rem] bg-[#f0ece7]">
                         <ImageWithFallback
                           src={product.image}
                           alt={product.title}
                           className="h-full w-full object-cover"
                         />
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div className="mt-3 flex min-w-0 flex-1 flex-col sm:mt-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4865a9]">
                           {product.category}
                         </div>
-                        <h3 className="mt-1 text-lg font-semibold text-[#2b1b15] truncate">
+                        <h3 className="mt-1 line-clamp-2 min-h-11 text-base font-bold leading-5 text-[#2b1b15] sm:min-h-14 sm:text-xl sm:leading-7">
                           {product.title}
                         </h3>
-                        <p className="text-sm text-[#776a66]">
-                          Available for high-volume custom orders.
+                        <p className="mt-1 line-clamp-2 text-sm text-[#776a66]">
+                          {product.short_description || product.description || "Available for high-volume custom orders."}
                         </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-semibold text-[#2b1b15]">
-                          ₹{product.price.toFixed(2)}
+                        <div className="mt-3 text-lg font-extrabold text-[#2b1b15] sm:mt-4 sm:text-xl">
+                          {money(product.price)}
                         </div>
-                        <span className="text-xs text-[#776a66]">Bulk rates available</span>
+                        <span className="mt-1 text-xs text-[#776a66]">Bulk rates available</span>
+
+                        <div className="mt-auto flex items-center gap-2 pt-4 sm:pt-5">
+                          <button
+                            type="button"
+                            aria-label={`Add ${product.title} to cart`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleAddToCart(product);
+                            }}
+                            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#2f5597] bg-white text-[#2f5597] transition hover:bg-[#f3f6ff]"
+                          >
+                            <Plus className="size-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleBuyNow(product);
+                            }}
+                            className="min-w-0 flex-1 rounded-full bg-[#2f5597] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#24477f]"
+                          >
+                            Buy Now
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    </article>
                   ))}
                 </div>
               )}
@@ -209,8 +332,8 @@ export function CorporateGifting() {
             </div>
 
             {/* Inquiry Form */}
-            <div className="rounded-[1.5rem] bg-[#fffdf8] p-4 shadow-[0_18px_40px_rgba(28,31,50,0.08)] lg:sticky lg:top-8">
-              <div className="rounded-[1.2rem] bg-white p-6 sm:p-8">
+            <div className="rounded-[1rem] bg-[#fffdf8] p-3 shadow-[0_18px_40px_rgba(28,31,50,0.08)] sm:rounded-[1.5rem] sm:p-4 lg:sticky lg:top-8">
+              <div className="rounded-[0.9rem] bg-white p-4 sm:rounded-[1.2rem] sm:p-8">
                 <div className="mb-6 flex items-center gap-3">
                   <div className="flex size-10 items-center justify-center rounded-full bg-[#ffd86b] text-[#1a2d42]">
                     <Gift className="size-5" />

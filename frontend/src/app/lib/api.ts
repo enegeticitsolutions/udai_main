@@ -17,9 +17,11 @@ interface ApiErrorResponse {
 }
 
 async function request<T>(baseUrl: string, path: string, options?: RequestInit): Promise<T> {
+  const token = typeof window !== "undefined" ? window.localStorage.getItem(AUTH_TOKEN_KEY) : null;
   const response = await fetch(`${baseUrl}${path}`, {
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options?.headers ?? {}),
     },
     ...options,
@@ -76,6 +78,23 @@ export const apiClient = {
     
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method: "POST",
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("udai-auth-expired"));
+    }
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Request failed");
+    return { data };
+  },
+  async put<T = any>(path: string, body: any) {
+    const token = typeof window !== "undefined" ? window.localStorage.getItem(AUTH_TOKEN_KEY) : null;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "PUT",
       headers,
       body: JSON.stringify(body)
     });

@@ -21,6 +21,7 @@ import {
   createTherapist,
   deleteTherapist,
   getAdminBootstrap,
+  approveVolunteer,
   patchInquiry,
   patchOrder,
   patchTherapist,
@@ -33,10 +34,12 @@ import {
   createCareer,
   patchCareer,
   deleteCareer as removeCareerApi,
+  uploadImageFile,
 } from "./services/adminApi";
 import { adminLogin } from "./services/adminApi";
 import ProductsPage from "./components/ProductsPage";
 import CareersPage from "./components/CareersPage";
+import AppointmentsPage from "./components/AppointmentsPage";
 import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
 
 const tokenKey = "udai_standalone_admin_token";
@@ -46,6 +49,7 @@ const roleSections = {
     "Dashboard",
     "Appointments / Inquiries",
     "WhatsApp Bookings",
+    "WhatsApp Appointments",
     "Orders / Purchases",
     "Donations",
     "Volunteers",
@@ -63,6 +67,7 @@ const roleSections = {
   editor: [
     "Appointments / Inquiries",
     "WhatsApp Bookings",
+    "WhatsApp Appointments",
     "Therapist Management",
     "Availability Manager",
   ],
@@ -801,7 +806,7 @@ function OrdersPage({ orders, onUpdateOrder }) {
   );
 }
 
-function VolunteersPage({ volunteers, onUpdateVolunteer }) {
+function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
   const [items, setItems] = useState(volunteers);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -812,12 +817,26 @@ function VolunteersPage({ volunteers, onUpdateVolunteer }) {
     setItems(volunteers);
   }, [volunteers]);
 
-  async function updateVolunteerStatus(volId, newStatus) {
+  async function updateVolunteerStatus(volunteer, newStatus) {
+    const volId = volunteer.id;
+    const previousItems = items;
     setItems((prev) => prev.map((v) => v.id === volId ? { ...v, status: newStatus } : v));
     try {
-      await onUpdateVolunteer(volId, { status: newStatus });
+      if (newStatus === "approved") {
+        const updated = await onApproveVolunteer({ ...volunteer, status: newStatus });
+        if (updated) {
+          setItems((prev) => prev.map((v) => v.id === volId ? { ...v, ...updated } : v));
+        }
+        window.alert(updated?.emailSent === false
+          ? "Volunteer approved, but the approval email could not be sent. Please check email settings."
+          : "Volunteer approved and approval email sent.");
+      } else {
+        await onUpdateVolunteer(volId, { status: newStatus });
+      }
     } catch (error) {
       console.error("Failed to update status:", error);
+      setItems(previousItems);
+      window.alert(error.message || "Failed to update volunteer status.");
     }
   }
 
@@ -986,19 +1005,19 @@ function VolunteersPage({ volunteers, onUpdateVolunteer }) {
                             </div>
                             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', display: 'flex', gap: '8px' }}>
                               <button
-                                onClick={() => { updateVolunteerStatus(vol.id, "approved"); setActiveDropdown(null); }}
+                                onClick={() => { updateVolunteerStatus(vol, "approved"); setActiveDropdown(null); }}
                                 style={{ flex: 1, padding: '7px 0', borderRadius: '6px', border: 'none', background: '#22c55e', color: 'white', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
                               >
                                 Approved
                               </button>
                               <button
-                                onClick={() => { updateVolunteerStatus(vol.id, "new"); setActiveDropdown(null); }}
+                                onClick={() => { updateVolunteerStatus(vol, "new"); setActiveDropdown(null); }}
                                 style={{ flex: 1, padding: '7px 0', borderRadius: '6px', border: 'none', background: '#f59e0b', color: 'white', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
                               >
                                 Pending
                               </button>
                               <button
-                                onClick={() => { updateVolunteerStatus(vol.id, "rejected"); setActiveDropdown(null); }}
+                                onClick={() => { updateVolunteerStatus(vol, "rejected"); setActiveDropdown(null); }}
                                 style={{ flex: 1, padding: '7px 0', borderRadius: '6px', border: 'none', background: '#ef4444', color: 'white', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
                               >
                                 Reject
@@ -1264,6 +1283,7 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
     department: "",
     role: "",
     experience: "",
+    imageFile: null,
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -1281,6 +1301,7 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
       department: form.department.trim(),
       role: form.role.trim(),
       experience: form.experience.trim(),
+      image: "",
       active: true,
     };
 
@@ -1291,8 +1312,12 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
 
     setSaving(true);
     try {
+      if (form.imageFile) {
+        const uploadResult = await uploadImageFile(form.imageFile);
+        payload.image = uploadResult?.url ?? "";
+      }
       await onAddTherapist(payload);
-      setForm({ name: "", department: "", role: "", experience: "" });
+      setForm({ name: "", department: "", role: "", experience: "", imageFile: null });
       onCloseAddForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to add therapist.");
@@ -1335,6 +1360,12 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
             placeholder="8 years"
             onChange={(event) => updateForm("experience", event.target.value)}
           />
+          <Input
+            label="Picture"
+            type="file"
+            accept="image/*"
+            onChange={(event) => updateForm("imageFile", event.target.files?.[0] ?? null)}
+          />
           {error && <div className="error-box wide">{error}</div>}
           <div className="therapist-form-actions wide">
             <Button type="submit" disabled={saving}>
@@ -1350,11 +1381,18 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
         {therapists.map((therapist, index) => (
           <article className="therapist-card" key={String(therapist.id ?? therapist.name)}>
             <div className="therapist-top">
+              <img
+                className="therapist-photo"
+                src={therapist.image || "/images/doctor2.png"}
+                alt={therapist.name}
+              />
               <div>
                 <h3>{therapist.name}</h3>
                 <p>{therapist.role}</p>
               </div>
-              <Badge tone={therapist.active ? "green" : "slate"}>{therapist.active ? "Active" : "Inactive"}</Badge>
+              <Badge tone={therapist.active !== false ? "green" : "slate"}>
+                {therapist.active !== false ? "Active" : "Inactive"}
+              </Badge>
             </div>
             <dl>
               <div>
@@ -1371,7 +1409,7 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>{therapist.active ? "Active" : "Inactive"}</dd>
+                <dd>{therapist.active !== false ? "Active" : "Inactive"}</dd>
               </div>
             </dl>
             <div className="therapist-actions">
@@ -2118,6 +2156,14 @@ export default function App() {
     await patchVolunteer(id, updates);
   }
 
+  async function handleVolunteerApproval(volunteer) {
+    const saved = await approveVolunteer(volunteer);
+    if (saved) {
+      setVolunteers((prev) => prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item)));
+    }
+    return saved;
+  }
+
   async function handleOrderUpdate(id, updates) {
     setOrders((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
     const saved = await patchOrder(id, updates);
@@ -2271,7 +2317,7 @@ export default function App() {
       case "Orders / Purchases":
         return <OrdersPage orders={orders} onUpdateOrder={handleOrderUpdate} />;
       case "Volunteers":
-        return <VolunteersPage volunteers={volunteers} onUpdateVolunteer={handleVolunteerUpdate} />;
+        return <VolunteersPage volunteers={volunteers} onUpdateVolunteer={handleVolunteerUpdate} onApproveVolunteer={handleVolunteerApproval} />;
       case "Therapist Management":
         return (
           <TherapistManagementPage
@@ -2311,6 +2357,8 @@ export default function App() {
         );
       case "WhatsApp Bookings":
         return <WhatsAppBookingsPage bookings={whatsappBookings} />;
+      case "WhatsApp Appointments":
+        return <AppointmentsPage />;
       case "Subscribe":
         return <SubscribersPage subscribers={subscribers} onAddSubscriber={handleSubscriberAdd} />;
       case "Contacts":

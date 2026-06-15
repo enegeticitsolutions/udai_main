@@ -1,13 +1,17 @@
 import crypto from "node:crypto";
-import { Router } from "express";
+import { Router, type Request } from "express";
+import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { config } from "../config.js";
 import { appendRecord } from "../lib/fileStore.js";
+import { getMongoDb, isMongoConnected } from "../lib/mongodb.js";
+import { optionalJwt, type AuthenticatedRequest } from "../middleware/auth.js";
 import { updateAdminRecord } from "../services/adminService.js";
 import { orderSchema } from "../schemas.js";
 import type { Order } from "../types.js";
 
 export const paymentsRouter = Router();
+paymentsRouter.use(optionalJwt);
 
 const razorpayCheckoutSchema = orderSchema;
 
@@ -126,29 +130,90 @@ function createTestUpiQrCode(amountPaise: number, orderNumber: string) {
   };
 }
 
+function getAuthenticatedUserId(req: Request) {
+  return (req as Partial<AuthenticatedRequest>).user?.id;
+}
+
+async function persistUserOrder(userId: string | undefined, order: Order) {
+  if (!userId || !isMongoConnected()) return;
+
+  const { _id, ...orderWithoutMongoId } = order as unknown as Record<string, unknown> & { _id?: ObjectId };
+  const localOrderId = String(order.id);
+  const orderPatch = {
+    ...orderWithoutMongoId,
+    localOrderId,
+    userId,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const collection = getMongoDb().collection("orders");
+
+  if (_id instanceof ObjectId) {
+    await collection.updateOne({ _id }, { $set: orderPatch });
+    return;
+  }
+
+  if (ObjectId.isValid(localOrderId)) {
+    await collection.updateOne({ _id: new ObjectId(localOrderId) }, { $set: orderPatch });
+    return;
+  }
+
+  await collection.updateOne(
+    { id: localOrderId },
+    {
+      $set: orderPatch,
+      $setOnInsert: { createdAt: order.createdAt ?? new Date().toISOString() },
+    },
+    { upsert: true },
+  );
+}
+
+async function updatePersistedUserOrder(localOrderId: string, patch: Record<string, unknown>) {
+  if (!isMongoConnected()) return;
+  await getMongoDb().collection("orders").updateMany(
+    {
+      $or: [
+        { localOrderId },
+        ...(ObjectId.isValid(localOrderId) ? [{ _id: new ObjectId(localOrderId) }] : []),
+      ],
+    },
+    {
+      $set: {
+        ...patch,
+        updatedAt: new Date().toISOString(),
+      },
+    },
+  );
+}
+
 paymentsRouter.post("/razorpay/order", async (req, res, next) => {
   try {
     requireRazorpayConfig();
+    const userId = getAuthenticatedUserId(req);
     const payload = razorpayCheckoutSchema.parse(req.body);
     const orderNumber = `ORD-${Date.now()}`;
     const localOrder = await appendRecord<Order, Record<string, unknown>>("orders.json", {
       ...payload,
+      userId,
       orderNumber,
       paymentStatus: "initiated",
       orderStatus: "new",
       razorpayStatus: "created",
     });
+    await persistUserOrder(userId, localOrder);
 
     const gatewayOrder = await createGatewayOrder(Math.round(Number(payload.totalAmount) * 100), orderNumber);
 
-    const updatedOrder = await updateAdminRecord("orders", localOrder.id, {
+    const orderPatch = {
       razorpayOrderId: gatewayOrder.id,
       razorpayAmount: gatewayOrder.amount,
       razorpayCurrency: gatewayOrder.currency,
       razorpayReceipt: gatewayOrder.receipt ?? orderNumber,
       paymentStatus: "initiated",
       orderStatus: "new",
-    });
+    };
+    const updatedOrder = await updateAdminRecord("orders", localOrder.id, orderPatch);
+    await updatePersistedUserOrder(localOrder.id, orderPatch);
 
     res.status(201).json({
       success: true,
@@ -178,6 +243,7 @@ paymentsRouter.post("/razorpay/order", async (req, res, next) => {
 paymentsRouter.post("/razorpay/qr-code", async (req, res, next) => {
   try {
     requireRazorpayConfig();
+    const userId = getAuthenticatedUserId(req);
     const payload = razorpayCheckoutSchema.parse({
       ...req.body,
       paymentMethod: "qr",
@@ -185,12 +251,14 @@ paymentsRouter.post("/razorpay/qr-code", async (req, res, next) => {
     const orderNumber = `ORD-${Date.now()}`;
     const localOrder = await appendRecord<Order, Record<string, unknown>>("orders.json", {
       ...payload,
+      userId,
       orderNumber,
       paymentMethod: "qr",
       paymentStatus: "initiated",
       orderStatus: "new",
       razorpayStatus: "qr_created",
     });
+    await persistUserOrder(userId, localOrder);
 
     const amountPaise = Math.round(Number(payload.totalAmount) * 100);
     let qrCode;
@@ -201,7 +269,7 @@ paymentsRouter.post("/razorpay/qr-code", async (req, res, next) => {
       qrCode = createTestUpiQrCode(amountPaise, orderNumber);
     }
 
-    const updatedOrder = await updateAdminRecord("orders", localOrder.id, {
+    const orderPatch = {
       razorpayQrCodeId: qrCode.id,
       razorpayQrImageUrl: qrCode.image_url,
       razorpayQrImageContent: qrCode.image_content,
@@ -211,7 +279,9 @@ paymentsRouter.post("/razorpay/qr-code", async (req, res, next) => {
       paymentStatus: "initiated",
       orderStatus: "new",
       razorpayStatus: qrCode.status,
-    });
+    };
+    const updatedOrder = await updateAdminRecord("orders", localOrder.id, orderPatch);
+    await updatePersistedUserOrder(localOrder.id, orderPatch);
 
     res.status(201).json({
       success: true,
@@ -251,14 +321,16 @@ paymentsRouter.post("/razorpay/verify", async (req, res, next) => {
       return;
     }
 
-    const updatedOrder = await updateAdminRecord("orders", payload.localOrderId, {
+    const orderPatch = {
       paymentStatus: "paid",
       orderStatus: "confirmed",
       paymentMethod: payload.paymentMethod ?? "card",
       razorpayOrderId: payload.razorpayOrderId,
       razorpayPaymentId: payload.razorpayPaymentId,
       razorpaySignature: payload.razorpaySignature,
-    });
+    };
+    const updatedOrder = await updateAdminRecord("orders", payload.localOrderId, orderPatch);
+    await updatePersistedUserOrder(payload.localOrderId, orderPatch);
 
     if (!updatedOrder) {
       res.status(404).json({

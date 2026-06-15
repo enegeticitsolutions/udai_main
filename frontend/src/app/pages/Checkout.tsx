@@ -335,11 +335,11 @@ export function Checkout() {
 
   return (
     <div className="bg-[#f8f3ef]">
-      <section className="py-16 sm:py-20">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8">
-          <form onSubmit={handlePayNow} className="space-y-8">
-            <div className="rounded-[1.4rem] bg-white p-6 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:p-8">
-              <h2 className="text-2xl font-semibold text-[#2b1b15]">Enter a new delivery address</h2>
+      <section className="py-8 sm:py-20">
+        <div className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8 lg:px-8">
+          <form onSubmit={handlePayNow} className="order-2 space-y-5 sm:space-y-8 lg:order-1">
+            <div className="rounded-[1rem] bg-white p-4 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+              <h2 className="text-xl font-semibold text-[#2b1b15] sm:text-2xl">Enter a new delivery address</h2>
               <p className="mt-2 text-sm text-[#776a66]">Use a delivery address where you can receive your order.</p>
 
               <div className="mt-6 grid gap-4">
@@ -426,14 +426,14 @@ export function Checkout() {
               </div>
             </div>
 
-            <div className="rounded-[1.4rem] bg-white p-6 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:p-8">
-              <h2 className="text-2xl font-semibold text-[#2b1b15]">Payment Method</h2>
+            <div className="rounded-[1rem] bg-white p-4 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+              <h2 className="text-xl font-semibold text-[#2b1b15] sm:text-2xl">Payment Method</h2>
               <p className="mt-2 text-sm text-[#776a66]">
                 This checkout now opens Razorpay test checkout for the selected payment method.
               </p>
 
               <div className="mt-6 grid gap-4">
-                <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "qr" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
+                <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "qr" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
@@ -450,13 +450,13 @@ export function Checkout() {
                     </div>
                   </div>
                   {paymentMethod === "qr" ? (
-                    <div className="mt-4 rounded-2xl border border-dashed border-[#cfd8f6] bg-[#f7f9ff] p-5 text-center">
+                    <div className="mt-4 rounded-xl border border-dashed border-[#cfd8f6] bg-[#f7f9ff] p-4 text-center sm:rounded-2xl sm:p-5">
                       {qrPayment ? (
                         <>
                           <img
                             src={qrPayment.qrCode.imageUrl}
                             alt="Razorpay payment QR code"
-                            className="mx-auto h-44 w-44 rounded-2xl border border-[#d8e0fb] bg-white object-contain p-2"
+                            className="mx-auto h-40 w-40 rounded-2xl border border-[#d8e0fb] bg-white object-contain p-2 sm:h-44 sm:w-44"
                           />
                           <p className="mt-3 text-sm text-[#776a66]">
                             Test QR generated for {money(qrPayment.qrCode.amount / 100)}. Scan it from a UPI app.
@@ -484,7 +484,7 @@ export function Checkout() {
                   ) : null}
                 </label>
 
-                <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "card" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
+                <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "card" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
@@ -502,7 +502,7 @@ export function Checkout() {
                   </div>
                 </label>
 
-                <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "upi" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
+                <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "upi" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
@@ -525,7 +525,7 @@ export function Checkout() {
                   ) : null}
                 </label>
 
-                <label className={`cursor-pointer rounded-2xl border p-4 ${paymentMethod === "netbanking" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
+                <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "netbanking" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
@@ -565,9 +565,9 @@ export function Checkout() {
             </div>
           </form>
 
-          <aside className="space-y-6">
-            <div className="rounded-[1.4rem] bg-white p-6 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:p-8">
-              <h2 className="text-2xl font-semibold text-[#2b1b15]">Order Summary</h2>
+          <aside className="order-1 space-y-5 lg:order-2 lg:space-y-6">
+            <div className="rounded-[1rem] bg-white p-4 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+              <h2 className="text-xl font-semibold text-[#2b1b15] sm:text-2xl">Order Summary</h2>
               <div className="mt-6 space-y-4">
                 {orderItems.map((item) => (
                   <div key={item.product.id} className="flex gap-4 border-b border-[#eee7e1] pb-4 last:border-b-0 last:pb-0">
@@ -599,8 +599,8 @@ export function Checkout() {
               </div>
             </div>
 
-            <div className="rounded-[1.4rem] bg-[#20325c] p-6 text-white shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:p-8">
-              <h3 className="text-2xl font-semibold">Existing User?</h3>
+            <div className="rounded-[1rem] bg-[#20325c] p-5 text-white shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+              <h3 className="text-xl font-semibold sm:text-2xl">Existing User?</h3>
               <p className="mt-3 text-sm leading-7 text-white/75">
                 You can use the saved delivery details on this device and proceed directly to payment.
               </p>

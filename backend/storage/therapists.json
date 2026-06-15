@@ -1,0 +1,134 @@
+[
+  {
+    "id": "THE-1781549173654",
+    "createdAt": "2026-06-15T18:46:13.654Z",
+    "name": "gcg",
+    "department": "m nb",
+    "role": "bnb",
+    "experience": "8 year",
+    "image": "https://smosbngvdtnzlsnnihwy.supabase.co/storage/v1/object/public/product/1781549172636-843471571.png",
+    "active": true
+  },
+  {
+    "id": 2,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Occupational Therapy",
+    "experience": "9 years",
+    "name": "Ms Nikki",
+    "role": "OT Specialist",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 3,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Occupational Therapy",
+    "experience": "7 years",
+    "name": "Ms Anamika",
+    "role": "OT Specialist",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 4,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Special Education",
+    "experience": "8 years",
+    "name": "Ms Promila",
+    "role": "Special Educator",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 5,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Special Education",
+    "experience": "6 years",
+    "name": "Ms Sonia",
+    "role": "Special Educator",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1554151228-14d9def656e4?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 6,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Speech Therapy",
+    "experience": "5 years",
+    "name": "Ms Sakshi",
+    "role": "Speech Therapist",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 7,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Speech Therapy",
+    "experience": "7 years",
+    "name": "Mr Atal",
+    "role": "Speech Therapist",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 8,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Physical Therapy",
+    "experience": "10 years",
+    "name": "Mr Durgesh",
+    "role": "Physical Therapist",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 9,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Remedial & Academic Support",
+    "experience": "9 years",
+    "name": "Ms Shobha",
+    "role": "Remedial Specialist",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 10,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Counselling / Home Programme",
+    "experience": "8 years",
+    "name": "Ms Tanu Rajput",
+    "role": "Counsellor",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 11,
+    "active": true,
+    "createdAt": "2026-04-07T08:34:17.979Z",
+    "department": "Counselling / Home Programme",
+    "experience": "6 years",
+    "name": "Ms Harsimran",
+    "role": "Counsellor",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "photoUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80"
+  },
+  {
+    "id": 1,
+    "active": true,
+    "department": "Occupational Therapy",
+    "image": "/images/doctor2.png",
+    "name": "Ms Harsimran Kaur",
+    "role": "OT Specialist",
+    "summary": "Supports motor, sensory, and daily living development through structured therapy.",
+    "updatedAt": "2026-05-19T12:30:11.095Z",
+    "experience": "12 years",
+    "photoUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80"
+  }
+]

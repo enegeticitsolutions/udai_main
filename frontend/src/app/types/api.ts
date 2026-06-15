@@ -97,7 +97,7 @@ export interface TherapistInquiry {
 }
 
 export interface OrderItem {
-  productId: number;
+  productId: string | number;
   title: string;
   price: number;
   quantity: number;

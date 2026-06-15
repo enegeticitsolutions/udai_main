@@ -313,7 +313,7 @@ export function GetInvolved() {
                       aadhar: event.target.value.replace(/\D/g, "").slice(0, 12),
                     }))
                   }
-                  placeholder="0000 0000 0000"
+                  placeholder="Aadhar number"
                   required
                   className="bg-white"
                 />

@@ -12,6 +12,7 @@ import { CorporateGifting } from "./pages/CorporateGifting";
 import { EducationProgramDetail } from "./pages/EducationProgramDetail";
 import { BlogStoryDetail } from "./pages/BlogStoryDetail";
 import { Checkout } from "./pages/Checkout";
+import { Cart } from "./pages/Cart";
 import { Careers } from "./pages/Careers";
 import { Appointment } from "./pages/Appointment";
 import { AuthPage } from "./pages/AuthPage";
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
       { path: "products", Component: Products },
       { path: "new-arrivals", Component: NewArrivals },
       { path: "corporate-gifting", Component: CorporateGifting },
+      { path: "cart", Component: Cart },
       { path: "checkout", Component: Checkout },
       { path: "careers", Component: Careers },
       { path: "appointment", Component: Appointment },

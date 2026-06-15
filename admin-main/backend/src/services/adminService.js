@@ -33,7 +33,7 @@ function storagePath(fileName) {
 }
 
 function entityStoragePath(entity, fileName) {
-  if (entity === "careers") {
+  if (entity === "careers" || entity === "products" || entity === "therapists") {
     return path.resolve(config.projectRoot, "..", "backend", "storage", fileName);
   }
 
@@ -56,9 +56,10 @@ function normalizeMongoDocument(document) {
   };
 }
 
-async function writeCareerStorageSnapshot(collection) {
+async function writeEntityStorageSnapshot(entity, collection) {
+  const { fileName } = storageByEntity[entity];
   const records = (await collection.find({}).sort({ createdAt: -1 }).toArray()).map((doc) => normalizeMongoDocument(doc));
-  const targetPath = entityStoragePath("careers", storageByEntity.careers.fileName);
+  const targetPath = entityStoragePath(entity, fileName);
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   await writeJsonFile(targetPath, records);
 }
@@ -177,8 +178,8 @@ async function updateMongoRecord(entity, id, updates) {
   };
 
   await collection.updateOne(filter, { $set: merged });
-  if (entity === "careers") {
-    await writeCareerStorageSnapshot(collection);
+  if (entity === "careers" || entity === "products" || entity === "therapists") {
+    await writeEntityStorageSnapshot(entity, collection);
   }
 
   return normalizeMongoDocument({ ...existing, ...merged });
@@ -187,11 +188,17 @@ async function updateMongoRecord(entity, id, updates) {
 async function deleteStorageRecord(entity, id) {
   const { fileName } = storageByEntity[entity];
   const records = await readStorageRecords(entity);
-  const nextRecords = records.filter((record) => String(record.id) !== String(id));
+  const existing = records.find((record) => String(record.id) === String(id));
 
-  if (nextRecords.length === records.length) {
+  if (!existing) {
     return null;
   }
+
+  const isSeedTherapist =
+    entity === "therapists" && storageByEntity.therapists.seed.some((record) => String(record.id) === String(id));
+  const nextRecords = isSeedTherapist
+    ? records.map((record) => (String(record.id) === String(id) ? { ...record, active: false, updatedAt: new Date().toISOString() } : record))
+    : records.filter((record) => String(record.id) !== String(id));
 
   const targetPath = entityStoragePath(entity, fileName);
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
@@ -220,8 +227,8 @@ async function deleteMongoRecord(entity, id) {
     return null;
   }
 
-  if (entity === "careers") {
-    await writeCareerStorageSnapshot(collection);
+  if (entity === "careers" || entity === "products" || entity === "therapists") {
+    await writeEntityStorageSnapshot(entity, collection);
   }
 
   return { id };
@@ -282,8 +289,8 @@ async function createMongoRecord(entity, record) {
   };
 
   await collection.insertOne(nextRecord);
-  if (entity === "careers") {
-    await writeCareerStorageSnapshot(collection);
+  if (entity === "careers" || entity === "products" || entity === "therapists") {
+    await writeEntityStorageSnapshot(entity, collection);
   }
   return normalizeMongoDocument(nextRecord);
 }

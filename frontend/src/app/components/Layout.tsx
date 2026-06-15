@@ -98,7 +98,7 @@ export function Layout() {
       <div className="fixed top-0 left-0 right-0 z-50 shadow-md">
         {/* Top Contact Bar */}
         <div className="bg-[#2f5597] text-white">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 text-[11px] font-medium sm:px-6 sm:text-sm md:justify-start md:gap-10 lg:px-8">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-1.5 text-[10px] font-medium sm:px-6 sm:py-2 sm:text-sm md:justify-start md:gap-10 lg:px-8">
             <a
               href="tel:+919899681972"
               className="flex min-w-0 items-center gap-2 transition hover:text-white/80 sm:gap-3"
@@ -111,7 +111,7 @@ export function Layout() {
               className="flex min-w-0 items-center gap-2 transition hover:text-white/80 sm:gap-3"
             >
               <Mail className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
-              <span className="truncate">info@udairehab.org<span className="hidden md:inline">, udai.march@gmail.com</span></span>
+              <span className="max-w-[9.5rem] truncate min-[390px]:max-w-none">info@udairehab.org<span className="hidden md:inline">, udai.march@gmail.com</span></span>
             </a>
           </div>
         </div>
@@ -119,9 +119,9 @@ export function Layout() {
         {/* Main Navigation */}
         <header className="bg-white border-b border-[#e7dfd7] z-50 shadow-sm">
           <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex min-h-[60px] items-center justify-between gap-4 sm:min-h-[92px] sm:gap-6">
+            <div className="flex min-h-[56px] items-center justify-between gap-4 sm:min-h-[92px] sm:gap-6">
               <Link to="/" className="flex shrink-0 items-center">
-                <img src={logo} alt="UDAI Logo" className="h-10 w-auto sm:h-20" />
+                <img src={logo} alt="UDAI Logo" className="h-9 w-auto sm:h-20" />
               </Link>
 
               <div className="hidden items-center gap-8 lg:flex">
@@ -197,11 +197,11 @@ export function Layout() {
             </div>
 
             {mobileMenuOpen && (
-              <div className="max-h-[calc(100vh-104px)] overflow-y-auto border-t border-slate-200 py-4 lg:hidden">
-                <div className="flex flex-col gap-4 pb-2">
+              <div className="max-h-[calc(100vh-92px)] overflow-y-auto border-t border-slate-200 bg-white py-3 lg:hidden">
+                <div className="flex flex-col gap-2 pb-2">
                   {navigation.map((item) =>
                     item.type === "dropdown" ? (
-                      <div key={item.name} className="rounded-2xl border border-[#e7dfd7] bg-[#fbfaf8] p-3">
+                      <div key={item.name} className="rounded-xl border border-[#e7dfd7] bg-[#fbfaf8] p-3">
                         <button
                           type="button"
                           onClick={() => setProjectsOpen((prev) => !prev)}
@@ -233,7 +233,7 @@ export function Layout() {
                         key={item.name}
                         to={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`text-sm font-medium transition-colors ${isActive(item.href)
+                        className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${isActive(item.href)
                           ? "text-[#2f5597]"
                           : "text-[#2b1b15] hover:text-[#2f5597]"
                           }`}
@@ -245,7 +245,7 @@ export function Layout() {
                         key={item.name}
                         to={item.href}
                         onClick={(e) => handleHashLink(e, item.href)}
-                        className="text-left text-sm font-medium text-[#2b1b15] transition-colors hover:text-[#2f5597]"
+                        className="rounded-xl px-3 py-2 text-left text-sm font-medium text-[#2b1b15] transition-colors hover:bg-[#fbfaf8] hover:text-[#2f5597]"
                       >
                         {item.name}
                       </Link>
@@ -266,13 +266,13 @@ export function Layout() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 pt-[92px] sm:pt-[126px]">
+      <main className="flex-1 pt-[86px] sm:pt-[126px]">
         <Outlet />
       </main>
 
       <footer className="bg-[#2f5597] text-white">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="grid gap-10 md:grid-cols-[1.1fr_0.8fr_0.8fr_1fr]">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+          <div className="grid gap-8 md:grid-cols-[1.1fr_0.8fr_0.8fr_1fr]">
             <div>
               <img src={logo} alt="UDAI Logo" className="h-16 w-auto" />
               <p className="mt-6 max-w-xs text-sm leading-8 text-white/76">

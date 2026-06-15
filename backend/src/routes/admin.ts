@@ -1,6 +1,13 @@
 import { Router } from "express";
 import { authenticateAdmin } from "../services/adminAuthService.js";
-import { getAdminBootstrap, updateAdminRecord, toggleDeactivatedDate, appendNotification } from "../services/adminService.js";
+import {
+  appendNotification,
+  createTherapistRecord,
+  deleteTherapistRecord,
+  getAdminBootstrap,
+  toggleDeactivatedDate,
+  updateAdminRecord,
+} from "../services/adminService.js";
 import { addCareer, addProduct, deleteCareer, updateCareer, updateProduct, deleteProduct } from "../services/contentService.js";
 import { careerSchema, productSchema } from "../schemas.js";
 import { upload } from "../middleware/upload.js";
@@ -76,6 +83,29 @@ adminRouter.patch("/orders/:id", async (req, res, next) => {
   }
 });
 
+adminRouter.post("/therapists", async (req, res, next) => {
+  try {
+    const payload = {
+      name: String(req.body?.name ?? "").trim(),
+      department: String(req.body?.department ?? "").trim(),
+      role: String(req.body?.role ?? "").trim(),
+      experience: String(req.body?.experience ?? "").trim(),
+      image: String(req.body?.image ?? "").trim(),
+      active: req.body?.active !== false,
+    };
+
+    if (!payload.name || !payload.department || !payload.role || !payload.experience) {
+      res.status(400).json({ success: false, message: "Name, department, role, and experience are required" });
+      return;
+    }
+
+    const record = await createTherapistRecord(payload);
+    res.status(201).json({ success: true, data: record, message: "Therapist added successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminRouter.patch("/therapists/:id", async (req, res, next) => {
   try {
     const updated = await updateAdminRecord("therapists", req.params.id, req.body ?? {});
@@ -85,6 +115,20 @@ adminRouter.patch("/therapists/:id", async (req, res, next) => {
     }
 
     res.json({ success: true, data: updated, message: "Therapist updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/therapists/:id", async (req, res, next) => {
+  try {
+    const deleted = await deleteTherapistRecord(req.params.id);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: "Therapist not found" });
+      return;
+    }
+
+    res.json({ success: true, data: deleted, message: "Therapist removed successfully" });
   } catch (error) {
     next(error);
   }
@@ -229,7 +273,9 @@ adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
       res.status(400).json({ success: false, message: "No file uploaded" });
       return;
     }
-    const fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+    const fileUrl = process.env.SUPABASE_URL
+      ? await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype)
+      : `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
     res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
   } catch (error) {
     next(error);

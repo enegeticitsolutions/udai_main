@@ -4,6 +4,7 @@ import { ChatbotUser } from "../models/ChatbotUser.js";
 import { sendWhatsAppText } from "../services/whatsappService.js";
 import { appendRecord } from "../lib/fileStore.js";
 import { config } from "../config.js";
+import { saveMsg91Appointment } from "../services/msg91AppointmentService.js";
 
 /**
  * Ensures Mongoose is connected to MongoDB.
@@ -145,11 +146,35 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
             appointmentTime: "",
             department: user.doctor,
             concern: `WhatsApp Chatbot Booking. Age: ${user.age}`,
+            source: "WhatsApp",
             status: "new",
           });
           console.log(`[Chatbot] Synced appointment to therapistInquiries collection.`);
         } catch (err) {
           console.error("[Chatbot] Failed to store inquiry:", err);
+        }
+
+        try {
+          await saveMsg91Appointment({
+            patient_name: user.name,
+            phone_number: fromPhone,
+            age: Number(user.age),
+            gender: "Not provided",
+            city: "Not provided",
+            preferred_language: "Not provided",
+            therapist_name: user.doctor,
+            appointment_date: new Date().toISOString().slice(0, 10),
+            appointment_time: "12:00",
+            appointment_type: "In-Person",
+            main_concern: `WhatsApp chatbot booking for ${user.doctor}`,
+            concern_description: `Appointment request submitted through WhatsApp chatbot. Age: ${user.age}`,
+            additional_notes: "Date and time require admin confirmation.",
+            payment_status: "pending",
+            booking_status: "pending",
+          });
+          console.log(`[Chatbot] Synced appointment to appointments collection.`);
+        } catch (err) {
+          console.error("[Chatbot] Failed to store appointment:", err);
         }
 
         await sendWhatsAppText(

@@ -537,7 +537,7 @@ th {
 
 .therapist-add-form {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 18px;
   padding: 16px;
@@ -568,6 +568,16 @@ th {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.therapist-photo {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #edf2f7;
 }
 
 .therapist-top h3 {

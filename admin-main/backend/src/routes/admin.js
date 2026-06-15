@@ -3,6 +3,14 @@ import { authenticateAdmin } from "../services/adminAuthService.js";
 import { createAdminRecord, deleteAdminRecord, getAdminBootstrap, updateAdminRecord } from "../services/adminService.js";
 import { upload } from "../middleware/upload.js";
 import { uploadToSupabase } from "../lib/supabase.js";
+import { getVolunteerApprovalTemplate, sendEmail } from "../services/emailService.js";
+import {
+  getAppointment,
+  getAppointmentMetrics,
+  listAppointments,
+  subscribeToAppointmentEvents,
+  updateAppointmentStatus,
+} from "../services/appointmentService.js";
 
 export const adminRouter = Router();
 
@@ -28,6 +36,78 @@ adminRouter.get("/bootstrap", async (_req, res, next) => {
     const data = await getAdminBootstrap();
     res.json({ success: true, data });
   } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get("/appointments", async (req, res, next) => {
+  try {
+    const data = await listAppointments(req.query);
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get("/appointments/metrics", async (_req, res, next) => {
+  try {
+    const data = await getAppointmentMetrics();
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get("/appointments/events", async (req, res, next) => {
+  try {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+    res.write(`event: ready\ndata: ${JSON.stringify({ connected: true })}\n\n`);
+
+    const unsubscribe = await subscribeToAppointmentEvents((event) => {
+      res.write(`event: appointment\ndata: ${JSON.stringify(event)}\n\n`);
+    });
+    const heartbeat = setInterval(() => res.write(": heartbeat\n\n"), 25_000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      res.end();
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get("/appointments/:id", async (req, res, next) => {
+  try {
+    const appointment = await getAppointment(req.params.id);
+    if (!appointment) {
+      res.status(404).json({ success: false, message: "Appointment not found" });
+      return;
+    }
+    res.json({ success: true, data: appointment });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch("/appointments/:id/status", async (req, res, next) => {
+  try {
+    const bookingStatus = String(req.body?.bookingStatus ?? "").trim().toLowerCase();
+    const appointment = await updateAppointmentStatus(req.params.id, bookingStatus);
+    if (!appointment) {
+      res.status(404).json({ success: false, message: "Appointment not found" });
+      return;
+    }
+    res.json({ success: true, data: appointment, message: "Appointment status updated successfully" });
+  } catch (error) {
+    if (error.message === "Invalid booking status") {
+      res.status(400).json({ success: false, message: error.message });
+      return;
+    }
     next(error);
   }
 });
@@ -98,6 +178,53 @@ adminRouter.patch("/volunteers/:id", async (req, res, next) => {
   }
 });
 
+adminRouter.post("/approve-volunteer", async (req, res, next) => {
+  try {
+    const volunteer = req.body?.volunteer ?? req.body ?? {};
+    const id = String(volunteer.id ?? "").trim();
+    const email = String(volunteer.email ?? "").trim().toLowerCase();
+
+    if (!id || !email) {
+      res.status(400).json({ success: false, message: "Volunteer id and email are required" });
+      return;
+    }
+
+    const approvedAt = new Date().toISOString();
+    const updated = await updateAdminRecord("volunteers", id, {
+      status: "approved",
+      approvedAt,
+    });
+
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Volunteer request not found" });
+      return;
+    }
+
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Your UDAI volunteer application has been approved",
+        html: getVolunteerApprovalTemplate({ ...volunteer, ...updated }),
+      });
+
+      res.json({
+        success: true,
+        data: { ...updated, emailSent: true },
+        message: "Volunteer approved and approval email sent successfully",
+      });
+    } catch (emailError) {
+      console.error("Volunteer approval email failed:", emailError);
+      res.status(202).json({
+        success: true,
+        data: { ...updated, emailSent: false },
+        message: "Volunteer approved, but the approval email could not be sent. Please verify email settings and try again.",
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminRouter.patch("/orders/:id", async (req, res, next) => {
   try {
     const updated = await updateAdminRecord("orders", req.params.id, req.body ?? {});
@@ -119,6 +246,7 @@ adminRouter.post("/therapists", async (req, res, next) => {
       department: String(req.body?.department ?? "").trim(),
       role: String(req.body?.role ?? "").trim(),
       experience: String(req.body?.experience ?? "").trim(),
+      image: String(req.body?.image ?? "").trim() || "/images/doctor2.png",
       active: req.body?.active !== false,
     };
 
@@ -176,7 +304,9 @@ adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
       res.status(400).json({ success: false, message: "No file uploaded" });
       return;
     }
-    const fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+    const fileUrl = process.env.SUPABASE_URL
+      ? await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype)
+      : `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
     res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
   } catch (error) {
     next(error);

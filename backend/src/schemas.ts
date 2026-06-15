@@ -37,6 +37,14 @@ export const donationIntentSchema = z.object({
   donationCategory: z.enum(["meal", "future"]).optional().default("future"),
   campaignName: z.string().trim().max(160).optional(),
   meals: z.coerce.number().int().positive().optional(),
+}).superRefine((data, ctx) => {
+  if (data.donationCategory === "future" && data.amount % 1000 !== 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["amount"],
+      message: "Future support donation amount must be in multiples of 1000",
+    });
+  }
 });
 
 export const eventRsvpSchema = z.object({
@@ -131,7 +139,7 @@ const shippingAddressSchema = z.object({
 });
 
 const orderItemSchema = z.object({
-  productId: z.coerce.number().int().positive(),
+  productId: z.union([z.coerce.number().int().positive(), z.string().trim().min(1)]),
   title: z.string().trim().min(2).max(160),
   price: z.coerce.number().positive().max(1_000_000),
   quantity: z.coerce.number().int().positive(),
@@ -155,11 +163,26 @@ export const orderSchema = z.object({
   notes: z.string().trim().max(2000).default(""),
 });
 
-export const signupSchema = z.object({
+export const signupSchema = z.preprocess((raw) => {
+  if (!raw || typeof raw !== "object") return raw;
+  const input = raw as Record<string, unknown>;
+  const submittedPhone = input.phone ?? input.mobileNumber;
+  const phone = typeof submittedPhone === "string" ? submittedPhone.trim() : submittedPhone;
+
+  return {
+    ...input,
+    phone: phone || undefined,
+  };
+}, z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email(),
   password: z.string().min(6).max(100),
-  phone: z.string().trim().optional(),
+  phone: z.string().trim().min(7).max(30).optional(),
+}));
+
+export const verifySignupSchema = z.object({
+  email: z.string().trim().email(),
+  otp: z.string().trim().regex(/^\d{6}$/, "OTP must be a 6-digit code"),
 });
 
 export const loginSchema = z.object({
@@ -173,6 +196,30 @@ export const loginSchema = z.object({
 
 export const sendOtpSchema = z.object({
   identifier: z.string().trim(),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().trim().email(),
+  otp: z.string().trim().regex(/^\d{6}$/, "OTP must be a 6-digit code"),
+  password: z.string().min(6).max(100),
+});
+
+export const cartItemSchema = z.object({
+  product: z.object({
+    id: z.union([z.string(), z.number()]),
+    title: z.string().trim().min(1),
+    price: z.coerce.number().min(0),
+    image: z.string().trim(),
+  }).passthrough(),
+  quantity: z.coerce.number().int().min(1).max(99),
+});
+
+export const cartSchema = z.object({
+  items: z.array(cartItemSchema).default([]),
 });
 
 export const addressSchema = z.object({

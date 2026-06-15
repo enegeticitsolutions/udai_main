@@ -5,7 +5,7 @@ import { config } from "../config.js";
 import { readJsonFile, writeJsonFile } from "../lib/fileStore.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 import type { Therapist } from "../types.js";
-import { getCareers, getTherapists, getProducts } from "./contentService.js";
+import { getAllTherapists, getCareers, getProducts } from "./contentService.js";
 
 type AdminRecord = {
   id: string;
@@ -14,7 +14,7 @@ type AdminRecord = {
   customerEmail?: string;
   customerPhone?: string;
   items?: Array<{
-    productId: number;
+    productId: string | number;
     title: string;
     quantity: number;
     price: number;
@@ -111,16 +111,16 @@ function normalizeTherapist(record: Therapist & Partial<AdminTherapist>): AdminT
 }
 
 async function readTherapists(): Promise<AdminTherapist[]> {
-  const baseTherapists = (await getTherapists()).map((therapist) => normalizeTherapist(therapist));
+  const baseTherapists = (await getAllTherapists()).map((therapist) => normalizeTherapist(therapist));
   const overrides = await readTherapistStorageRecords();
-  const overrideMap = new Map(overrides.map((therapist) => [therapist.id, therapist]));
+  const overrideMap = new Map(overrides.map((therapist) => [String(therapist.id), therapist]));
 
-  return baseTherapists.map((therapist) => normalizeTherapist({ ...therapist, ...(overrideMap.get(therapist.id) ?? {}) }));
+  return baseTherapists.map((therapist) => normalizeTherapist({ ...therapist, ...(overrideMap.get(String(therapist.id)) ?? {}) }));
 }
 
 async function updateTherapistStorageRecord(id: string, updates: Record<string, unknown>) {
   const therapistRecords = await readTherapistStorageRecords();
-  const baseTherapists = await getTherapists();
+  const baseTherapists = await getAllTherapists();
   const baseTherapist = baseTherapists.find((therapist) => therapist.id === Number(id) || String(therapist.id) === id);
 
   if (!baseTherapist) {
@@ -177,6 +177,95 @@ async function updateTherapistMongoRecord(id: string, updates: Record<string, un
   );
 
   return merged;
+}
+
+function nextTherapistId(therapists: Therapist[]) {
+  const maxNumericId = therapists.reduce((maxId, therapist) => {
+    const numericId = Number(therapist.id);
+    return Number.isNaN(numericId) ? maxId : Math.max(maxId, numericId);
+  }, 0);
+
+  return maxNumericId > 0 ? maxNumericId + 1 : `THE-${Date.now()}`;
+}
+
+function sanitizeTherapistPayload(payload: Record<string, unknown>, id?: string | number): AdminTherapist {
+  return normalizeTherapist({
+    id: id ?? "",
+    name: String(payload.name ?? "").trim(),
+    department: String(payload.department ?? "").trim(),
+    role: String(payload.role ?? "").trim(),
+    experience: String(payload.experience ?? "").trim(),
+    image: String(payload.image ?? "").trim() || "/images/doctor2.png",
+    summary: String(payload.summary ?? "").trim(),
+    active: payload.active !== false,
+  } as Therapist & Partial<AdminTherapist>);
+}
+
+async function createTherapistStorageRecord(payload: Record<string, unknown>) {
+  const therapistRecords = await readTherapistStorageRecords();
+  const allTherapists = await getAllTherapists();
+  const id = nextTherapistId([...allTherapists, ...therapistRecords]);
+  const now = new Date().toISOString();
+  const record = {
+    ...sanitizeTherapistPayload(payload, id),
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await fs.mkdir(config.storageDir, { recursive: true });
+  await writeJsonFile(storagePath(storageByEntity.therapists.fileName), [record, ...therapistRecords]);
+  return record;
+}
+
+async function createTherapistMongoRecord(payload: Record<string, unknown>) {
+  await connectMongoDb();
+
+  if (!isMongoConnected()) {
+    return null;
+  }
+
+  const allTherapists = await getAllTherapists();
+  const id = nextTherapistId(allTherapists);
+  const now = new Date().toISOString();
+  const record = {
+    ...sanitizeTherapistPayload(payload, id),
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await getMongoDb().collection(storageByEntity.therapists.collectionName).insertOne(record);
+  return record;
+}
+
+async function deleteTherapistStorageRecord(id: string) {
+  const therapistRecords = await readTherapistStorageRecords();
+  const allTherapists = await getAllTherapists();
+  const existing = [...therapistRecords, ...allTherapists].find((therapist) => String(therapist.id) === id);
+
+  if (!existing) {
+    return null;
+  }
+
+  const nextRecords = therapistRecords.some((therapist) => String(therapist.id) === id)
+    ? therapistRecords.filter((therapist) => String(therapist.id) !== id)
+    : [normalizeTherapist({ ...existing, active: false } as Therapist & Partial<AdminTherapist>), ...therapistRecords];
+
+  await fs.mkdir(config.storageDir, { recursive: true });
+  await writeJsonFile(storagePath(storageByEntity.therapists.fileName), nextRecords);
+  return { id };
+}
+
+async function deleteTherapistMongoRecord(id: string) {
+  await connectMongoDb();
+
+  if (!isMongoConnected()) {
+    return null;
+  }
+
+  const collection = getMongoDb().collection(storageByEntity.therapists.collectionName);
+  const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { $or: [{ id }, { id: Number(id) }] };
+  const result = await collection.deleteOne(filter);
+  return result.deletedCount > 0 ? { id } : null;
 }
 
 async function updateStorageRecord(entity: keyof typeof storageByEntity, id: string, updates: Record<string, unknown>) {
@@ -361,4 +450,22 @@ export async function updateAdminRecord(
   }
 
   return updateStorageRecord(entity, id, updates);
+}
+
+export async function createTherapistRecord(payload: Record<string, unknown>) {
+  const mongoCreated = await createTherapistMongoRecord(payload);
+  if (mongoCreated) {
+    return mongoCreated;
+  }
+
+  return createTherapistStorageRecord(payload);
+}
+
+export async function deleteTherapistRecord(id: string) {
+  const mongoDeleted = await deleteTherapistMongoRecord(id);
+  if (mongoDeleted) {
+    return mongoDeleted;
+  }
+
+  return deleteTherapistStorageRecord(id);
 }

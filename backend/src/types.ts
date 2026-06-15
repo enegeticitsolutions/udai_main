@@ -67,12 +67,17 @@ export interface Testimonial {
 }
 
 export interface Therapist {
-  id: number;
+  id: string | number;
   name: string;
   image: string;
   department: string;
   role: string;
-  summary: string;
+  summary?: string;
+  experience?: string;
+  active?: boolean;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface EducationProgram {
@@ -175,7 +180,7 @@ export interface TherapistInquiry {
 }
 
 export interface OrderItem {
-  productId: number;
+  productId: string | number;
   title: string;
   price: number;
   quantity: number;
@@ -274,6 +279,9 @@ export interface UserDocument extends Omit<User, "id"> {
   password: string;
   otp?: string;
   otpExpiry?: string;
+  passwordResetOtpHash?: string;
+  passwordResetOtpExpiry?: string;
+  passwordResetAttempts?: number;
 }
 
 export interface Address {

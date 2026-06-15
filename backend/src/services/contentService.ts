@@ -40,7 +40,11 @@ export async function getTestimonials() {
 }
 
 export async function getTherapists() {
-  return readJsonFile<Therapist[]>(contentPath("therapists.json"));
+  return readStoredTherapists({ includeInactive: false });
+}
+
+export async function getAllTherapists() {
+  return readStoredTherapists({ includeInactive: true });
 }
 
 export async function getEducationPrograms() {
@@ -73,8 +77,75 @@ function storedCareersPath() {
   return path.join(config.storageDir, "careers.json");
 }
 
+function storedTherapistsPath() {
+  return path.join(config.storageDir, "therapists.json");
+}
+
+async function readSeedTherapists() {
+  return readJsonFile<Therapist[]>(contentPath("therapists.json"));
+}
+
+function normalizeTherapistDocument(doc: Record<string, any>): Therapist {
+  const { _id, ...therapist } = doc;
+  return {
+    ...therapist,
+    id: therapist.id ?? _id?.toString(),
+    image: therapist.image || "/images/doctor2.png",
+    active: therapist.active ?? therapist.isActive ?? true,
+  } as Therapist;
+}
+
 async function readSeedCareers() {
   return readJsonFile<CareerOpportunity[]>(backendContentPath("careers.json"));
+}
+
+async function readStoredTherapists({ includeInactive = false } = {}): Promise<Therapist[]> {
+  const filterTherapists = (therapists: Therapist[]) =>
+    includeInactive ? therapists : therapists.filter((therapist) => therapist.active !== false && therapist.isActive !== false);
+  const seedTherapists = await readSeedTherapists();
+  await connectMongoDb();
+
+  if (isMongoConnected()) {
+    const db = getMongoDb();
+    const collection = db.collection("therapists");
+    const existingCount = await collection.countDocuments();
+    if (existingCount === 0 && seedTherapists.length > 0) {
+      const now = new Date().toISOString();
+      await collection.insertMany(seedTherapists.map((therapist) => ({
+        ...therapist,
+        active: therapist.active ?? true,
+        createdAt: now,
+        updatedAt: now,
+      })));
+    }
+
+    const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    return filterTherapists(docs.map((doc) => normalizeTherapistDocument(doc)));
+  }
+
+  try {
+    const storedTherapists = await readJsonFile<Therapist[]>(storedTherapistsPath());
+    const therapistMap = new Map<string, Therapist>();
+    seedTherapists.forEach((therapist) => {
+      const normalized = normalizeTherapistDocument(therapist as Record<string, any>);
+      therapistMap.set(String(normalized.id), normalized);
+    });
+    storedTherapists.forEach((therapist) => {
+      const normalized = normalizeTherapistDocument(therapist as Record<string, any>);
+      therapistMap.set(String(normalized.id), { ...(therapistMap.get(String(normalized.id)) ?? {}), ...normalized });
+    });
+    return filterTherapists(Array.from(therapistMap.values()));
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err.code !== "ENOENT") {
+      throw error;
+    }
+
+    await fs.mkdir(config.storageDir, { recursive: true });
+    const initialTherapists = seedTherapists.map((therapist) => ({ ...therapist, active: therapist.active ?? true }));
+    await writeJsonFile(storedTherapistsPath(), initialTherapists);
+    return filterTherapists(initialTherapists);
+  }
 }
 
 function normalizeCareerDocument(doc: Record<string, any>): CareerOpportunity {
@@ -137,7 +208,7 @@ async function readStoredProducts(): Promise<Product[]> {
   await connectMongoDb();
   if (isMongoConnected()) {
     const db = getMongoDb();
-    const docs = await db.collection("products").find({}).toArray();
+    const docs = await db.collection("products").find({}).sort({ createdAt: -1 }).toArray();
     return docs.map((doc) => ({
       ...doc,
       id: doc._id.toString(),

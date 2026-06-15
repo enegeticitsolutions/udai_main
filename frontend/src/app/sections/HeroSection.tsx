@@ -19,7 +19,7 @@ export function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/14" />
       </div>
 
-      <div className="relative h-[420px] w-full sm:h-auto sm:aspect-[1530/547]">
+      <div className="relative h-[360px] w-full min-[390px]:h-[390px] sm:h-auto sm:aspect-[1530/547]">
         <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl items-center justify-center px-4 py-4 text-center sm:px-6 sm:py-10 lg:px-8 lg:py-12">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -27,14 +27,14 @@ export function HeroSection() {
           transition={{ duration: 0.8 }}
           className="max-w-5xl text-center"
         >
-          <h1 className="mb-3 text-2xl font-semibold leading-[1.08] tracking-tight text-white min-[390px]:text-3xl sm:text-5xl lg:text-6xl">
+          <h1 className="mb-3 text-[1.7rem] font-semibold leading-[1.08] tracking-tight text-white min-[390px]:text-3xl sm:text-5xl lg:text-6xl">
             <span className="block">Empowering Children</span>
             <span className="mt-2 block text-amber-400">with Special Needs</span>
           </h1>
-          <p className="mx-auto mb-5 max-w-4xl text-xs leading-5 text-slate-100 min-[390px]:text-sm min-[390px]:leading-6 sm:mb-6 sm:text-base sm:leading-7">
+          <p className="mx-auto mb-5 max-w-4xl text-[13px] leading-5 text-slate-100 min-[390px]:text-sm min-[390px]:leading-6 sm:mb-6 sm:text-base sm:leading-7">
             We provide specialized education, therapies, and skill-building programs that empower children and young adults with special needs to live independent, confident, and fulfilling lives.
           </p>
-          <div className="mx-auto flex max-w-[240px] flex-col items-stretch justify-center gap-2 sm:max-w-none sm:flex-row sm:items-center sm:gap-4">
+          <div className="mx-auto flex max-w-[280px] flex-col items-stretch justify-center gap-2 sm:max-w-none sm:flex-row sm:items-center sm:gap-4">
             <Link
               to="/#donate"
               onClick={(e) => {

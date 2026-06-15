@@ -122,6 +122,11 @@ body {
 
   body {
     overflow-x: hidden;
+    background: #f8f3ef;
+  }
+
+  section {
+    scroll-margin-top: 96px;
   }
 
   p,
@@ -140,6 +145,21 @@ body {
   select {
     max-width: 100%;
     font-size: 16px;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  button,
+  [role="button"],
+  input,
+  select {
+    min-height: 40px;
   }
 
   table {
@@ -194,6 +214,12 @@ body {
 
   .grid {
     gap: 1rem;
+  }
+
+  .line-clamp-2,
+  .line-clamp-3 {
+    word-break: normal;
+    overflow-wrap: anywhere;
   }
 }
 
