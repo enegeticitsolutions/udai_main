@@ -45,6 +45,7 @@ export const config = {
   backendDataDir: path.resolve(projectRoot, "src", "data"),
   frontendDataDir: path.resolve(projectRoot, "..", "frontend", "src", "app", "data"),
   storageDir: path.resolve(projectRoot, "storage"),
+  publicUploadBaseUrl: (process.env.PUBLIC_UPLOAD_BASE_URL ?? process.env.PUBLIC_API_BASE_URL ?? "http://localhost:4000").replace(/\/$/, ""),
   jwtSecret: process.env.JWT_SECRET || "default_jwt_secret",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   supabaseUrl: process.env.SUPABASE_URL ?? "",

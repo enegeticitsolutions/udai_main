@@ -119,7 +119,7 @@ export const careerSchema = z.object({
   description: z.string().trim().min(10).max(5000),
   responsibilities: z.array(z.string().trim().min(1).max(500)).default([]),
   requirements: z.array(z.string().trim().min(1).max(500)).default([]),
-  applyLink: z.string().trim().min(1).max(500),
+  applyLink: z.string().trim().max(500).optional(),
   status: z.enum(["open", "closed"]).default("open"),
 });
 

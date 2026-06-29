@@ -2,7 +2,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { toast } from "sonner";
 import { apiClient, AUTH_TOKEN_KEY } from "../lib/api";
 import type { AuthResponse, AuthUser, Order, UserAddress } from "../types/api";
-import { getCart, saveCart, type CartItem } from "../lib/cart";
+import {
+  clearCurrentUserCartData,
+  clearGuestCart,
+  getCart,
+  getCheckoutProduct,
+  getGuestCart,
+  saveCart,
+  setCartOwner,
+  setCheckoutProduct,
+  type CartItem,
+} from "../lib/cart";
 
 type SignupInput = {
   name: string;
@@ -55,13 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const clearSession = useCallback(() => {
+  const clearSession = useCallback((options: { preserveCurrentUserLocalCart?: boolean } = {}) => {
+    const previousUserId = user?.id;
     window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    if (previousUserId && !options.preserveCurrentUserLocalCart) {
+      clearCurrentUserCartData(previousUserId);
+    }
+    clearGuestCart();
+    setCartOwner(null);
     setUser(null);
     setOrders([]);
     setAddresses([]);
-    setCart(getCart());
-  }, []);
+    setCart([]);
+  }, [user?.id]);
 
   const refreshUserData = useCallback(async () => {
     const [profileResponse, ordersResponse, addressesResponse, cartResponse] = await Promise.all([
@@ -74,13 +90,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(profileResponse.data.data);
     setOrders(ordersResponse.data.data);
     setAddresses(addressesResponse.data.data);
-    saveCart(cartResponse.data.data.items, { notify: false });
+    setCartOwner(profileResponse.data.data.id);
+    saveCart(cartResponse.data.data.items, { notify: false, ownerId: profileResponse.data.data.id });
     setCart(getCart());
   }, []);
 
   useEffect(() => {
     async function bootstrap() {
       const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+      setCartOwner(null);
       setCart(getCart());
       if (!token) {
         setIsLoading(false);
@@ -112,9 +130,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncCart = useCallback(async (items = getCart()) => {
     if (!window.localStorage.getItem(AUTH_TOKEN_KEY)) return;
     const response = await apiClient.put<{ success: true; data: { items: CartItem[] } }>("/user/cart", { items });
-    saveCart(response.data.data.items, { notify: false });
+    saveCart(response.data.data.items, { notify: false, ownerId: user?.id });
     setCart(getCart());
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     let syncTimer: ReturnType<typeof window.setTimeout> | undefined;
@@ -137,19 +155,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [syncCart]);
 
-  async function mergeLocalCart() {
-    const localCart = getCart();
+  async function mergeLocalCart(localCart: CartItem[], userId: string) {
+    const guestCheckoutProduct = getCheckoutProduct(null);
     const response = await apiClient.post<{ success: true; data: { items: CartItem[] } }>("/user/cart/merge", {
       items: localCart,
     });
-    saveCart(response.data.data.items, { notify: false });
+    setCartOwner(userId);
+    saveCart(response.data.data.items, { notify: false, ownerId: userId });
+    if (guestCheckoutProduct) {
+      setCheckoutProduct(guestCheckoutProduct);
+    }
+    clearGuestCart();
     setCart(getCart());
   }
 
   async function login(input: LoginInput) {
+    if (user?.id) {
+      clearCurrentUserCartData(user.id);
+      clearGuestCart();
+      setCartOwner(null);
+      setCart([]);
+    }
+    const guestCart = getGuestCart();
     const response = await apiClient.post<{ success: true; data: AuthResponse }>("/auth/login", input);
     window.localStorage.setItem(AUTH_TOKEN_KEY, response.data.data.token);
-    await mergeLocalCart();
+    await mergeLocalCart(guestCart, response.data.data.user.id);
     await refreshUserData();
   }
 
@@ -158,9 +188,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function verifySignupOtp(input: { email: string; otp: string }) {
+    if (user?.id) {
+      clearCurrentUserCartData(user.id);
+      clearGuestCart();
+      setCartOwner(null);
+      setCart([]);
+    }
+    const guestCart = getGuestCart();
     const response = await apiClient.post<{ success: true; data: AuthResponse }>("/auth/signup/verify", input);
     window.localStorage.setItem(AUTH_TOKEN_KEY, response.data.data.token);
-    await mergeLocalCart();
+    await mergeLocalCart(guestCart, response.data.data.user.id);
     await refreshUserData();
   }
 

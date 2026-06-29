@@ -7,9 +7,52 @@ export type CartItem = {
 
 const CART_KEY = "udai_cart";
 const CHECKOUT_KEY = "udai_checkout_product";
+const CART_OWNER_KEY = "udai_cart_owner";
+const GUEST_OWNER = "guest";
+
+type CartOwner = string | number | null | undefined;
 
 function canUseStorage() {
   return typeof window !== "undefined";
+}
+
+function normalizeOwnerId(ownerId?: CartOwner) {
+  if (ownerId === undefined) {
+    return canUseStorage() ? window.localStorage.getItem(CART_OWNER_KEY) || GUEST_OWNER : GUEST_OWNER;
+  }
+
+  const value = String(ownerId ?? "").trim();
+  return value ? `user:${value}` : GUEST_OWNER;
+}
+
+function cartKey(ownerId?: CartOwner) {
+  return `${CART_KEY}:${normalizeOwnerId(ownerId)}`;
+}
+
+function checkoutKey(ownerId?: CartOwner) {
+  return `${CHECKOUT_KEY}:${normalizeOwnerId(ownerId)}`;
+}
+
+function removeLegacyGlobalStorage() {
+  if (!canUseStorage()) return;
+  window.localStorage.removeItem(CART_KEY);
+  window.localStorage.removeItem(CHECKOUT_KEY);
+}
+
+export function setCartOwner(ownerId?: CartOwner) {
+  if (!canUseStorage()) return;
+  window.localStorage.setItem(CART_OWNER_KEY, normalizeOwnerId(ownerId));
+  removeLegacyGlobalStorage();
+  window.dispatchEvent(new Event("udai-cart-changed"));
+}
+
+export function getGuestCart() {
+  return getCartForOwner(null);
+}
+
+export function clearGuestCart() {
+  clearCart(null);
+  clearCheckoutProduct(null);
 }
 
 function normalizeQuantity(value: unknown) {
@@ -44,19 +87,25 @@ function normalizeCartItems(items: CartItem[]) {
 }
 
 export function getCart(): CartItem[] {
+  return getCartForOwner();
+}
+
+export function getCartForOwner(ownerId?: CartOwner): CartItem[] {
   if (!canUseStorage()) return [];
 
   try {
-    const raw = window.localStorage.getItem(CART_KEY);
+    removeLegacyGlobalStorage();
+    const raw = window.localStorage.getItem(cartKey(ownerId));
     return raw ? normalizeCartItems(JSON.parse(raw) as CartItem[]) : [];
   } catch {
     return [];
   }
 }
 
-export function saveCart(items: CartItem[], options: { notify?: boolean } = {}) {
+export function saveCart(items: CartItem[], options: { notify?: boolean; ownerId?: CartOwner } = {}) {
   if (!canUseStorage()) return;
-  window.localStorage.setItem(CART_KEY, JSON.stringify(normalizeCartItems(items)));
+  removeLegacyGlobalStorage();
+  window.localStorage.setItem(cartKey(options.ownerId), JSON.stringify(normalizeCartItems(items)));
   if (options.notify !== false) {
     window.dispatchEvent(new Event("udai-cart-changed"));
   }
@@ -84,27 +133,36 @@ export function addToCart(product: Product) {
 
 export function setCheckoutProduct(product: Product) {
   if (!canUseStorage()) return;
-  window.localStorage.setItem(CHECKOUT_KEY, JSON.stringify(product));
+  removeLegacyGlobalStorage();
+  window.localStorage.setItem(checkoutKey(), JSON.stringify(product));
 }
 
-export function getCheckoutProduct() {
+export function getCheckoutProduct(ownerId?: CartOwner) {
   if (!canUseStorage()) return null;
 
   try {
-    const raw = window.localStorage.getItem(CHECKOUT_KEY);
+    removeLegacyGlobalStorage();
+    const raw = window.localStorage.getItem(checkoutKey(ownerId));
     return raw ? (JSON.parse(raw) as Product) : null;
   } catch {
     return null;
   }
 }
 
-export function clearCheckoutProduct() {
+export function clearCheckoutProduct(ownerId?: CartOwner) {
   if (!canUseStorage()) return;
-  window.localStorage.removeItem(CHECKOUT_KEY);
+  window.localStorage.removeItem(checkoutKey(ownerId));
 }
 
-export function clearCart() {
+export function clearCart(ownerId?: CartOwner) {
   if (!canUseStorage()) return;
-  window.localStorage.removeItem(CART_KEY);
+  window.localStorage.removeItem(cartKey(ownerId));
+  window.dispatchEvent(new Event("udai-cart-changed"));
+}
+
+export function clearCurrentUserCartData(ownerId: string | number) {
+  if (!canUseStorage()) return;
+  window.localStorage.removeItem(cartKey(ownerId));
+  window.localStorage.removeItem(checkoutKey(ownerId));
   window.dispatchEvent(new Event("udai-cart-changed"));
 }

@@ -13,7 +13,6 @@ const emptyForm = {
   description: "",
   responsibilities: "",
   requirements: "",
-  applyLink: "",
   status: "open",
 };
 
@@ -59,7 +58,6 @@ export default function CareersPage({ careers, onAddCareer, onUpdateCareer, onDe
       description: career.description || "",
       responsibilities: listText(career.responsibilities),
       requirements: listText(career.requirements),
-      applyLink: career.applyLink || "",
       status: career.status || "open",
     });
     setIsModalOpen(true);
@@ -205,7 +203,6 @@ export default function CareersPage({ careers, onAddCareer, onUpdateCareer, onDe
                 <span>Requirements, one per line</span>
                 <textarea name="requirements" value={formData.requirements} onChange={handleChange} rows="4" style={fieldStyle} />
               </label>
-              <Input label="Application link" name="applyLink" value={formData.applyLink} onChange={handleChange} placeholder="mailto:careers@example.org or https://..." required />
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
                 <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>

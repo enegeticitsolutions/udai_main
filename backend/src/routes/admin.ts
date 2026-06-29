@@ -12,6 +12,7 @@ import { addCareer, addProduct, deleteCareer, updateCareer, updateProduct, delet
 import { careerSchema, productSchema } from "../schemas.js";
 import { upload } from "../middleware/upload.js";
 import { uploadToSupabase } from "../lib/supabase.js";
+import { config } from "../config.js";
 
 export const adminRouter = Router();
 
@@ -160,7 +161,7 @@ adminRouter.post("/notifications/send", async (req, res, next) => {
     // Attempt to send WhatsApp message
     // We will just log it for now and simulate sending unless a template is matched.
     // In production, you would call `sendWhatsAppMessage` here if you had actual MSG91 templates.
-    
+
     // Simulating WhatsApp send by just appending it to notifications DB
     const record = await appendNotification({
       inquiryId,
@@ -186,8 +187,8 @@ adminRouter.get("/products", async (req, res, next) => {
       typeFilter === "gift"
         ? all.filter((p) => p.isCorporateGift === true)
         : typeFilter === "product"
-        ? all.filter((p) => !p.isCorporateGift)
-        : all;
+          ? all.filter((p) => !p.isCorporateGift)
+          : all;
     res.json({ success: true, data });
   } catch (error) {
     next(error);
@@ -275,7 +276,7 @@ adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
     }
     const fileUrl = process.env.SUPABASE_URL
       ? await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype)
-      : `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+      : `${config.publicUploadBaseUrl}/uploads/${req.file.filename}`;
     res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
   } catch (error) {
     next(error);

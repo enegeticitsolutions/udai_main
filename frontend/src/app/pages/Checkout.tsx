@@ -335,14 +335,20 @@ export function Checkout() {
 
   return (
     <div className="bg-[#f8f3ef]">
-      <section className="py-8 sm:py-20">
-        <div className="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8 lg:px-8">
-          <form onSubmit={handlePayNow} className="order-2 space-y-5 sm:space-y-8 lg:order-1">
-            <div className="rounded-[1rem] bg-white p-4 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
-              <h2 className="text-xl font-semibold text-[#2b1b15] sm:text-2xl">Enter a new delivery address</h2>
-              <p className="mt-2 text-sm text-[#776a66]">Use a delivery address where you can receive your order.</p>
+      <section className="py-4 sm:py-20">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+          <div className="mb-4 sm:mb-8">
+            <h1 className="text-2xl font-semibold tracking-tight text-[#2b1b15] sm:text-4xl">Checkout</h1>
+            <p className="mt-1 text-sm text-[#776a66] sm:mt-2">Add delivery details and choose a payment method.</p>
+          </div>
 
-              <div className="mt-6 grid gap-4">
+          <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8">
+          <form onSubmit={handlePayNow} className="order-1 space-y-4 sm:space-y-8">
+            <div className="rounded-[0.9rem] bg-white p-3 shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+              <h2 className="text-lg font-semibold text-[#2b1b15] sm:text-2xl">Delivery address</h2>
+              <p className="mt-1 text-sm text-[#776a66] sm:mt-2">Use an address where you can receive your order.</p>
+
+              <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Country / Region</label>
                   <select
@@ -426,13 +432,13 @@ export function Checkout() {
               </div>
             </div>
 
-            <div className="rounded-[1rem] bg-white p-4 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
-              <h2 className="text-xl font-semibold text-[#2b1b15] sm:text-2xl">Payment Method</h2>
-              <p className="mt-2 text-sm text-[#776a66]">
+            <div className="rounded-[0.9rem] bg-white p-3 shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+              <h2 className="text-lg font-semibold text-[#2b1b15] sm:text-2xl">Payment Method</h2>
+              <p className="mt-1 text-sm text-[#776a66] sm:mt-2">
                 This checkout now opens Razorpay test checkout for the selected payment method.
               </p>
 
-              <div className="mt-6 grid gap-4">
+              <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4">
                 <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "qr" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
                   <div className="flex items-center gap-3">
                     <input
@@ -444,7 +450,7 @@ export function Checkout() {
                         setQrPayment(null);
                       }}
                     />
-                    <div>
+                    <div className="min-w-0">
                       <div className="font-semibold text-[#2b1b15]">QR Code</div>
                       <div className="text-sm text-[#776a66]">Scan the QR code to complete payment.</div>
                     </div>
@@ -495,7 +501,7 @@ export function Checkout() {
                         setQrPayment(null);
                       }}
                     />
-                    <div>
+                    <div className="min-w-0">
                       <div className="font-semibold text-[#2b1b15]">Credit Card / Debit Card</div>
                       <div className="text-sm text-[#776a66]">Pay securely with your card.</div>
                     </div>
@@ -513,7 +519,7 @@ export function Checkout() {
                         setQrPayment(null);
                       }}
                     />
-                    <div>
+                    <div className="min-w-0">
                       <div className="font-semibold text-[#2b1b15]">Pay with UPI</div>
                       <div className="text-sm text-[#776a66]">Enter your UPI ID to complete payment.</div>
                     </div>
@@ -536,7 +542,7 @@ export function Checkout() {
                         setQrPayment(null);
                       }}
                     />
-                    <div>
+                    <div className="min-w-0">
                       <div className="font-semibold text-[#2b1b15]">Net Banking</div>
                       <div className="text-sm text-[#776a66]">Choose your bank and continue to pay.</div>
                     </div>
@@ -558,24 +564,24 @@ export function Checkout() {
               <Button
                 type="submit"
                 disabled={submitting}
-                className="mt-6 w-full rounded-full bg-[#2f5597] py-6 text-base font-semibold text-white shadow-[0_10px_20px_rgba(47,85,151,0.22)] hover:bg-[#264882]"
+                className="mt-5 w-full rounded-full bg-[#2f5597] py-5 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(47,85,151,0.22)] hover:bg-[#264882] sm:mt-6 sm:py-6 sm:text-base"
               >
                 {submitting ? "Processing..." : paymentMethod === "qr" && !qrPayment ? "Generate QR" : "Pay Now"}
               </Button>
             </div>
           </form>
 
-          <aside className="order-1 space-y-5 lg:order-2 lg:space-y-6">
-            <div className="rounded-[1rem] bg-white p-4 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
-              <h2 className="text-xl font-semibold text-[#2b1b15] sm:text-2xl">Order Summary</h2>
-              <div className="mt-6 space-y-4">
+          <aside className="order-2 space-y-4 lg:space-y-6">
+            <div className="rounded-[0.9rem] bg-white p-3 shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+              <h2 className="text-lg font-semibold text-[#2b1b15] sm:text-2xl">Order Summary</h2>
+              <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
                 {orderItems.map((item) => (
-                  <div key={item.product.id} className="flex gap-4 border-b border-[#eee7e1] pb-4 last:border-b-0 last:pb-0">
-                    <div className="h-20 w-20 overflow-hidden rounded-xl bg-[#f0ece7]">
+                  <div key={item.product.id} className="flex min-w-0 gap-3 border-b border-[#eee7e1] pb-3 last:border-b-0 last:pb-0 sm:gap-4 sm:pb-4">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#f0ece7] sm:h-20 sm:w-20">
                       <img src={item.product.image} alt={item.product.title} className="h-full w-full object-cover" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-[#2b1b15]">{item.product.title}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="line-clamp-2 text-sm font-semibold leading-5 text-[#2b1b15] sm:text-base">{item.product.title}</div>
                       <div className="text-sm text-[#776a66]">Qty: {item.quantity}</div>
                       <div className="mt-1 font-medium text-[#4f4038]">{money(item.product.price * item.quantity)}</div>
                     </div>
@@ -599,8 +605,8 @@ export function Checkout() {
               </div>
             </div>
 
-            <div className="rounded-[1rem] bg-[#20325c] p-5 text-white shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
-              <h3 className="text-xl font-semibold sm:text-2xl">Existing User?</h3>
+            <div className="rounded-[0.9rem] bg-[#20325c] p-4 text-white shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+              <h3 className="text-lg font-semibold sm:text-2xl">Existing User?</h3>
               <p className="mt-3 text-sm leading-7 text-white/75">
                 You can use the saved delivery details on this device and proceed directly to payment.
               </p>
@@ -613,6 +619,7 @@ export function Checkout() {
               </button>
             </div>
           </aside>
+          </div>
         </div>
       </section>
     </div>

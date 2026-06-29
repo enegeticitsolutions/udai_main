@@ -1,4 +1,9 @@
 const API_BASE = (import.meta.env.VITE_ADMIN_API_BASE ?? "http://localhost:5003/api/admin").replace(/\/$/, "");
+export const PUBLIC_UPLOAD_BASE = (
+  import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ??
+  import.meta.env.VITE_PUBLIC_API_BASE_URL ??
+  "http://localhost:4000"
+).replace(/\/$/, "");
 export const APPOINTMENT_EVENTS_URL = `${API_BASE}/appointments/events`;
 
 async function request(path, options = {}) {

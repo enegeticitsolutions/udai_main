@@ -3,7 +3,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { config } from "../config.js";
 
-const uploadDir = path.join(config.storageDir, "uploads");
+const uploadDir = config.sharedUploadDir;
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

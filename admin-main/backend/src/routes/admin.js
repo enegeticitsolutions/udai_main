@@ -3,6 +3,7 @@ import { authenticateAdmin } from "../services/adminAuthService.js";
 import { createAdminRecord, deleteAdminRecord, getAdminBootstrap, updateAdminRecord } from "../services/adminService.js";
 import { upload } from "../middleware/upload.js";
 import { uploadToSupabase } from "../lib/supabase.js";
+
 import { getVolunteerApprovalTemplate, sendEmail } from "../services/emailService.js";
 import {
   getAppointment,
@@ -304,9 +305,11 @@ adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
       res.status(400).json({ success: false, message: "No file uploaded" });
       return;
     }
-    const fileUrl = process.env.SUPABASE_URL
-      ? await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype)
-      : `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    if (!process.env.SUPABASE_URL) {
+      res.status(500).json({ success: false, message: "Image storage is not configured. Please set SUPABASE_URL in the server environment." });
+      return;
+    }
+    const fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
     res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
   } catch (error) {
     next(error);
@@ -383,7 +386,6 @@ function normalizeCareerPayload(body) {
     description: String(body?.description ?? "").trim(),
     responsibilities: normalizeList(body?.responsibilities),
     requirements: normalizeList(body?.requirements),
-    applyLink: String(body?.applyLink ?? "").trim(),
     status: body?.status === "closed" ? "closed" : "open",
   };
 }
@@ -391,7 +393,7 @@ function normalizeCareerPayload(body) {
 adminRouter.post("/careers", async (req, res, next) => {
   try {
     const payload = normalizeCareerPayload(req.body);
-    if (!payload.title || !payload.department || !payload.location || !payload.type || !payload.experience || !payload.description || !payload.applyLink) {
+    if (!payload.title || !payload.department || !payload.location || !payload.type || !payload.experience || !payload.description) {
       res.status(400).json({ success: false, message: "Complete all required career fields" });
       return;
     }

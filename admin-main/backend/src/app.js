@@ -23,7 +23,7 @@ export function createApp() {
   );
   app.use(express.json());
   app.use(morgan("dev"));
-  app.use("/uploads", express.static(path.join(config.storageDir, "uploads")));
+  app.use("/uploads", express.static(config.sharedUploadDir));
 
   app.get("/", (_req, res) => {
     res.json({

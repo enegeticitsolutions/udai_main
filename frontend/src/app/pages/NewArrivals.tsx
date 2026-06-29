@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   Clock,
-  Menu,
   Plus,
   Search,
   ShoppingCart,
@@ -20,18 +19,7 @@ import { useAuth } from "../context/AuthContext";
 import fallbackProducts from "../data/products.json";
 import type { Product } from "../types/api";
 
-const departments = [
-  "All Departments",
-  "Corporate Gifts",
-  "New Arrivals",
-  "Home Decor",
-  "Accessories",
-  "Fashion",
-  "Art",
-  "Sensory",
-  "Toys",
-  "Offers",
-];
+
 
 const heroImage =
   "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1800&q=80";
@@ -116,8 +104,6 @@ export function NewArrivals() {
   }, [products, searchQuery, selectedCategory, sortMode]);
 
   const visibleProducts = filteredProducts;
-  const bestSellers = products.slice(0, 4);
-  const dealProducts = products.slice(2, 4);
 
   function handleAddToCart(product: Product) {
     addToCart(product);
@@ -202,25 +188,6 @@ export function NewArrivals() {
             </Link>
           </div>
         </div>
-
-        <nav className="border-t border-white/10 bg-[#173552]">
-          <div className="mx-auto flex max-w-7xl items-center gap-5 overflow-x-auto px-3 py-2 text-sm font-medium sm:px-6 lg:px-8">
-            {departments.map((item, index) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => {
-                  if (item === "All Departments") setSelectedCategory("View All");
-                  if (categories.includes(item)) setSelectedCategory(item);
-                }}
-                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-white/90 transition hover:text-white"
-              >
-                {index === 0 ? <Menu className="h-5 w-5" /> : null}
-                {item}
-              </button>
-            ))}
-          </div>
-        </nav>
       </section>
 
       <section
@@ -300,9 +267,9 @@ export function NewArrivals() {
               {error}
             </div>
           ) : (
-            <div className="grid gap-5 lg:grid-cols-[1fr_19rem]">
+            <div className="w-full">
               <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
                   {visibleProducts.map((product, index) => {
                     const savings = getSavings(product);
                     return (
@@ -365,77 +332,6 @@ export function NewArrivals() {
                   })}
                 </div>
               </div>
-
-              <aside className="space-y-4">
-                <div className="rounded-xl border border-[#e4e7eb] bg-white p-4 shadow-[0_8px_18px_rgba(15,38,61,0.12)]">
-                  <h3 className="text-xl font-extrabold text-black">Best Sellers & Top Picks</h3>
-                  <div className="mt-2 flex items-center gap-1 text-sm">
-                    <span className="flex text-[#f2b01e]">
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <Star key={index} className="h-4 w-4 fill-current" />
-                      ))}
-                    </span>
-                    <span>4.5 | 120 reviews</span>
-                  </div>
-                  <div className="mt-4 space-y-4">
-                    {bestSellers.map((product) => (
-                      <button
-                        key={product.id}
-                        type="button"
-                        onClick={() => handleBuyNow(product)}
-                        className="grid w-full grid-cols-[4.2rem_1fr_auto] gap-3 text-left"
-                      >
-                        <div
-                          className="h-16 overflow-hidden rounded-lg bg-[#eef2f6]"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedImage({ src: getProductImage(product), alt: product.title });
-                          }}
-                        >
-                          <ImageWithFallback src={getProductImage(product)} alt={product.title} className="h-full w-full object-cover" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="line-clamp-2 text-sm font-semibold text-[#1f2937]">{product.title}</p>
-                          <p className="text-xs text-[#64748b]">{product.category}</p>
-                        </div>
-                        <span className="text-sm font-bold text-black">{money(product.price)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-[#e4e7eb] bg-white p-4 shadow-[0_8px_18px_rgba(15,38,61,0.12)]">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-extrabold text-black">Deals of the Day</h3>
-                    <Clock className="h-5 w-5 text-[#f58220]" />
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {dealProducts.map((product) => (
-                      <button
-                        key={product.id}
-                        type="button"
-                        onClick={() => handleAddToCart(product)}
-                        className="grid w-full grid-cols-[4rem_1fr_auto] gap-3 text-left"
-                      >
-                        <div
-                          className="h-16 overflow-hidden rounded-lg bg-[#eef2f6]"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedImage({ src: getProductImage(product), alt: product.title });
-                          }}
-                        >
-                          <ImageWithFallback src={getProductImage(product)} alt={product.title} className="h-full w-full object-cover" />
-                        </div>
-                        <div>
-                          <p className="line-clamp-2 text-sm font-semibold text-[#1f2937]">{product.title}</p>
-                          <p className="text-xs text-[#238636]">Bank Offers</p>
-                        </div>
-                        <span className="text-sm font-bold text-black">{money(product.price)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </aside>
             </div>
           )}
         </div>

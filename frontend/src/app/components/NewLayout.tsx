@@ -357,7 +357,9 @@ export function NewLayout() {
                   <Youtube className="size-5" />
                 </a>
                 <a
-                  href="#"
+                  href="https://www.instagram.com/udaispecialschool/"
+                  target="_blank"
+                  rel="noreferrer"
                   className="size-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-pink-600 transition-colors"
                   aria-label="Instagram"
                 >

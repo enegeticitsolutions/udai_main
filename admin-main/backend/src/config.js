@@ -23,6 +23,8 @@ export const config = {
   mongoDbName: process.env.MONGODB_DB_NAME ?? "udai",
   projectRoot,
   storageDir: path.resolve(projectRoot, "backend-storage"),
+  sharedUploadDir: path.resolve(projectRoot, "..", "backend", "storage", "uploads"),
+  publicUploadBaseUrl: (process.env.PUBLIC_UPLOAD_BASE_URL ?? process.env.PUBLIC_API_BASE_URL ?? "http://localhost:4000").replace(/\/$/, ""),
   supabaseUrl: process.env.SUPABASE_URL ?? "",
   supabaseAnon: process.env.SUPABASE_ANON ?? "",
   supabaseServiceRole: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",

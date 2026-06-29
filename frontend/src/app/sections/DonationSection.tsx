@@ -368,9 +368,7 @@ export function DonationSection() {
                 <img src="/images/afterschool.png" alt="Children supported by UDAI programs" className="h-40 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(45,31,20,0.14)] sm:h-48" />
                 <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl">Nourish a Mind: The Mid-Day Meal Initiative</h3>
                 <p className="mt-3 text-sm leading-6 text-[#3f332c] sm:text-base sm:leading-7">A warm, balanced meal ensures children stay focused and healthy.</p>
-                <div className="mt-5">
-                  <div className="mt-3 flex justify-between text-xs text-[#5c4a40]"><span>Goal: 10,000 meals</span><span>Current: 7,500 meals</span></div>
-                </div>
+
               </div>
               <div className="border-[#ead9be] md:border-l md:pl-5 lg:border-l-0 lg:pl-0 xl:border-l xl:pl-5">
                 <DonationPanel category="meal" title="Mid-Day Meal Initiative" description="Support balanced meals for children in need." options={mealAmountOptions} defaultAmount={1000} accentClass="bg-[#c95b38] hover:bg-[#b94e30]" selectedClass="border-[#c95b38] bg-white text-[#c95b38] shadow-sm" />

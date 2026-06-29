@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 export function SocialGallerySection() {
   const instagramUrl = "https://www.instagram.com/udaispecialschool/";
   const youtubeUrl = "https://www.youtube.com/@udaiworkingtogetherworkssp2603";
+  const facebookUrl = "https://www.facebook.com/share/1ApdkHwEuw/";
   const images = [
     { id: 1, url: "/images/Social1.png" },
     { id: 2, url: "/images/social2.png" },
@@ -27,12 +28,16 @@ export function SocialGallerySection() {
               @HeartAndSoil on Social
             </h2>
           </div>
-          <div className="flex items-center gap-4 text-[#b9aca5]">
-            <Instagram className="h-5 w-5" />
+          <div className="flex items-center gap-4 text-[#b9aca5] [&>a]:transition [&>a:hover]:text-[#2b1b15]">
+            <a href={instagramUrl} target="_blank" rel="noreferrer" aria-label="Instagram">
+              <Instagram className="h-5 w-5" />
+            </a>
             <a href={youtubeUrl} target="_blank" rel="noreferrer" aria-label="YouTube">
               <Youtube className="h-5 w-5" />
             </a>
-            <Facebook className="h-5 w-5" />
+            <a href={facebookUrl} target="_blank" rel="noreferrer" aria-label="Facebook">
+              <Facebook className="h-5 w-5" />
+            </a>
           </div>
         </motion.div>
 

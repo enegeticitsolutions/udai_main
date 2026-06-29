@@ -3,7 +3,7 @@ import Badge from "./Badge";
 import Button from "./Button";
 import Input from "./Input";
 import StatCard from "./StatCard";
-import { uploadImageFile } from "../services/adminApi";
+import { PUBLIC_UPLOAD_BASE, uploadImageFile } from "../services/adminApi";
 
 export default function ProductsPage({ products, onAddProduct, onUpdateProduct, onDeleteProduct }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -152,15 +152,11 @@ export default function ProductsPage({ products, onAddProduct, onUpdateProduct, 
     try {
       setIsUploading(true);
       const res = await uploadImageFile(file);
-      // Append VITE_ADMIN_API_BASE host to render local images properly, or use relative route
-      // Let's store host relative "/uploads/filename" because frontend and backend can be on different hosts
-      // The backend serves it at http://localhost:4000/uploads/filename
-      // Let's make it work robustly by prefixing backend host if it starts with /uploads
-      const backendHost = "http://localhost:4000";
-      const fullUrl = res.url.startsWith("/") ? `${backendHost}${res.url}` : res.url;
+      // Supabase returns a full HTTPS URL — use it directly
+      const imageUrl = res.url || "";
       setFormData((prev) => ({
         ...prev,
-        image: fullUrl,
+        image: imageUrl,
       }));
       alert("Image uploaded successfully!");
     } catch (err) {

@@ -156,6 +156,40 @@ function normalizeCareerDocument(doc: Record<string, any>): CareerOpportunity {
   } as CareerOpportunity;
 }
 
+function normalizeUploadUrl(url: unknown) {
+  const value = String(url ?? "").trim();
+  if (!value) {
+    return value;
+  }
+
+  if (value.startsWith("/uploads/")) {
+    return `${config.publicUploadBaseUrl}${value}`;
+  }
+
+  try {
+    const parsed = new URL(value);
+    if ((parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") && parsed.pathname.startsWith("/uploads/")) {
+      return `${config.publicUploadBaseUrl}${parsed.pathname}`;
+    }
+  } catch {
+    // Keep non-URL values such as /images/foo.png unchanged.
+  }
+
+  return value;
+}
+
+function normalizeProductDocument(doc: Record<string, any>): Product {
+  const { _id, ...product } = doc;
+  const gallery = Array.isArray(product.gallery) ? product.gallery.map((url: unknown) => normalizeUploadUrl(url)) : [];
+
+  return {
+    ...product,
+    id: product.id ?? _id?.toString(),
+    image: normalizeUploadUrl(product.image),
+    gallery,
+  } as Product;
+}
+
 function careerMongoFilter(id: string | number) {
   const stringId = String(id);
   const numericId = Number(stringId);
@@ -209,14 +243,12 @@ async function readStoredProducts(): Promise<Product[]> {
   if (isMongoConnected()) {
     const db = getMongoDb();
     const docs = await db.collection("products").find({}).sort({ createdAt: -1 }).toArray();
-    return docs.map((doc) => ({
-      ...doc,
-      id: doc._id.toString(),
-    })) as unknown as Product[];
+    return docs.map((doc) => normalizeProductDocument(doc));
   }
 
   try {
-    return await readJsonFile<Product[]>(storedProductsPath());
+    const products = await readJsonFile<Product[]>(storedProductsPath());
+    return products.map((product) => normalizeProductDocument(product as Record<string, any>));
   } catch (error) {
     const err = error as NodeJS.ErrnoException;
     if (err.code === "ENOENT") {
@@ -391,5 +423,4 @@ export async function deleteCareer(id: string | number): Promise<boolean> {
   await writeJsonFile(storedCareersPath(), nextCareers);
   return true;
 }
-
 

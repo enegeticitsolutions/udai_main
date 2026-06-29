@@ -258,7 +258,7 @@ export interface CareerOpportunity {
   description: string;
   responsibilities: string[];
   requirements: string[];
-  applyLink: string;
+  applyLink?: string;
   status?: "open" | "closed";
   createdAt?: string;
   updatedAt?: string;
