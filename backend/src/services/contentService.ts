@@ -106,6 +106,7 @@ async function readStoredTherapists({ includeInactive = false } = {}): Promise<T
   await connectMongoDb();
 
   if (isMongoConnected()) {
+    console.log("--> contentService: SUCCESS - MongoDB is connected! Fetching therapists from MongoDB...");
     const db = getMongoDb();
     const collection = db.collection("therapists");
     const existingCount = await collection.countDocuments();
@@ -120,8 +121,11 @@ async function readStoredTherapists({ includeInactive = false } = {}): Promise<T
     }
 
     const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    console.log(`--> contentService: Found ${docs.length} therapists inside MongoDB.`);
     return filterTherapists(docs.map((doc) => normalizeTherapistDocument(doc)));
   }
+
+  console.log("--> contentService: WARNING - MongoDB NOT connected! Falling back to local JSON file.");
 
   try {
     const storedTherapists = await readJsonFile<Therapist[]>(storedTherapistsPath());
