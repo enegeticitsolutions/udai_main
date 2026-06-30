@@ -11,7 +11,7 @@ export function TherapistsSection() {
     [],
   );
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
-  const loopingTherapists = [...therapists, ...therapists];
+  const loopingTherapists = therapists;
 
   return (
     <section className="scroll-mt-40 bg-[#f7f4ef] py-16 sm:py-20" id="therapists">

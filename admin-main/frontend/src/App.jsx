@@ -670,8 +670,8 @@ function DonationsPage({ donations }) {
             padding: "10px 20px",
             borderRadius: "8px",
             border: currentTab === "meal" ? "none" : "1px solid #cbd5e0",
-            backgroundColor: currentTab === "meal" ? "#2f5597" : "white",
-            color: currentTab === "meal" ? "white" : "#4a5568",
+            backgroundColor: currentTab === "meal" ? "#2f5597" : "var(--surface)",
+            color: currentTab === "meal" ? "white" : "var(--text)",
             fontWeight: 600,
             cursor: "pointer",
             transition: "all 0.2s"
@@ -686,8 +686,8 @@ function DonationsPage({ donations }) {
             padding: "10px 20px",
             borderRadius: "8px",
             border: currentTab === "future" ? "none" : "1px solid #cbd5e0",
-            backgroundColor: currentTab === "future" ? "#2f5597" : "white",
-            color: currentTab === "future" ? "white" : "#4a5568",
+            backgroundColor: currentTab === "future" ? "#2f5597" : "var(--surface)",
+            color: currentTab === "future" ? "white" : "var(--text)",
             fontWeight: 600,
             cursor: "pointer",
             transition: "all 0.2s"
@@ -1069,18 +1069,18 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
           display: flex;
           align-items: center;
           gap: 16px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--line);
         }
         .metric-card.blue { background: #f0f6ff; border-color: #dbeafe; }
-        .metric-card.blue .metric-icon { background: white; color: #3b82f6; }
+        .metric-card.blue .metric-icon { background: var(--surface); color: #3b82f6; }
         .metric-card.amber { background: #fffbeb; border-color: #fef3c7; }
-        .metric-card.amber .metric-icon { background: white; color: #f59e0b; }
+        .metric-card.amber .metric-icon { background: var(--surface); color: #f59e0b; }
         .metric-card.green { background: #f0fdf4; border-color: #dcfce7; }
-        .metric-card.green .metric-icon { background: white; color: #22c55e; }
+        .metric-card.green .metric-icon { background: var(--surface); color: #22c55e; }
         .metric-card.red { background: #fef2f2; border-color: #fee2e2; }
-        .metric-card.red .metric-icon { background: white; color: #ef4444; }
+        .metric-card.red .metric-icon { background: var(--surface); color: #ef4444; }
         .metric-card.purple { background: #faf5ff; border-color: #f3e8ff; }
-        .metric-card.purple .metric-icon { background: white; color: #a855f7; }
+        .metric-card.purple .metric-icon { background: var(--surface); color: #a855f7; }
 
         .metric-icon {
           width: 48px;
@@ -1094,13 +1094,13 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
         .metric-info h3 {
           font-size: 24px;
           font-weight: 700;
-          color: #1e293b;
+          color: var(--text);
           margin: 0;
           line-height: 1;
         }
         .metric-info span {
           font-size: 13px;
-          color: #64748b;
+          color: var(--muted);
           font-weight: 500;
           margin-top: 4px;
           display: block;
@@ -1112,7 +1112,7 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
           align-items: center;
           gap: 16px;
           padding: 20px;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid var(--line);
           flex-wrap: wrap;
         }
         .search-box {
@@ -1130,7 +1130,7 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
         .search-box input {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--line);
           border-radius: 8px;
           font-size: 14px;
           outline: none;
@@ -1146,27 +1146,27 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
         .dropdown-box {
           display: flex;
           align-items: center;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--line);
           border-radius: 8px;
           padding: 0 12px;
-          background: white;
+          background: var(--surface);
           position: relative;
           height: 42px;
         }
         .dropdown-box label {
           font-size: 11px;
-          color: #64748b;
+          color: var(--muted);
           position: absolute;
           top: -8px;
           left: 8px;
-          background: white;
+          background: var(--surface);
           padding: 0 4px;
         }
         .dropdown-box select {
           border: none;
           padding: 12px 0;
           font-size: 14px;
-          color: #334155;
+          color: var(--text);
           outline: none;
           background: transparent;
           cursor: pointer;
@@ -1201,14 +1201,14 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
           padding: 12px 10px;
           border-bottom: 1px solid #f1f5f9;
           font-size: 12px;
-          color: #475569;
+          color: var(--muted);
           text-align: left;
           word-break: break-word;
         }
         .volunteers-table th {
           font-weight: 600;
-          color: #1e293b;
-          background: white;
+          color: var(--text);
+          background: var(--surface);
           font-size: 13px;
         }
         .volunteers-table tr:hover td {
@@ -1218,8 +1218,8 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1px solid #e2e8f0;
-          background: white;
+          border: 1px solid var(--line);
+          background: var(--surface);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1227,7 +1227,7 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
         }
         .action-icon.view { color: #3b82f6; border-color: #bfdbfe; }
         .action-icon.view:hover { background: #eff6ff; }
-        .action-icon.more-btn { color: #475569; border-color: #cbd5e1; }
+        .action-icon.more-btn { color: var(--muted); border-color: #cbd5e1; }
         .action-icon.more-btn:hover { background: #f1f5f9; }
         .action-icon.delete { color: #ef4444; border-color: #fecaca; }
         .action-icon.delete:hover { background: #fef2f2; }
@@ -1237,9 +1237,9 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
           align-items: center;
           justify-content: space-between;
           padding: 20px;
-          border-top: 1px solid #e2e8f0;
+          border-top: 1px solid var(--line);
           font-size: 13px;
-          color: #64748b;
+          color: var(--muted);
         }
         .pagination-controls {
           display: flex;
@@ -1251,9 +1251,9 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid #e2e8f0;
-          background: white;
-          color: #475569;
+          border: 1px solid var(--line);
+          background: var(--surface);
+          color: var(--muted);
           border-radius: 6px;
           cursor: pointer;
           font-size: 13px;
@@ -1500,7 +1500,7 @@ function AvailabilityPage({ therapists, deactivatedDates, onToggleDeactivate }) 
       <style>{`
         .availability-grid-container {
           margin-top: 24px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--line);
           border-radius: 12px;
           overflow: hidden;
         }
@@ -1514,7 +1514,7 @@ function AvailabilityPage({ therapists, deactivatedDates, onToggleDeactivate }) 
         }
         .availability-table th, .availability-table td {
           padding: 16px;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid var(--line);
           min-width: 120px;
         }
         .availability-table th {
@@ -1522,24 +1522,24 @@ function AvailabilityPage({ therapists, deactivatedDates, onToggleDeactivate }) 
           font-size: 12px;
           font-weight: 600;
           text-transform: uppercase;
-          color: #64748b;
+          color: var(--muted);
         }
         .sticky-col {
           position: sticky;
           left: 0;
-          background: white;
+          background: var(--surface);
           z-index: 10;
           border-right: 2px solid #e2e8f0;
           min-width: 200px !important;
         }
         .doctor-info strong {
           display: block;
-          color: #1e293b;
+          color: var(--text);
           font-size: 14px;
         }
         .doctor-info span {
           font-size: 11px;
-          color: #64748b;
+          color: var(--muted);
         }
         .date-toggle {
           width: 100%;
@@ -1727,7 +1727,7 @@ function NotificationsPage({ inquiries = [], onSendNotification }) {
           background: #f8fafc;
           padding: 16px;
           border-radius: 12px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--line);
           margin-bottom: 24px;
           flex-wrap: wrap;
         }
@@ -1741,13 +1741,13 @@ function NotificationsPage({ inquiries = [], onSendNotification }) {
         .filter-group label {
           font-size: 13px;
           font-weight: 600;
-          color: #475569;
+          color: var(--muted);
         }
         .filter-input {
           padding: 10px 14px;
           border-radius: 8px;
           border: 1px solid #cbd5e1;
-          background: white;
+          background: var(--surface);
           font-size: 14px;
           outline: none;
         }
@@ -1758,7 +1758,7 @@ function NotificationsPage({ inquiries = [], onSendNotification }) {
         .mt-6 { margin-top: 24px; }
         .table-responsive {
           overflow-x: auto;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--line);
           border-radius: 12px;
         }
         .notifications-table {
@@ -1768,14 +1768,14 @@ function NotificationsPage({ inquiries = [], onSendNotification }) {
         }
         .notifications-table th, .notifications-table td {
           padding: 16px;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid var(--line);
           font-size: 14px;
-          color: #334155;
+          color: var(--text);
         }
         .notifications-table th {
           background: #f8fafc;
           font-weight: 600;
-          color: #64748b;
+          color: var(--muted);
         }
         .actions-cell {
           display: flex;
@@ -1805,8 +1805,8 @@ function NotificationsPage({ inquiries = [], onSendNotification }) {
           position: absolute;
           right: 0;
           top: 40px;
-          background: white;
-          border: 1px solid #e2e8f0;
+          background: var(--surface);
+          border: 1px solid var(--line);
           border-radius: 12px;
           width: 250px;
           z-index: 50;
@@ -1826,7 +1826,7 @@ function NotificationsPage({ inquiries = [], onSendNotification }) {
         .message-dropdown-item span {
           font-size: 13px;
           font-weight: 500;
-          color: #334155;
+          color: var(--text);
         }
         .send-btn {
           background: transparent;
@@ -2070,6 +2070,12 @@ export default function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [backendError, setBackendError] = useState("");
   const [isAddTherapistOpen, setIsAddTherapistOpen] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem("adminTheme") || "light");
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark-theme", theme === "dark");
+    localStorage.setItem("adminTheme", theme);
+  }, [theme]);
 
   useEffect(() => {
     if (currentUser) {
@@ -2401,6 +2407,12 @@ export default function App() {
             <h1>{activeSection}</h1>
           </div>
           <div className="topbar-actions">
+            <Button
+              variant="secondary"
+              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+            >
+              {theme === "dark" ? "Light" : "Dark"}
+            </Button>
             <div className={`connection-dot connection-dot--${backendStatus}`} aria-label={backendStatusLabel(backendStatus)} />
             <Badge tone="green">{currentUser.role}</Badge>
             {backendError ? <span className="backend-error">{backendError}</span> : null}
