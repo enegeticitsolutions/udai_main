@@ -1,6 +1,6 @@
-import { MongoClient } from "mongodb";
-import dotenv from "dotenv";
-import path from "node:path";
+const { MongoClient } = require("mongodb");
+const dotenv = require("dotenv");
+const path = require("path");
 
 // Load backend .env file explicitly
 dotenv.config({ path: path.resolve("backend", ".env") });
