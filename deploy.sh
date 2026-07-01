@@ -37,7 +37,7 @@ fi
 echo ""
 echo "📦 Step 2: Building main backend (TypeScript)..."
 cd backend
-npm install --omit=dev
+npm install
 npm run build
 echo "✅ Backend built successfully (dist/server.js ready)"
 cd ..
@@ -46,7 +46,7 @@ cd ..
 echo ""
 echo "📦 Step 3: Building frontend..."
 cd frontend
-npm install --omit=dev
+npm install
 npm run build
 echo "✅ Frontend built successfully (dist/ ready)"
 cd ..
@@ -55,7 +55,7 @@ cd ..
 echo ""
 echo "📦 Step 4: Installing admin-main backend dependencies..."
 cd admin-main/backend
-npm install --omit=dev
+npm install
 echo "✅ Admin backend dependencies installed"
 cd ../..
 
@@ -63,7 +63,7 @@ cd ../..
 echo ""
 echo "📦 Step 5: Installing msg91-bridge-service dependencies..."
 cd msg91-bridge-service
-npm install --omit=dev
+npm install
 echo "✅ MSG91 bridge dependencies installed"
 cd ..
 
