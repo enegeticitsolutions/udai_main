@@ -20,6 +20,19 @@ const ChatbotSubmissionSchema = new mongoose.Schema(
       index: true,
       trim: true,
     },
+    // MSG91 sends multiple events (sent, delivered, read) for same transactionId
+    // We store each event separately here
+    events: {
+      type: [
+        {
+          eventName: { type: String, trim: true },
+          statusCode: { type: String, trim: true },
+          ts: { type: String, trim: true },
+          _id: false,
+        },
+      ],
+      default: [],
+    },
     userDetails: {
       name: { type: String, trim: true },
       age: { type: Number, min: 0, max: 120 },
@@ -28,7 +41,7 @@ const ChatbotSubmissionSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      default: "msg91-api-node",
+      default: "msg91-webhook",
       trim: true,
     },
     rawPayload: {

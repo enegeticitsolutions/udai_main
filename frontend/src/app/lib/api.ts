@@ -1,9 +1,46 @@
-const API_BASE_URL =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ??
-  "http://localhost:4000/api";
-const ADMIN_API_BASE_URL =
-  (import.meta.env.VITE_ADMIN_API_BASE as string | undefined)?.replace(/\/$/, "") ??
-  "http://localhost:5003/api/admin";
+const getApiBaseUrl = () => {
+  if (typeof window === "undefined") {
+    return (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "http://localhost:4000/api";
+  }
+
+  const { hostname, protocol } = window.location;
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+
+  // If a custom production API URL is provided, use it
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  // Local development
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return envUrl?.replace(/\/$/, "") ?? "http://localhost:4000/api";
+  }
+
+  // Deployed site standard path: relative to current domain
+  return "/api";
+};
+
+const getAdminApiBaseUrl = () => {
+  if (typeof window === "undefined") {
+    return (import.meta.env.VITE_ADMIN_API_BASE as string | undefined)?.replace(/\/$/, "") ?? "http://localhost:5003/api/admin";
+  }
+
+  const { hostname } = window.location;
+  const envUrl = import.meta.env.VITE_ADMIN_API_BASE as string | undefined;
+
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return envUrl?.replace(/\/$/, "") ?? "http://localhost:5003/api/admin";
+  }
+
+  return "/api/admin";
+};
+
+const API_BASE_URL = getApiBaseUrl();
+const ADMIN_API_BASE_URL = getAdminApiBaseUrl();
 
 interface ApiSuccessResponse<T> {
   success: true;

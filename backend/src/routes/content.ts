@@ -129,9 +129,35 @@ contentRouter.get("/testimonials", async (_req, res, next) => {
   }
 });
 
-contentRouter.get("/therapists", async (_req, res, next) => {
+contentRouter.get("/therapists", async (req, res, next) => {
   try {
     const therapists = await getTherapists();
+    
+    // Add ?debug=true diagnostic mode for production troubleshooting
+    if (req.query.debug === "true") {
+      const { isMongoConnected } = await import("../lib/mongodb.js");
+      const rawUri = process.env.MONGODB_URI ?? "";
+      
+      // Mask password for safety
+      let maskedUri = "not_set";
+      if (rawUri) {
+        maskedUri = rawUri.replace(/\/\/([^:]+):([^@]+)@/, "//slice_user:******@");
+      }
+
+      return res.json({
+        success: true,
+        data: therapists,
+        debug: {
+          mongoConnected: isMongoConnected(),
+          hasMongoUriEnv: Boolean(rawUri),
+          mongoUriMasked: maskedUri,
+          mongoDbName: process.env.MONGODB_DB_NAME ?? "udai",
+          nodeEnv: process.env.NODE_ENV ?? "development",
+          source: isMongoConnected() ? "database" : "json_fallback",
+        }
+      });
+    }
+
     res.json({ success: true, data: therapists });
   } catch (error) {
     next(error);

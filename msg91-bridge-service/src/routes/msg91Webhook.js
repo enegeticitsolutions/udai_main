@@ -102,6 +102,50 @@ export function createMsg91WebhookRouter(repository) {
       }
     },
   );
+  // ------------ TEST ROUTE ------------
+  router.post("/test-webhook", async (req, res) => {
+    try {
+      console.log("--- MSG91 RAW PAYLOAD ---");
+      console.log(JSON.stringify(req.body, null, 2));
 
+      // Map MSG91's field names (customerNumber, content, requestId) to our schema fields
+      const mapped = mapMsg91Payload(req.body);
+      console.log("--- MAPPED PAYLOAD ---");
+      console.log(mapped);
+
+      // Check for missing required fields after mapping
+      const missing = [];
+      if (!mapped.phone) missing.push("phone (customerNumber)");
+      if (!mapped.message) missing.push("message (content)");
+      if (!mapped.transactionId) missing.push("transactionId (requestId/uuid)");
+
+      if (missing.length > 0) {
+        return res.status(422).json({
+          success: false,
+          message: `Cannot save: missing required fields after mapping: ${missing.join(", ")}`,
+          rawPayload: req.body,
+          mappedPayload: mapped,
+        });
+      }
+
+      const record = await repository.create(mapped);
+
+      return res.status(201).json({
+        success: true,
+        message: "MSG91 webhook data recorded successfully!",
+        data: {
+          id: record.id,
+          phone: record.phone,
+          transactionId: record.transactionId,
+          eventName: req.body.eventName,
+          receivedAt: record.createdAt,
+        }
+      });
+    } catch (error) {
+      console.error("Webhook Save Error:", error.message);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+  // ----------------------------------------------------
   return router;
 }

@@ -102,53 +102,39 @@ async function readSeedCareers() {
 async function readStoredTherapists({ includeInactive = false } = {}): Promise<Therapist[]> {
   const filterTherapists = (therapists: Therapist[]) =>
     includeInactive ? therapists : therapists.filter((therapist) => therapist.active !== false && therapist.isActive !== false);
-  const seedTherapists = await readSeedTherapists();
+
   await connectMongoDb();
 
   if (isMongoConnected()) {
     console.log("--> contentService: SUCCESS - MongoDB is connected! Fetching therapists from MongoDB...");
     const db = getMongoDb();
     const collection = db.collection("therapists");
-    const existingCount = await collection.countDocuments();
-    if (existingCount === 0 && seedTherapists.length > 0) {
-      const now = new Date().toISOString();
-      await collection.insertMany(seedTherapists.map((therapist) => ({
-        ...therapist,
-        active: therapist.active ?? true,
-        createdAt: now,
-        updatedAt: now,
-      })));
-    }
+
+    // NOTE: Removed seed data auto-insert.
+    // Only admin-uploaded therapists (via admin panel) will be shown.
+    // This ensures local and deployed environments show the same MongoDB data.
 
     const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
     console.log(`--> contentService: Found ${docs.length} therapists inside MongoDB.`);
     return filterTherapists(docs.map((doc) => normalizeTherapistDocument(doc)));
   }
 
+  // MongoDB not reachable — fallback to local storage JSON (only for offline/dev use)
   console.log("--> contentService: WARNING - MongoDB NOT connected! Falling back to local JSON file.");
 
   try {
     const storedTherapists = await readJsonFile<Therapist[]>(storedTherapistsPath());
-    const therapistMap = new Map<string, Therapist>();
-    seedTherapists.forEach((therapist) => {
-      const normalized = normalizeTherapistDocument(therapist as Record<string, any>);
-      therapistMap.set(String(normalized.id), normalized);
-    });
-    storedTherapists.forEach((therapist) => {
-      const normalized = normalizeTherapistDocument(therapist as Record<string, any>);
-      therapistMap.set(String(normalized.id), { ...(therapistMap.get(String(normalized.id)) ?? {}), ...normalized });
-    });
-    return filterTherapists(Array.from(therapistMap.values()));
+    return filterTherapists(
+      storedTherapists.map((therapist) => normalizeTherapistDocument(therapist as Record<string, any>))
+    );
   } catch (error) {
     const err = error as NodeJS.ErrnoException;
     if (err.code !== "ENOENT") {
       throw error;
     }
-
-    await fs.mkdir(config.storageDir, { recursive: true });
-    const initialTherapists = seedTherapists.map((therapist) => ({ ...therapist, active: therapist.active ?? true }));
-    await writeJsonFile(storedTherapistsPath(), initialTherapists);
-    return filterTherapists(initialTherapists);
+    // No local file either — return empty list (don't show seed/mock data)
+    console.log("--> contentService: No local therapists.json found. Returning empty list.");
+    return [];
   }
 }
 

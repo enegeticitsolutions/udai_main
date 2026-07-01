@@ -28,11 +28,17 @@ export function mapMsg91Payload(body) {
   };
 
   return {
-    phone: cleanPhone(body.phone ?? body.user_phone),
-    message: cleanString(body.message ?? body.responseBody ?? body.user_message, 4000),
-    transactionId: cleanString(body.transactionId ?? body.msg91TransactionId ?? body.transaction_id, 160),
+    // MSG91 webhook sends customerNumber; fallback to other field names for flexibility
+    phone: cleanPhone(body.customerNumber ?? body.phone ?? body.user_phone),
+    // MSG91 webhook sends content; fallback to other field names
+    message: cleanString(body.content ?? body.message ?? body.responseBody ?? body.user_message, 4000) || `[${body.eventName ?? "event"}]`,
+    // MSG91 webhook sends requestId; fallback to other field names
+    transactionId: cleanString(
+      body.requestId ?? body.transactionId ?? body.msg91TransactionId ?? body.transaction_id ?? body.uuid,
+      160
+    ),
     userDetails,
-    source: cleanString(body.source, 80) || "msg91-api-node",
+    source: cleanString(body.source, 80) || "msg91-webhook",
     rawPayload: body,
   };
 }

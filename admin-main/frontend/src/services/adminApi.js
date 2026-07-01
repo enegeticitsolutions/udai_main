@@ -1,9 +1,47 @@
-const API_BASE = (import.meta.env.VITE_ADMIN_API_BASE ?? "http://localhost:5003/api/admin").replace(/\/$/, "");
-export const PUBLIC_UPLOAD_BASE = (
-  import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ??
-  import.meta.env.VITE_PUBLIC_API_BASE_URL ??
-  "http://localhost:4000"
-).replace(/\/$/, "");
+const getAdminApiBase = () => {
+  if (typeof window === "undefined") {
+    return (import.meta.env.VITE_ADMIN_API_BASE ?? "http://localhost:5003/api/admin").replace(/\/$/, "");
+  }
+
+  const { hostname } = window.location;
+  const envUrl = import.meta.env.VITE_ADMIN_API_BASE;
+
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return envUrl?.replace(/\/$/, "") ?? "http://localhost:5003/api/admin";
+  }
+
+  return "/api/admin";
+};
+
+const getPublicUploadBase = () => {
+  if (typeof window === "undefined") {
+    return (
+      import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ??
+      import.meta.env.VITE_PUBLIC_API_BASE_URL ??
+      "http://localhost:4000"
+    ).replace(/\/$/, "");
+  }
+
+  const { hostname } = window.location;
+  const envUrl = import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ?? import.meta.env.VITE_PUBLIC_API_BASE_URL;
+
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return envUrl?.replace(/\/$/, "") ?? "http://localhost:4000";
+  }
+
+  return window.location.origin;
+};
+
+const API_BASE = getAdminApiBase();
+export const PUBLIC_UPLOAD_BASE = getPublicUploadBase();
 export const APPOINTMENT_EVENTS_URL = `${API_BASE}/appointments/events`;
 
 async function request(path, options = {}) {

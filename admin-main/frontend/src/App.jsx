@@ -2364,7 +2364,7 @@ export default function App() {
       case "WhatsApp Bookings":
         return <WhatsAppBookingsPage bookings={whatsappBookings} />;
       case "WhatsApp Appointments":
-        return <AppointmentsPage />;
+        return <WhatsAppBookingsPage bookings={whatsappBookings} />;
       case "Subscribe":
         return <SubscribersPage subscribers={subscribers} onAddSubscriber={handleSubscriberAdd} />;
       case "Contacts":

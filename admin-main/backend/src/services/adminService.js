@@ -25,7 +25,7 @@ const storageByEntity = {
   subscribers: { fileName: "subscribers.json", collectionName: "subscribers", seed: seedSubscribers },
   products: { fileName: "products.json", collectionName: "products", seed: seedProducts },
   careers: { fileName: "careers.json", collectionName: "careers", seed: [] },
-  whatsappBookings: { fileName: "whatsapp-bookings.json", collectionName: "chatbotusers", seed: [] },
+  whatsappBookings: { fileName: "whatsapp-bookings.json", collectionName: "chatbotsubmissions", seed: [] },
 };
 
 function storagePath(fileName) {
