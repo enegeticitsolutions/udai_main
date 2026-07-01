@@ -1,5 +1,5 @@
-const { MongoClient } = require("mongodb");
-const dotenv = require("dotenv");
+const { MongoClient } = require("./backend/node_modules/mongodb");
+const dotenv = require("./backend/node_modules/dotenv");
 const path = require("path");
 
 // Load backend .env file explicitly
