@@ -1,7 +1,9 @@
 .DS_Store
 **/.DS_Store
 **/node_modules/
-**/dist/
+frontend/dist/
+admin/dist/
+admin-main/frontend/dist/
 *.log
 .env
 .env.*
