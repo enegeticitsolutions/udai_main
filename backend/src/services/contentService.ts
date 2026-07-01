@@ -103,37 +103,47 @@ async function readStoredTherapists({ includeInactive = false } = {}): Promise<T
   const filterTherapists = (therapists: Therapist[]) =>
     includeInactive ? therapists : therapists.filter((therapist) => therapist.active !== false && therapist.isActive !== false);
 
+  console.log("--> readStoredTherapists: Starting fetch. Attempting to connect to MongoDB...");
   await connectMongoDb();
 
   if (isMongoConnected()) {
-    console.log("--> contentService: SUCCESS - MongoDB is connected! Fetching therapists from MongoDB...");
+    console.log("--> readStoredTherapists: MongoDB is connected! Querying 'therapists' collection...");
     const db = getMongoDb();
     const collection = db.collection("therapists");
 
-    // NOTE: Removed seed data auto-insert.
-    // Only admin-uploaded therapists (via admin panel) will be shown.
-    // This ensures local and deployed environments show the same MongoDB data.
-
-    const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
-    console.log(`--> contentService: Found ${docs.length} therapists inside MongoDB.`);
-    return filterTherapists(docs.map((doc) => normalizeTherapistDocument(doc)));
+    try {
+      const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
+      console.log(`--> readStoredTherapists: Successfully fetched ${docs.length} documents from MongoDB.`);
+      const processed = filterTherapists(docs.map((doc) => normalizeTherapistDocument(doc)));
+      console.log(`--> readStoredTherapists: Returning ${processed.length} active therapists from MongoDB after filtering.`);
+      return processed;
+    } catch (dbError: any) {
+      console.error("--> readStoredTherapists: Error querying 'therapists' collection in MongoDB:", dbError.message);
+      throw dbError;
+    }
   }
 
   // MongoDB not reachable — fallback to local storage JSON (only for offline/dev use)
-  console.log("--> contentService: WARNING - MongoDB NOT connected! Falling back to local JSON file.");
+  console.log("--> readStoredTherapists: WARNING - MongoDB NOT connected! Falling back to local JSON file.");
+  const jsonPath = storedTherapistsPath();
+  console.log(`--> readStoredTherapists: Local JSON path is: ${jsonPath}`);
 
   try {
-    const storedTherapists = await readJsonFile<Therapist[]>(storedTherapistsPath());
-    return filterTherapists(
+    const storedTherapists = await readJsonFile<Therapist[]>(jsonPath);
+    console.log(`--> readStoredTherapists: Loaded ${storedTherapists.length} therapists from JSON file.`);
+    const processed = filterTherapists(
       storedTherapists.map((therapist) => normalizeTherapistDocument(therapist as Record<string, any>))
     );
+    console.log(`--> readStoredTherapists: Returning ${processed.length} active therapists from JSON after filtering.`);
+    return processed;
   } catch (error) {
     const err = error as NodeJS.ErrnoException;
+    console.error("--> readStoredTherapists: Error reading JSON fallback:", err.message);
     if (err.code !== "ENOENT") {
       throw error;
     }
     // No local file either — return empty list (don't show seed/mock data)
-    console.log("--> contentService: No local therapists.json found. Returning empty list.");
+    console.log("--> readStoredTherapists: No local therapists.json found. Returning empty list.");
     return [];
   }
 }

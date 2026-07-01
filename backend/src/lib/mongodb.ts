@@ -10,6 +10,7 @@ export async function connectMongoDb() {
   }
 
   if (!config.mongoUri) {
+    console.warn("--> connectMongoDb: WARNING - config.mongoUri is empty, undefined, or not loaded from env!");
     return null;
   }
 
