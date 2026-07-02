@@ -48,7 +48,6 @@ const roleSections = {
   admin: [
     "Dashboard",
     "Appointments / Inquiries",
-    "WhatsApp Bookings",
     "WhatsApp Appointments",
     "Orders / Purchases",
     "Donations",
@@ -66,7 +65,6 @@ const roleSections = {
   ],
   editor: [
     "Appointments / Inquiries",
-    "WhatsApp Bookings",
     "WhatsApp Appointments",
     "Therapist Management",
     "Availability Manager",
@@ -2361,8 +2359,6 @@ export default function App() {
             onDeleteCareer={handleCareerRemove}
           />
         );
-      case "WhatsApp Bookings":
-        return <WhatsAppBookingsPage bookings={whatsappBookings} />;
       case "WhatsApp Appointments":
         return <WhatsAppBookingsPage bookings={whatsappBookings} />;
       case "Subscribe":

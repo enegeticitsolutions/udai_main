@@ -12,7 +12,7 @@ function required(name, fallback = "") {
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
-  port: Number(process.env.PORT ?? 8080),
+  port: Number(process.env.PORT ?? 5009),
   corsOrigins: String(process.env.CORS_ORIGIN ?? "")
     .split(",")
     .map((origin) => origin.trim())
@@ -20,4 +20,5 @@ export const env = {
   webhookApiKey: required("WEBHOOK_API_KEY"),
   dbDriver: process.env.DB_DRIVER ?? "mongodb",
   mongoUri: required("MONGODB_URI", "mongodb://127.0.0.1:27017/msg91_bridge"),
+  mongoDbName: process.env.MONGODB_DB_NAME ?? "udai",
 };

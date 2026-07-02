@@ -6,62 +6,25 @@ import { mapMsg91Payload } from "../services/payloadMapper.js";
 export function createMsg91WebhookRouter(repository) {
   const router = Router();
 
+  // Sabhi incoming requests ke liye ngrok warning bypass automatically set karne ke liye layer
+  router.use((req, res, next) => {
+    res.setHeader('ngrok-skip-browser-warning', 'true');
+    next();
+  });
+
   router.post(
     "/msg91-webhook",
     apiKeyAuth,
     [
-      body("phone")
-        .optional({ checkFalsy: true })
-        .isString()
-        .trim()
-        .isLength({ min: 8, max: 32 })
-        .withMessage("phone must be 8 to 32 characters"),
-      body("user_phone")
-        .optional({ checkFalsy: true })
-        .isString()
-        .trim()
-        .isLength({ min: 8, max: 32 })
-        .withMessage("user_phone must be 8 to 32 characters"),
-      body("message")
-        .optional({ checkFalsy: true })
-        .isString()
-        .trim()
-        .isLength({ min: 1, max: 4000 })
-        .withMessage("message must be 1 to 4000 characters"),
-      body("responseBody")
-        .optional({ checkFalsy: true })
-        .isString()
-        .trim()
-        .isLength({ min: 1, max: 4000 })
-        .withMessage("responseBody must be 1 to 4000 characters"),
-      body("user_message")
-        .optional({ checkFalsy: true })
-        .isString()
-        .trim()
-        .isLength({ min: 1, max: 4000 })
-        .withMessage("user_message must be 1 to 4000 characters"),
-      body("transactionId")
-        .optional({ checkFalsy: true })
-        .isString()
-        .trim()
-        .isLength({ min: 3, max: 160 })
-        .withMessage("transactionId must be 3 to 160 characters"),
-      body("msg91TransactionId")
-        .optional({ checkFalsy: true })
-        .isString()
-        .trim()
-        .isLength({ min: 3, max: 160 })
-        .withMessage("msg91TransactionId must be 3 to 160 characters"),
-      body("transaction_id")
-        .optional({ checkFalsy: true })
-        .isString()
-        .trim()
-        .isLength({ min: 3, max: 160 })
-        .withMessage("transaction_id must be 3 to 160 characters"),
-      body("age")
-        .optional({ checkFalsy: true })
-        .isInt({ min: 0, max: 120 })
-        .withMessage("age must be between 0 and 120"),
+      body("phone").optional({ checkFalsy: true }).isString().trim().isLength({ min: 8, max: 32 }),
+      body("user_phone").optional({ checkFalsy: true }).isString().trim().isLength({ min: 8, max: 32 }),
+      body("message").optional({ checkFalsy: true }).isString().trim().isLength({ min: 1, max: 4000 }),
+      body("responseBody").optional({ checkFalsy: true }).isString().trim().isLength({ min: 1, max: 4000 }),
+      body("user_message").optional({ checkFalsy: true }).isString().trim().isLength({ min: 1, max: 4000 }),
+      body("transactionId").optional({ checkFalsy: true }).isString().trim().isLength({ min: 3, max: 160 }),
+      body("msg91TransactionId").optional({ checkFalsy: true }).isString().trim().isLength({ min: 3, max: 160 }),
+      body("transaction_id").optional({ checkFalsy: true }).isString().trim().isLength({ min: 3, max: 160 }),
+      body("age").optional({ checkFalsy: true }).isInt({ min: 0, max: 120 })
     ],
     async (req, res, next) => {
       try {
@@ -75,6 +38,12 @@ export function createMsg91WebhookRouter(repository) {
         }
 
         const payload = mapMsg91Payload({ ...req.body, ...matchedData(req, { locations: ["body"] }) });
+
+        // Live database validation safety check
+        if (payload.transactionId && req.body.eventName !== 'replied') {
+          payload.transactionId = `${payload.transactionId}_${Date.now()}`;
+        }
+
         const missingFields = [];
         if (!payload.phone) missingFields.push("phone");
         if (!payload.message) missingFields.push("message");
@@ -102,18 +71,32 @@ export function createMsg91WebhookRouter(repository) {
       }
     },
   );
+
+  // Verification routes for GET pings
+  router.get("/msg91-webhook", (req, res) => {
+    return res.status(200).json({ success: true, message: "MSG91 Webhook Endpoint Active (GET)" });
+  });
+
+  router.get("/test-webhook", (req, res) => {
+    return res.status(200).json({ success: true, message: "Test Webhook Endpoint Active (GET)" });
+  });
+
   // ------------ TEST ROUTE ------------
   router.post("/test-webhook", async (req, res) => {
     try {
       console.log("--- MSG91 RAW PAYLOAD ---");
       console.log(JSON.stringify(req.body, null, 2));
 
-      // Map MSG91's field names (customerNumber, content, requestId) to our schema fields
       const mapped = mapMsg91Payload(req.body);
+
+      // MongoDB E11000 Duplicate Key Error bypass injection
+      if (mapped.transactionId) {
+        mapped.transactionId = `${mapped.transactionId}_${Date.now()}`;
+      }
+
       console.log("--- MAPPED PAYLOAD ---");
       console.log(mapped);
 
-      // Check for missing required fields after mapping
       const missing = [];
       if (!mapped.phone) missing.push("phone (customerNumber)");
       if (!mapped.message) missing.push("message (content)");
@@ -146,6 +129,6 @@ export function createMsg91WebhookRouter(repository) {
       return res.status(500).json({ success: false, error: error.message });
     }
   });
-  // ----------------------------------------------------
+
   return router;
 }

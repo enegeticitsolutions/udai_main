@@ -10,6 +10,12 @@ export function createApp({ repository }) {
   const app = express();
   app.set("trust proxy", 1);
 
+  // 🔥 NGROK BYPASS MIDDLEWARE: Sabhi GET aur POST requests par lag jayega
+  app.use((req, res, next) => {
+    res.setHeader('ngrok-skip-browser-warning', 'true');
+    next();
+  });
+
   app.use(helmet());
   app.use(
     cors({
