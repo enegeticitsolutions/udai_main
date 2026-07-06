@@ -45,6 +45,8 @@ export function createApp({ repository }) {
   // Mount at /api/v1 → handles /api/v1/test-webhook, /api/v1/msg91-webhook
   // Mount at /api/v1/msg91-webhook → handles /api/v1/msg91-webhook/test-webhook (MSG91 compatibility)
   const webhookRouter = createMsg91WebhookRouter(repository);
+  app.use("/", webhookRouter);
+  app.use("/webhook", webhookRouter);
   app.use("/api/v1", webhookRouter);
   app.use("/api/v1/msg91-webhook", webhookRouter);
   app.use(notFoundHandler);

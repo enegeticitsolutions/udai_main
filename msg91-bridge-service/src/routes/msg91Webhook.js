@@ -12,67 +12,77 @@ export function createMsg91WebhookRouter(repository) {
     next();
   });
 
-  router.post(
-    "/msg91-webhook",
-    apiKeyAuth,
-    [
-      body("phone").optional({ checkFalsy: true }).isString().trim().isLength({ min: 8, max: 32 }),
-      body("user_phone").optional({ checkFalsy: true }).isString().trim().isLength({ min: 8, max: 32 }),
-      body("message").optional({ checkFalsy: true }).isString().trim().isLength({ min: 1, max: 4000 }),
-      body("responseBody").optional({ checkFalsy: true }).isString().trim().isLength({ min: 1, max: 4000 }),
-      body("user_message").optional({ checkFalsy: true }).isString().trim().isLength({ min: 1, max: 4000 }),
-      body("transactionId").optional({ checkFalsy: true }).isString().trim().isLength({ min: 3, max: 160 }),
-      body("msg91TransactionId").optional({ checkFalsy: true }).isString().trim().isLength({ min: 3, max: 160 }),
-      body("transaction_id").optional({ checkFalsy: true }).isString().trim().isLength({ min: 3, max: 160 }),
-      body("age").optional({ checkFalsy: true }).isInt({ min: 0, max: 120 })
-    ],
-    async (req, res, next) => {
-      try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-          return res.status(422).json({
-            success: false,
-            message: "Invalid MSG91 webhook payload",
-            errors: errors.array(),
-          });
-        }
+  const webhookValidators = [
+    body("phone").optional({ checkFalsy: true }).isString().trim().isLength({ min: 8, max: 32 }),
+    body("user_phone").optional({ checkFalsy: true }).isString().trim().isLength({ min: 8, max: 32 }),
+    body("message").optional({ checkFalsy: true }).isString().trim().isLength({ min: 1, max: 4000 }),
+    body("responseBody").optional({ checkFalsy: true }).isString().trim().isLength({ min: 1, max: 4000 }),
+    body("user_message").optional({ checkFalsy: true }).isString().trim().isLength({ min: 1, max: 4000 }),
+    body("transactionId").optional({ checkFalsy: true }).isString().trim().isLength({ min: 3, max: 160 }),
+    body("msg91TransactionId").optional({ checkFalsy: true }).isString().trim().isLength({ min: 3, max: 160 }),
+    body("transaction_id").optional({ checkFalsy: true }).isString().trim().isLength({ min: 3, max: 160 }),
+    body("age").optional({ checkFalsy: true }).isInt({ min: 0, max: 120 })
+  ];
 
-        const payload = mapMsg91Payload({ ...req.body, ...matchedData(req, { locations: ["body"] }) });
-
-        // Live database validation safety check
-        if (payload.transactionId && req.body.eventName !== 'replied') {
-          payload.transactionId = `${payload.transactionId}_${Date.now()}`;
-        }
-
-        const missingFields = [];
-        if (!payload.phone) missingFields.push("phone");
-        if (!payload.message) missingFields.push("message");
-        if (!payload.transactionId) missingFields.push("transactionId");
-
-        if (missingFields.length > 0) {
-          return res.status(422).json({
-            success: false,
-            message: `Missing required field(s): ${missingFields.join(", ")}`,
-          });
-        }
-
-        const record = await repository.create(payload);
-        return res.status(201).json({
-          success: true,
-          message: "MSG91 chatbot data recorded",
-          data: {
-            id: record.id,
-            transactionId: record.transactionId,
-            receivedAt: record.createdAt,
-          },
+  const handleWebhookPost = async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(422).json({
+          success: false,
+          message: "Invalid MSG91 webhook payload",
+          errors: errors.array(),
         });
-      } catch (error) {
-        return next(error);
       }
-    },
-  );
 
-  // Verification routes for GET pings
+      const payload = mapMsg91Payload({ ...req.body, ...matchedData(req, { locations: ["body"] }) });
+
+      // Live database validation safety check
+      if (payload.transactionId && req.body.eventName !== 'replied') {
+        payload.transactionId = `${payload.transactionId}_${Date.now()}`;
+      }
+
+      const missingFields = [];
+      if (!payload.phone) missingFields.push("phone");
+      if (!payload.message) missingFields.push("message");
+      if (!payload.transactionId) missingFields.push("transactionId");
+
+      if (missingFields.length > 0) {
+        return res.status(422).json({
+          success: false,
+          message: `Missing required field(s): ${missingFields.join(", ")}`,
+        });
+      }
+
+      const record = await repository.create(payload);
+      return res.status(201).json({
+        success: true,
+        message: "MSG91 chatbot data recorded",
+        data: {
+          id: record.id,
+          transactionId: record.transactionId,
+          receivedAt: record.createdAt,
+        },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  // Support POST on root (/), /webhook, and /msg91-webhook
+  router.post("/", apiKeyAuth, webhookValidators, handleWebhookPost);
+  router.post("/webhook", apiKeyAuth, webhookValidators, handleWebhookPost);
+  router.post("/msg91-webhook", apiKeyAuth, webhookValidators, handleWebhookPost);
+
+  // Verification routes for GET pings (supports root /, /webhook, and /msg91-webhook)
+  router.get("/", (req, res) => {
+    return res.status(200).json({ success: true, message: "Webhook Root Endpoint Active (GET)" });
+  });
+
+  router.get("/webhook", (req, res) => {
+    return res.status(200).json({ success: true, message: "Webhook Endpoint Active (GET)" });
+  });
+
   router.get("/msg91-webhook", (req, res) => {
     return res.status(200).json({ success: true, message: "MSG91 Webhook Endpoint Active (GET)" });
   });
