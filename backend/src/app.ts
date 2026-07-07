@@ -2,9 +2,20 @@ import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import path from "node:path";
+import mongoose from "mongoose";
 import { config } from "./config.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
+import { WebhookMessage } from "./models/WebhookMessage.js";
+
+// ── MongoDB Connection ──────────────────────────────────────────────
+// Uses config.mongoUri (from MONGODB_URI env) with explicit dbName
+if (config.mongoUri) {
+  mongoose
+    .connect(config.mongoUri, { dbName: config.mongoDbName })
+    .then(() => console.log(`✅ Mongoose connected to DB: "${config.mongoDbName}"`))
+    .catch((err) => console.error("🚨 Mongoose Connection Error:", err));
+}
 
 export function createApp() {
   const app = express();
@@ -39,6 +50,38 @@ export function createApp() {
   });
 
   app.use("/api", apiRouter);
+
+  // ── Webhook: receive MSG91 data & save to MongoDB ─────────────────
+  app.post("/webhook/receive-msg", async (req, res) => {
+    try {
+      const incomingData = req.body;
+      console.log("📩 Webhook payload received:", JSON.stringify(incomingData).slice(0, 300));
+
+      const savedDoc = await WebhookMessage.create({ rawData: incomingData });
+      console.log("💾 Saved to webhookmessages collection — _id:", savedDoc._id);
+
+      res.status(200).json({
+        success: true,
+        message: "Data received and saved successfully",
+        id: savedDoc._id,
+      });
+    } catch (error) {
+      console.error("❌ Webhook Error:", error);
+      res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+  });
+
+  // ── GET: fetch all saved webhook messages (latest first) ──────────
+  app.get("/webhook/messages", async (_req, res) => {
+    try {
+      const messages = await WebhookMessage.find().sort({ receivedAt: -1 }).lean();
+      res.json({ success: true, count: messages.length, data: messages });
+    } catch (error) {
+      console.error("❌ Fetch Webhook Messages Error:", error);
+      res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+  });
+
   app.use(notFoundHandler);
   app.use(errorHandler);
 

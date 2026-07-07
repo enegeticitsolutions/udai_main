@@ -14,9 +14,10 @@
     "@supabase/supabase-js": "^2.106.0",
     "axios": "^1.16.1",
     "bcrypt": "^6.0.0",
+    "body-parser": "^2.3.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
-    "express": "^4.21.2",
+    "express": "^4.22.2",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.1.1",
     "mongoose": "^9.3.3",
@@ -37,5 +38,13 @@
     "kill-port": "^2.0.1",
     "tsx": "^4.20.5",
     "typescript": "^5.9.3"
-  }
+  },
+  "description": "Standalone Express + TypeScript backend for the existing `frontend/` app.",
+  "main": "test_db.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

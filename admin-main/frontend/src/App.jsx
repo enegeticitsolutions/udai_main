@@ -41,6 +41,7 @@ import ProductsPage from "./components/ProductsPage";
 import CareersPage from "./components/CareersPage";
 import AppointmentsPage from "./components/AppointmentsPage";
 import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
+import WhatsAppMessagesPage from "./components/WhatsAppMessagesPage";
 
 const tokenKey = "udai_standalone_admin_token";
 
@@ -49,6 +50,7 @@ const roleSections = {
     "Dashboard",
     "Appointments / Inquiries",
     "WhatsApp Appointments",
+    "WhatsApp Messages",
     "Orders / Purchases",
     "Donations",
     "Volunteers",
@@ -66,6 +68,7 @@ const roleSections = {
   editor: [
     "Appointments / Inquiries",
     "WhatsApp Appointments",
+    "WhatsApp Messages",
     "Therapist Management",
     "Availability Manager",
   ],
@@ -2361,6 +2364,8 @@ export default function App() {
         );
       case "WhatsApp Appointments":
         return <WhatsAppBookingsPage bookings={whatsappBookings} />;
+      case "WhatsApp Messages":
+        return <WhatsAppMessagesPage />;
       case "Subscribe":
         return <SubscribersPage subscribers={subscribers} onAddSubscriber={handleSubscriberAdd} />;
       case "Contacts":
