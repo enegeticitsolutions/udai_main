@@ -8,13 +8,34 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
 import { WebhookMessage } from "./models/WebhookMessage.js";
 
-// ── MongoDB Connection ──────────────────────────────────────────────
+// ── MongoDB Connection & Lifecycle Logging ──────────────────────────
 // Uses config.mongoUri (from MONGODB_URI env) with explicit dbName
 if (config.mongoUri) {
+  mongoose.connection.on("connecting", () => {
+    console.log("[Mongoose Debug] Connecting to MongoDB...");
+  });
+  mongoose.connection.on("connected", () => {
+    console.log(`[Mongoose Debug] Connected to MongoDB database: "${config.mongoDbName}"`);
+  });
+  mongoose.connection.on("open", () => {
+    console.log("[Mongoose Debug] MongoDB connection successfully opened.");
+  });
+  mongoose.connection.on("error", (err) => {
+    console.error("🚨 [Mongoose Debug] MongoDB Connection Error:", err);
+  });
+  mongoose.connection.on("disconnected", () => {
+    console.warn("⚠️ [Mongoose Debug] MongoDB disconnected.");
+  });
+  mongoose.connection.on("reconnected", () => {
+    console.log("[Mongoose Debug] MongoDB successfully reconnected.");
+  });
+
   mongoose
     .connect(config.mongoUri, { dbName: config.mongoDbName })
-    .then(() => console.log(`✅ Mongoose connected to DB: "${config.mongoDbName}"`))
-    .catch((err) => console.error("🚨 Mongoose Connection Error:", err));
+    .then(() => console.log(`✅ Mongoose connect() promise resolved for DB: "${config.mongoDbName}"`))
+    .catch((err) => console.error("🚨 Mongoose Initial Connection Error:", err));
+} else {
+  console.warn("⚠️ MONGODB_URI env variable is not set or empty in config.");
 }
 
 export function createApp() {
@@ -54,8 +75,17 @@ export function createApp() {
   // ── Webhook: receive MSG91 data & save to MongoDB ─────────────────
   app.post("/webhook/receive-msg", async (req, res) => {
     try {
-      const incomingData = req.body;
-      console.log("📩 Webhook payload received:", JSON.stringify(incomingData).slice(0, 300));
+      const readyStateMap: Record<number, string> = {
+        0: "disconnected",
+        1: "connected",
+        2: "connecting",
+        3: "disconnecting",
+      };
+      const state = mongoose.connection.readyState;
+      console.log(`[Webhook Hit] Mongoose readyState: ${state} (${readyStateMap[state] ?? "unknown"})`);
+
+      const incomingData = req.body || {};
+      console.log("📩 Webhook payload received:", JSON.stringify(incomingData));
 
       // Try to parse content if it's a JSON string (chatbot responses may embed user data)
       let parsedContent: Record<string, any> = {};
@@ -116,7 +146,16 @@ export function createApp() {
         incomingData.concern, incomingData.mainConcern, incomingData.problem,
         parsedContent.concern, incomingData.userDetails?.problem
       );
+      const message = pick(
+        incomingData.message, incomingData.content, incomingData.responseBody,
+        incomingData.user_message, parsedContent.message
+      );
+      const transactionId = pick(
+        incomingData.transactionId, incomingData.msg91TransactionId,
+        incomingData.transaction_id, incomingData.requestId, incomingData.uuid
+      );
 
+      // ── 1. Save to webhookmessages (WhatsApp Messages page) ────────
       const savedDoc = await WebhookMessage.create({
         rawData: incomingData,
         phone,
@@ -129,7 +168,41 @@ export function createApp() {
         department,
         concern,
       });
-      console.log("💾 Saved to webhookmessages collection — _id:", savedDoc._id);
+      console.log("💾 Saved to webhookmessages — _id:", savedDoc._id);
+
+      // ── 2. Sync to chatbotsubmissions (WhatsApp Appointments page) ─
+      // Only sync if we have at least a phone number (skip empty delivery pings)
+      if (phone) {
+        try {
+          const db = mongoose.connection.db;
+          if (db) {
+            const txnId = transactionId || `WH-${phone}-${Date.now()}`;
+            await db.collection("chatbotsubmissions").updateOne(
+              { transactionId: txnId },
+              {
+                $set: {
+                  phone,
+                  message: message || concern,
+                  userDetails: {
+                    name: childName || undefined,
+                    age: age ? Number(age) : undefined,
+                    parentName: parentName || undefined,
+                    problem: concern || department || undefined,
+                  },
+                  source: "webhook-receive-msg",
+                  rawPayload: incomingData,
+                  updatedAt: new Date(),
+                },
+                $setOnInsert: { transactionId: txnId, createdAt: new Date() },
+              },
+              { upsert: true }
+            );
+            console.log("💾 Synced to chatbotsubmissions — txnId:", txnId);
+          }
+        } catch (syncErr: any) {
+          console.error("⚠️ chatbotsubmissions sync failed:", syncErr.message);
+        }
+      }
 
       res.status(200).json({
         success: true,
