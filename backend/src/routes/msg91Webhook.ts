@@ -27,7 +27,7 @@ msg91WebhookRouter.post("/", async (req, res) => {
         phone: appointment.phoneNumber || "",
         childName: appointment.patientName || "",
         parentName: appointment.patientName || "",
-        age: appointment.age || "",
+        age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "",
         firstSession: "",
         appointmentDate: appointment.appointmentDate || "",
         appointmentTime: appointment.appointmentTime || "",

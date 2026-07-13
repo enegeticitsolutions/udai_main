@@ -1,15 +1,39 @@
 import mongoose from "mongoose";
 
+export interface IWebhookMessage {
+  _id?: any;
+  rawData: any;
+  receivedAt?: Date;
+  phone?: string;
+  childName?: string;
+  parentName?: string;
+  age?: string;
+  firstSession?: string;
+  appointmentDate?: string;
+  appointmentTime?: string;
+  department?: string;
+  concern?: string;
+}
+
 /**
  * WebhookMessage — flexible schema to capture any incoming MSG91 webhook payload.
  * `strict: false` allows storing arbitrary fields beyond `rawData`.
  */
-const WebhookMessageSchema = new mongoose.Schema(
+const WebhookMessageSchema = new mongoose.Schema<IWebhookMessage>(
   {
     rawData: { type: mongoose.Schema.Types.Mixed, required: true },
     receivedAt: { type: Date, default: Date.now },
+    phone: { type: String, default: "" },
+    childName: { type: String, default: "" },
+    parentName: { type: String, default: "" },
+    age: { type: String, default: "" },
+    firstSession: { type: String, default: "" },
+    appointmentDate: { type: String, default: "" },
+    appointmentTime: { type: String, default: "" },
+    department: { type: String, default: "" },
+    concern: { type: String, default: "" },
   },
   { strict: false, collection: "webhookmessages" }
 );
 
-export const WebhookMessage = mongoose.model("WebhookMessage", WebhookMessageSchema);
+export const WebhookMessage = mongoose.model<IWebhookMessage>("WebhookMessage", WebhookMessageSchema);
