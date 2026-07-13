@@ -57,7 +57,78 @@ export function createApp() {
       const incomingData = req.body;
       console.log("📩 Webhook payload received:", JSON.stringify(incomingData).slice(0, 300));
 
-      const savedDoc = await WebhookMessage.create({ rawData: incomingData });
+      // Try to parse content if it's a JSON string (chatbot responses may embed user data)
+      let parsedContent: Record<string, any> = {};
+      try {
+        if (typeof incomingData.content === "string" && incomingData.content.startsWith("{")) {
+          parsedContent = JSON.parse(incomingData.content);
+        }
+      } catch {
+        // content is plain text — that's fine
+      }
+
+      // Helper: pick the first non-empty value from multiple sources
+      const pick = (...values: any[]) => {
+        for (const v of values) {
+          if (v !== undefined && v !== null && v !== "") return String(v);
+        }
+        return "";
+      };
+
+      // Extract all relevant fields from wherever they might be in the payload
+      const phone = pick(
+        incomingData.customerNumber, incomingData.phone, incomingData.phoneNumber,
+        incomingData.phone_number, incomingData.from, incomingData.sender,
+        parsedContent.phone, parsedContent.customerNumber
+      );
+      const childName = pick(
+        incomingData.childName, incomingData.child_name, incomingData.name,
+        incomingData.patientName, incomingData.patient_name,
+        parsedContent.childName, parsedContent.name,
+        incomingData.userDetails?.name
+      );
+      const parentName = pick(
+        incomingData.parentName, incomingData.parent_name, incomingData.parent,
+        incomingData.guardianName, parsedContent.parentName, parsedContent.parent,
+        incomingData.userDetails?.parentName
+      );
+      const age = pick(
+        incomingData.age, incomingData.child_age, incomingData.patientAge,
+        parsedContent.age, incomingData.userDetails?.age
+      );
+      const firstSession = pick(
+        incomingData.firstSession, incomingData.first_session, incomingData.isFirstSession,
+        parsedContent.firstSession
+      );
+      const appointmentDate = pick(
+        incomingData.appointmentDate, incomingData.appointment_date, incomingData.date,
+        parsedContent.appointmentDate, parsedContent.date
+      );
+      const appointmentTime = pick(
+        incomingData.appointmentTime, incomingData.appointment_time, incomingData.time,
+        incomingData.slot, parsedContent.appointmentTime, parsedContent.time
+      );
+      const department = pick(
+        incomingData.department, incomingData.doctor, incomingData.therapistName,
+        parsedContent.department
+      );
+      const concern = pick(
+        incomingData.concern, incomingData.mainConcern, incomingData.problem,
+        parsedContent.concern, incomingData.userDetails?.problem
+      );
+
+      const savedDoc = await WebhookMessage.create({
+        rawData: incomingData,
+        phone,
+        childName,
+        parentName,
+        age,
+        firstSession,
+        appointmentDate,
+        appointmentTime,
+        department,
+        concern,
+      });
       console.log("💾 Saved to webhookmessages collection — _id:", savedDoc._id);
 
       res.status(200).json({

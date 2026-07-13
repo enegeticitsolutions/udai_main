@@ -4,13 +4,14 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
-import { createMsg91WebhookRouter } from "./routes/msg91Webhook.js";
+// 1. CHANGE: Default import use kiya kyunki msg91Webhook.js se default export ho raha hai
+import msg91WebhookRouter from "./routes/msg91Webhook.js";
 
 export function createApp({ repository }) {
   const app = express();
   app.set("trust proxy", 1);
 
-  // 🔥 NGROK BYPASS MIDDLEWARE: Sabhi GET aur POST requests par lag jayega
+  // NGROK BYPASS MIDDLEWARE
   app.use((req, res, next) => {
     res.setHeader('ngrok-skip-browser-warning', 'true');
     next();
@@ -42,13 +43,18 @@ export function createApp({ repository }) {
     res.json({ success: true, status: "ok" });
   });
 
-  // Mount at /api/v1 → handles /api/v1/test-webhook, /api/v1/msg91-webhook
-  // Mount at /api/v1/msg91-webhook → handles /api/v1/msg91-webhook/test-webhook (MSG91 compatibility)
-  const webhookRouter = createMsg91WebhookRouter(repository);
-  app.use("/", webhookRouter);
-  app.use("/webhook", webhookRouter);
-  app.use("/api/v1", webhookRouter);
-  app.use("/api/v1/msg91-webhook", webhookRouter);
+  // 2. CHANGE: Repository ko globally req object mein daal diya taaki webhook file ise access kar sake (agar zaroorat ho)
+  app.use((req, _res, next) => {
+    req.repository = repository;
+    next();
+  });
+
+  // 3. CHANGE: Router ko function ki tarah call karne ke bajaye direct object use kiya aur saaf routes banaye
+  app.use("/api/v1/msg91-webhook", msg91WebhookRouter);
+
+  // Backup routes (takki purane kisi URL par dikkat na aaye)
+  app.use("/webhook", msg91WebhookRouter);
+
   app.use(notFoundHandler);
   app.use(errorHandler);
 

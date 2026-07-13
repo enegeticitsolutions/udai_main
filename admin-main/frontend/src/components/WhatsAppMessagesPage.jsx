@@ -150,28 +150,37 @@ export default function WhatsAppMessagesPage() {
         marginBottom: 20,
       }}>
         {[
-          { label: "Total Messages", value: messages.length, icon: "📬", bg: "#eef2ff", accent: "#4f46e5" },
+          { label: "Total Records", value: messages.length, icon: "📋", bg: "#eef2ff", accent: "#4f46e5" },
           {
-            label: "Delivered",
-            value: messages.filter((m) => (extractField(m.rawData, "eventName") || "").toLowerCase().includes("deliver")).length,
-            icon: "✅",
+            label: "With Appointment",
+            value: messages.filter((m) => {
+              const raw = m.rawData || {};
+              return raw.appointmentDate || raw.appointment_date || raw.date || raw.schedule;
+            }).length,
+            icon: "📅",
             bg: "#ecfdf5",
             accent: "#059669",
           },
           {
-            label: "Received / Inbound",
+            label: "First Session",
             value: messages.filter((m) => {
-              const ev = (extractField(m.rawData, "eventName", "webhookType") || "").toLowerCase();
-              return ev.includes("receiv") || ev.includes("inbound");
+              const raw = m.rawData || {};
+              const val = String(raw.firstSession ?? raw.first_session ?? raw.isFirstSession ?? "").toLowerCase();
+              return val === "true" || val === "yes";
             }).length,
-            icon: "📥",
+            icon: "🌟",
             bg: "#eff6ff",
             accent: "#2563eb",
           },
           {
-            label: "Failed",
-            value: messages.filter((m) => (extractField(m.rawData, "eventName") || "").toLowerCase().includes("fail")).length,
-            icon: "❌",
+            label: "Average Age",
+            value: (() => {
+              const ages = messages
+                .map((m) => Number(m.rawData?.age ?? m.rawData?.child_age ?? m.rawData?.patientAge))
+                .filter((a) => a > 0);
+              return ages.length > 0 ? (ages.reduce((s, a) => s + a, 0) / ages.length).toFixed(1) : "—";
+            })(),
+            icon: "👶",
             bg: "#fef2f2",
             accent: "#dc2626",
           },
@@ -227,16 +236,26 @@ export default function WhatsAppMessagesPage() {
             <thead>
               <tr style={{ background: "#f9fafb", textAlign: "left" }}>
                 <th style={thStyle}>#</th>
-                <th style={thStyle}>Received At</th>
-                <th style={thStyle}>Customer Number</th>
-                <th style={thStyle}>Message / Content</th>
-                <th style={thStyle}>Event Status</th>
-                <th style={thStyle}>Direction</th>
+                <th style={thStyle}>Phone Number</th>
+                <th style={thStyle}>Child Name</th>
+                <th style={thStyle}>Parent Name</th>
+                <th style={thStyle}>Age</th>
+                <th style={thStyle}>First Session</th>
+                <th style={thStyle}>Appointment</th>
               </tr>
             </thead>
             <tbody>
               {messages.map((msg, idx) => {
                 const raw = msg.rawData || {};
+                // Helper: check top-level msg field first, then rawData variants
+                const field = (...keys) => {
+                  // Check top-level msg fields first
+                  for (const k of keys) {
+                    if (msg[k] !== undefined && msg[k] !== null && msg[k] !== "") return String(msg[k]);
+                  }
+                  // Then check rawData
+                  return extractField(raw, ...keys);
+                };
                 return (
                   <tr
                     key={msg._id}
@@ -249,24 +268,36 @@ export default function WhatsAppMessagesPage() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = idx % 2 === 0 ? "#fff" : "#fafbfc")}
                   >
                     <td style={tdStyle}>{idx + 1}</td>
-                    <td style={{ ...tdStyle, whiteSpace: "nowrap", fontSize: 12, color: "#555" }}>
-                      {formatTime(msg.receivedAt)}
-                    </td>
                     <td style={{ ...tdStyle, fontWeight: 600, fontFamily: "monospace", letterSpacing: 0.5 }}>
-                      {extractField(raw, "customerNumber", "phone", "from", "sender")}
+                      {field("phone", "customerNumber", "phoneNumber", "phone_number", "from", "sender")}
                     </td>
-                    <td style={{ ...tdStyle, maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {extractField(raw, "content", "text", "message", "body")}
+                    <td style={{ ...tdStyle, fontWeight: 600 }}>
+                      {field("childName", "child_name", "name", "patientName")}
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: 500 }}>
+                      {field("parentName", "parent_name", "parent", "guardianName")}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: "center" }}>
+                      {field("age", "child_age", "patientAge")}
                     </td>
                     <td style={tdStyle}>
-                      {statusBadge(extractField(raw, "eventName", "status", "event"))}
+                      {(() => {
+                        const val = field("firstSession", "first_session", "isFirstSession");
+                        if (val === "true" || val === "yes")
+                          return <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: "#d4edda", color: "#155724" }}>Yes</span>;
+                        if (val === "false" || val === "no")
+                          return <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: "#fff3cd", color: "#856404" }}>No</span>;
+                        return <span style={{ color: "#aaa" }}>{val}</span>;
+                      })()}
                     </td>
-                    <td style={{ ...tdStyle, fontSize: 12, color: "#888" }}>
-                      {raw.direction === "1" || raw.webhookType === "outbound"
-                        ? "⬆️ Outbound"
-                        : raw.direction === "0" || raw.webhookType === "inbound"
-                        ? "⬇️ Inbound"
-                        : extractField(raw, "webhookType", "direction")}
+                    <td style={{ ...tdStyle, whiteSpace: "nowrap", fontSize: 13, color: "#555" }}>
+                      {field("appointmentDate", "appointment_date", "date", "schedule")}
+                      {" "}
+                      <span style={{ color: "#888" }}>
+                        {field("appointmentTime", "appointment_time", "time", "slot") !== "—"
+                          ? field("appointmentTime", "appointment_time", "time", "slot")
+                          : ""}
+                      </span>
                     </td>
                   </tr>
                 );
