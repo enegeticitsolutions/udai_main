@@ -4,8 +4,6 @@
   "scripts": {
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
-    "dev:admin-backend": "npm --prefix admin/backend run dev",
-    "dev:admin-frontend": "npm --prefix admin/frontend run dev",
     "dev:admin-main-backend": "npm --prefix admin-main/backend run dev",
     "dev:admin-main-frontend": "npm --prefix admin-main/frontend run dev"
   },

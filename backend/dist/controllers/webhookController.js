@@ -4,6 +4,7 @@ import { sendWhatsAppText } from "../services/whatsappService.js";
 import { appendRecord } from "../lib/fileStore.js";
 import { config } from "../config.js";
 import { saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import { WebhookMessage } from "../models/WebhookMessage.js";
 /**
  * Ensures Mongoose is connected to MongoDB.
  * Uses the same MONGODB_URI as the rest of the backend.
@@ -50,6 +51,62 @@ export async function handleWebhook(req, res) {
         if (!user) {
             // First time this number has messaged
             user = await ChatbotUser.create({ phone: fromPhone, step: "ask_name" });
+        }
+        // ── Save raw webhook event to WebhookMessage collection ──────────────────
+        try {
+            await WebhookMessage.create({
+                rawData: req.body,
+                phone: fromPhone,
+                childName: user.name || "",
+                parentName: user.name || "",
+                age: user.age || "",
+                firstSession: "",
+                appointmentDate: "",
+                appointmentTime: "",
+                department: user.doctor || "",
+                concern: incomingText,
+            });
+            console.log(`[Chatbot] Saved WhatsApp message from ${fromPhone} to WebhookMessage`);
+        }
+        catch (err) {
+            console.error("[Chatbot] Failed to save to WebhookMessage collection:", err.message);
+        }
+        // ── Sync to chatbotsubmissions collection for WhatsApp Appointments ──────
+        try {
+            const db = mongoose.connection.db;
+            if (db) {
+                const txnId = req.body.requestId ?? req.body.uuid ?? entry?.id ?? `TXN-${fromPhone}`;
+                await db.collection("chatbotsubmissions").updateOne({ transactionId: txnId }, {
+                    $set: {
+                        phone: fromPhone,
+                        message: incomingText,
+                        userDetails: {
+                            name: user.name || "",
+                            age: Number(user.age) || undefined,
+                            parentName: user.name || "",
+                            problem: user.doctor || "",
+                        },
+                        source: "whatsapp-chatbot",
+                        rawPayload: req.body,
+                        updatedAt: new Date(),
+                    },
+                    $setOnInsert: {
+                        transactionId: txnId,
+                        createdAt: new Date(),
+                    },
+                    $push: {
+                        events: {
+                            eventName: "reply",
+                            statusCode: "200",
+                            ts: new Date().toISOString(),
+                        }
+                    }
+                }, { upsert: true });
+                console.log(`[Chatbot] Synced WhatsApp message to chatbotsubmissions collection`);
+            }
+        }
+        catch (submissionsErr) {
+            console.error("[Chatbot] Failed to sync to chatbotsubmissions collection:", submissionsErr.message);
         }
         // ── If user says "hi/hello/start", reset the flow ──────────────────────
         const lowerText = incomingText.toLowerCase();

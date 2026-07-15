@@ -2,6 +2,7 @@ import { Router } from "express";
 import { MongoServerError } from "mongodb";
 import { ZodError } from "zod";
 import { saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import { WebhookMessage } from "../models/WebhookMessage.js";
 const msg91WebhookRouter = Router();
 msg91WebhookRouter.post("/", async (req, res) => {
     console.info("[MSG91 appointment webhook] Incoming payload:", JSON.stringify(req.body));
@@ -15,6 +16,25 @@ msg91WebhookRouter.post("/", async (req, res) => {
         }
         const { appointment, duplicate } = await saveMsg91Appointment(req.body);
         console.info(`[MSG91 appointment webhook] ${duplicate ? "Duplicate ignored" : "Booking saved"}: ${appointment.bookingId}`);
+        // Save to WebhookMessage for the WhatsApp Messages dashboard
+        try {
+            await WebhookMessage.create({
+                rawData: req.body,
+                phone: appointment.phoneNumber || "",
+                childName: appointment.patientName || "",
+                parentName: appointment.patientName || "",
+                age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "",
+                firstSession: "",
+                appointmentDate: appointment.appointmentDate || "",
+                appointmentTime: appointment.appointmentTime || "",
+                department: appointment.therapistName || "",
+                concern: appointment.mainConcern || "",
+            });
+            console.log(`[MSG91 appointment webhook] Logged appointment payload to WebhookMessage`);
+        }
+        catch (dbErr) {
+            console.error("[MSG91 appointment webhook] Failed to log WebhookMessage:", dbErr.message);
+        }
         res.status(duplicate ? 200 : 201).json({
             success: true,
             data: appointment,

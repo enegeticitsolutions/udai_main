@@ -48,7 +48,6 @@ const tokenKey = "udai_standalone_admin_token";
 const roleSections = {
   admin: [
     "Dashboard",
-    "Appointments / Inquiries",
     "WhatsApp Appointments",
     "WhatsApp Messages",
     "Orders / Purchases",
@@ -66,7 +65,6 @@ const roleSections = {
     "Settings",
   ],
   editor: [
-    "Appointments / Inquiries",
     "WhatsApp Appointments",
     "WhatsApp Messages",
     "Therapist Management",
@@ -277,22 +275,16 @@ function LoginScreen({ onLogin }) {
   );
 }
 
-function DashboardPage({ inquiries, therapists, donations, orders, currentUser, dashboard, isConnected }) {
-  const [visibleInquiriesCount, setVisibleInquiriesCount] = useState(10);
-  const [visibleOrdersCount, setVisibleOrdersCount] = useState(5);
+function DashboardPage({ inquiries, therapists, donations, orders, currentUser, dashboard, isConnected, whatsappBookings = [], volunteers = [] }) {
   const totalDonations = dashboard?.donationTotal ?? donations.reduce((sum, donation) => sum + donation.amount, 0);
   const totalOrders = dashboard?.totalOrders ?? orders.length;
-  const cancelledRequests = dashboard?.cancelledRequests ?? inquiries.filter((item) => item.status === "cancelled").length;
-  const rescheduledRequests = dashboard?.rescheduledRequests ?? inquiries.filter((item) => item.status === "rescheduled").length;
+
   const metrics = [
-    { label: "Total requests", value: dashboard?.totalRequests ?? inquiries.length, hint: "All inquiry records" },
-    { label: "Pending requests", value: dashboard?.pendingRequests ?? inquiries.filter((item) => item.status === "new").length, hint: "Need action" },
-    { label: "Cancelled", value: cancelledRequests, hint: "Appointments cancelled" },
-    { label: "Rescheduled", value: rescheduledRequests, hint: "Appointments moved" },
-    { label: "Today’s appointments", value: dashboard?.todayAppointments ?? 4, hint: "Scheduled for today" },
-    { label: "Active therapists", value: dashboard?.activeTherapists ?? therapists.filter((item) => item.active !== false).length, hint: "Available on panel" },
-    { label: "Total orders", value: totalOrders, hint: "Product purchases" },
-    { label: "Donation total", value: `₹${totalDonations}`, hint: "Private donor data masked" },
+    { label: "Therapist Bookings (WhatsApp)", value: dashboard?.totalWhatsappBookings ?? whatsappBookings.length, hint: "Live WhatsApp chatbot sessions" },
+    { label: "Donation Total", value: `₹${totalDonations}`, hint: "Funds raised" },
+    { label: "Total Volunteer Requests", value: dashboard?.totalVolunteers ?? volunteers.length, hint: "Volunteer applications received" },
+    { label: "Total Purchases (Orders)", value: totalOrders, hint: "E-commerce checkout orders" },
+    { label: "Active Therapists", value: dashboard?.activeTherapists ?? therapists.filter((item) => item.active !== false).length, hint: "Available on panel" },
   ];
 
   return (
@@ -319,72 +311,7 @@ function DashboardPage({ inquiries, therapists, donations, orders, currentUser, 
         ))}
       </div>
 
-      <div className="content-card wide">
-        <div className="section-head">
-          <h2>Recent Inquiries</h2>
-          <Badge tone="green">Live board</Badge>
-        </div>
-        <Table
-          columns={["Child", "Concern", "Department", "Status", "Assigned Therapist"]}
-          rows={inquiries.slice(0, visibleInquiriesCount).map((item) => [
-            item.childName,
-            item.concern,
-            item.department,
-            <Badge
-              key={item.id}
-              tone={inquiryTone(item.status)}
-            >
-              {item.status}
-            </Badge>,
-            item.assignedTherapist,
-          ])}
-        />
-        {visibleInquiriesCount < inquiries.length && (
-          <div style={{ marginTop: "16px", textAlign: "right" }}>
-            <Button variant="secondary" onClick={() => setVisibleInquiriesCount((prev) => prev + 10)}>
-              Load More
-            </Button>
-          </div>
-        )}
-      </div>
 
-      <div className="content-card wide">
-        <div className="section-head">
-          <h2>Recent Orders</h2>
-          <Badge tone="blue">Product purchases</Badge>
-        </div>
-        <Table
-          columns={["Order", "Customer", "Items", "Payment", "Status", "Amount"]}
-          rows={orders.slice(0, visibleOrdersCount).map((order) => [
-            order.orderNumber ?? order.id,
-            order.customerName ?? "-",
-            Array.isArray(order.items)
-              ? order.items.map((item) => `${item.title} ×${item.quantity}`).join(", ")
-              : "-",
-            order.paymentMethod ?? "-",
-            <Badge
-              key={order.id}
-              tone={
-                order.orderStatus === "delivered"
-                  ? "green"
-                  : order.paymentStatus === "initiated"
-                    ? "amber"
-                    : "slate"
-              }
-            >
-              {order.orderStatus ?? "new"}
-            </Badge>,
-            `₹${Number(order.totalAmount ?? order.subtotal ?? 0)}`,
-          ])}
-        />
-        {visibleOrdersCount < orders.length && (
-          <div style={{ marginTop: "16px", textAlign: "right" }}>
-            <Button variant="secondary" onClick={() => setVisibleOrdersCount((prev) => prev + 5)}>
-              Load More
-            </Button>
-          </div>
-        )}
-      </div>
 
       <div className="content-card wide">
         <div className="section-head">
@@ -2308,6 +2235,8 @@ export default function App() {
             currentUser={currentUser}
             dashboard={dashboard}
             isConnected={isConnected}
+            whatsappBookings={whatsappBookings}
+            volunteers={volunteers}
           />
         );
       case "Appointments / Inquiries":
@@ -2417,11 +2346,7 @@ export default function App() {
             <div className={`connection-dot connection-dot--${backendStatus}`} aria-label={backendStatusLabel(backendStatus)} />
             <Badge tone="green">{currentUser.role}</Badge>
             {backendError ? <span className="backend-error">{backendError}</span> : null}
-            {allowedSections.includes("Appointments / Inquiries") && (
-              <Button variant="secondary" onClick={() => setActiveSection("Appointments / Inquiries")}>
-                Open Inquiries
-              </Button>
-            )}
+
             {activeSection === "Therapist Management" && (
               <Button
                 onClick={() => {
