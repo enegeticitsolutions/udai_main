@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "check": "tsc --noEmit -p tsconfig.json",
-    "kill:port": "kill-port"
+    "kill:port": "kill-port",
+    "seed:therapists": "tsx src/scripts/seedTherapists.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.0",

@@ -7,6 +7,7 @@ import { config } from "./config.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
 import { WebhookMessage } from "./models/WebhookMessage.js";
+import { assignTherapist, normalizeDepartment } from "./services/bookingService.js";
 
 // ── MongoDB Connection & Lifecycle Logging ──────────────────────────
 // Uses config.mongoUri (from MONGODB_URI env) with explicit dbName
@@ -138,10 +139,11 @@ export function createApp() {
         incomingData.appointmentTime, incomingData.appointment_time, incomingData.time,
         incomingData.slot, parsedContent.appointmentTime, parsedContent.time
       );
-      const department = pick(
+      const rawDepartment = pick(
         incomingData.department, incomingData.doctor, incomingData.therapistName,
         parsedContent.department
       );
+      const department = normalizeDepartment(rawDepartment);
       const concern = pick(
         incomingData.concern, incomingData.mainConcern, incomingData.problem,
         parsedContent.concern, incomingData.userDetails?.problem
@@ -155,6 +157,50 @@ export function createApp() {
         incomingData.transaction_id, incomingData.requestId, incomingData.uuid
       );
 
+      // ── Therapist assignment & availability check ───────────────────────
+      let assignedTherapistId = "";
+      let assignedTherapistName = "";
+      let bookingStatus = "pending";
+      const bookingSource = "whatsapp";
+
+      const hasSlotRequest = Boolean(appointmentDate && appointmentTime && department);
+
+      if (hasSlotRequest) {
+        // ── Double-booking guard: check if this phone already booked this slot ─
+        const existingBooking = await WebhookMessage.findOne({
+          phone,
+          appointmentDate,
+          appointmentTime,
+          status: { $nin: ["cancelled", "rejected"] },
+        }).lean();
+
+        if (existingBooking) {
+          console.warn("⚠️ Double booking attempt blocked for:", phone, appointmentDate, appointmentTime);
+          res.status(409).json({
+            success: false,
+            message: "You already have a booking for this slot. Please choose a different time.",
+          });
+          return;
+        }
+
+        // ── Assign an available therapist ────────────────────────────────────
+        const assignment = await assignTherapist(department, appointmentDate, appointmentTime);
+
+        if (!assignment) {
+          console.warn("⚠️ No therapist available for:", department, appointmentDate, appointmentTime);
+          res.status(409).json({
+            success: false,
+            message: "No therapist is available for the requested slot. Please choose another time.",
+          });
+          return;
+        }
+
+        assignedTherapistId = assignment.id;
+        assignedTherapistName = assignment.name;
+        bookingStatus = "confirmed";
+        console.log(`✅ Therapist assigned: ${assignedTherapistName} (${assignedTherapistId})`);
+      }
+
       // ── 1. Save to webhookmessages (WhatsApp Messages page) ────────
       const savedDoc = await WebhookMessage.create({
         rawData: incomingData,
@@ -167,6 +213,10 @@ export function createApp() {
         appointmentTime,
         department,
         concern,
+        assignedTherapistId,
+        assignedTherapist: assignedTherapistName,
+        status: bookingStatus,
+        bookingSource,
       });
       console.log("💾 Saved to webhookmessages — _id:", savedDoc._id);
 
@@ -189,7 +239,10 @@ export function createApp() {
                     parentName: parentName || undefined,
                     problem: concern || department || undefined,
                   },
-                  source: "webhook-receive-msg",
+                  assignedTherapist: assignedTherapistName || undefined,
+                  assignedTherapistId: assignedTherapistId || undefined,
+                  status: bookingStatus,
+                  source: bookingSource,
                   rawPayload: incomingData,
                   updatedAt: new Date(),
                 },
@@ -206,8 +259,12 @@ export function createApp() {
 
       res.status(200).json({
         success: true,
-        message: "Data received and saved successfully",
+        message: hasSlotRequest
+          ? `Appointment confirmed with ${assignedTherapistName}`
+          : "Data received and saved successfully",
         id: savedDoc._id,
+        status: bookingStatus,
+        assignedTherapist: assignedTherapistName || undefined,
       });
     } catch (error) {
       console.error("❌ Webhook Error:", error);

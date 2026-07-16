@@ -13,6 +13,14 @@ export interface IWebhookMessage {
   appointmentTime?: string;
   department?: string;
   concern?: string;
+  /** ID of the assigned therapist (TherapistModel._id as string) */
+  assignedTherapistId?: string;
+  /** Display name of the assigned therapist */
+  assignedTherapist?: string;
+  /** Booking status: pending | confirmed | cancelled */
+  status?: string;
+  /** Origin of the booking: whatsapp | form | admin */
+  bookingSource?: string;
 }
 
 /**
@@ -32,6 +40,10 @@ const WebhookMessageSchema = new mongoose.Schema<IWebhookMessage>(
     appointmentTime: { type: String, default: "" },
     department: { type: String, default: "" },
     concern: { type: String, default: "" },
+    assignedTherapistId: { type: String, default: "" },
+    assignedTherapist: { type: String, default: "" },
+    status: { type: String, default: "pending" },
+    bookingSource: { type: String, default: "" },
   },
   { strict: false, collection: "webhookmessages" }
 );
