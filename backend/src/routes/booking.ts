@@ -76,9 +76,9 @@ bookingRouter.get("/available-dates", async (req, res) => {
 bookingRouter.get("/available-slots", async (req, res) => {
   try {
     const rawDept = String(req.query.department ?? "").trim();
-    const date = String(req.query.date ?? "").trim();
+    const dateInput = String(req.query.date ?? "").trim();
 
-    if (!rawDept || !date) {
+    if (!rawDept || !dateInput) {
       res.status(400).json({
         success: false,
         message: "Query parameters 'department' and 'date' are required.",
@@ -86,17 +86,19 @@ bookingRouter.get("/available-slots", async (req, res) => {
       return;
     }
 
-    // Validate date format YYYY-MM-DD
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    // Extract first YYYY-MM-DD pattern
+    const dateMatch = dateInput.match(/\d{4}-\d{2}-\d{2}/);
+    if (!dateMatch) {
       res.status(400).json({
         success: false,
         message: "Invalid date format. Use YYYY-MM-DD.",
       });
       return;
     }
+    const extractedDate = dateMatch[0];
 
     const normalizedDept = normalizeDepartment(rawDept);
-    const slots = await getAvailableSlots(normalizedDept, date);
+    const slots = await getAvailableSlots(normalizedDept, extractedDate);
 
     const mappedSlots = slots.map((s) => ({
       title: s.label,
@@ -106,7 +108,7 @@ bookingRouter.get("/available-slots", async (req, res) => {
     res.json({
       success: true,
       department: normalizedDept,
-      date,
+      date: extractedDate,
       slots: mappedSlots,
     });
   } catch (error) {
