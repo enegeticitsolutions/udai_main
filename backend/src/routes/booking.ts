@@ -86,16 +86,42 @@ bookingRouter.get("/available-slots", async (req, res) => {
       return;
     }
 
-    // Extract first YYYY-MM-DD pattern
+    let extractedDate = "";
+
+    // 1. Try to extract first YYYY-MM-DD pattern
     const dateMatch = dateInput.match(/\d{4}-\d{2}-\d{2}/);
-    if (!dateMatch) {
+    if (dateMatch) {
+      extractedDate = dateMatch[0];
+    } else {
+      // 2. Try to parse "dd MMM" or "dd Month" pattern
+      const textMatch = dateInput.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+      if (textMatch) {
+        const dayNumber = Number(textMatch[1]);
+        const monthStr = textMatch[2].toLowerCase();
+        
+        const monthMap: Record<string, number> = {
+          jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+          jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+        };
+        const monthNumber = monthMap[monthStr];
+
+        if (monthNumber) {
+          const kolkataTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+          const currentYear = new Date(kolkataTime).getFullYear();
+          const monthPart = String(monthNumber).padStart(2, "0");
+          const dayPart = String(dayNumber).padStart(2, "0");
+          extractedDate = `${currentYear}-${monthPart}-${dayPart}`;
+        }
+      }
+    }
+
+    if (!extractedDate) {
       res.status(400).json({
         success: false,
         message: "Invalid date format. Use YYYY-MM-DD.",
       });
       return;
     }
-    const extractedDate = dateMatch[0];
 
     const normalizedDept = normalizeDepartment(rawDept);
     const slots = await getAvailableSlots(normalizedDept, extractedDate);
