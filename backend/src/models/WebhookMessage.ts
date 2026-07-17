@@ -21,6 +21,9 @@ export interface IWebhookMessage {
   status?: string;
   /** Origin of the booking: whatsapp | form | admin */
   bookingSource?: string;
+  paymentUrl?: string;
+  razorpayPaymentLinkId?: string;
+  paymentStatus?: string;
 }
 
 /**
@@ -44,6 +47,9 @@ const WebhookMessageSchema = new mongoose.Schema<IWebhookMessage>(
     assignedTherapist: { type: String, default: "" },
     status: { type: String, default: "pending" },
     bookingSource: { type: String, default: "" },
+    paymentUrl: { type: String, default: "" },
+    razorpayPaymentLinkId: { type: String, default: "" },
+    paymentStatus: { type: String, default: "pending" },
   },
   { strict: false, collection: "webhookmessages" }
 );

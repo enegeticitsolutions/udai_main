@@ -8,6 +8,8 @@ import { getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 import { optionalJwt } from "../middleware/auth.js";
 import { updateAdminRecord } from "../services/adminService.js";
 import { orderSchema } from "../schemas.js";
+import { WebhookMessage } from "../models/WebhookMessage.js";
+import { razorpay } from "../lib/razorpay.js";
 export const paymentsRouter = Router();
 paymentsRouter.use(optionalJwt);
 const razorpayCheckoutSchema = orderSchema;
@@ -293,6 +295,78 @@ paymentsRouter.post("/razorpay/verify", async (req, res, next) => {
         });
     }
     catch (error) {
+        next(error);
+    }
+});
+paymentsRouter.post("/create-link", async (req, res, next) => {
+    try {
+        const { bookingId } = req.body ?? {};
+        if (!bookingId) {
+            res.status(400).json({
+                success: false,
+                message: "bookingId is required.",
+            });
+            return;
+        }
+        // 1. Fetch appointment from database
+        let appointment = null;
+        try {
+            appointment = await WebhookMessage.findById(bookingId);
+        }
+        catch (err) {
+            // Catch invalid ObjectId error
+        }
+        if (!appointment) {
+            res.status(404).json({
+                success: false,
+                message: "Booking does not exist.",
+            });
+            return;
+        }
+        // 2. Validate payment is not already completed
+        if (appointment.paymentStatus === "paid" || appointment.paymentStatus === "captured") {
+            res.status(400).json({
+                success: false,
+                message: "Payment is already completed.",
+            });
+            return;
+        }
+        const amountInr = config.appointmentFeeInr;
+        const amountPaise = amountInr * 100;
+        // 3. Create Razorpay TEST Payment Link
+        const paymentLink = await razorpay.paymentLink.create({
+            amount: amountPaise,
+            currency: "INR",
+            accept_partial: false,
+            description: `Appointment Booking Fee for ${appointment.childName || "Child"}`,
+            customer: {
+                name: appointment.parentName || appointment.childName || "Customer",
+                contact: appointment.phone || "",
+            },
+            notify: {
+                sms: false,
+                email: false,
+            },
+            reminder_enable: false,
+            notes: {
+                bookingId: appointment._id.toString(),
+            },
+        });
+        // 4. Save paymentUrl and razorpayPaymentLinkId inside appointment
+        appointment.paymentUrl = paymentLink.short_url;
+        appointment.razorpayPaymentLinkId = paymentLink.id;
+        appointment.paymentStatus = "initiated";
+        await appointment.save();
+        res.status(201).json({
+            success: true,
+            bookingId: appointment._id.toString(),
+            paymentUrl: paymentLink.short_url,
+            paymentLinkId: paymentLink.id,
+            amount: amountInr,
+        });
+    }
+    catch (error) {
+        console.error("[POST /api/payments/create-link] Error:", error);
         next(error);
     }
 });

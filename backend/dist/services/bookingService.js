@@ -24,17 +24,17 @@ const SLOT_DURATION_MINUTES = 45;
  */
 export function normalizeDepartment(dept) {
     const d = String(dept ?? "").trim();
-    if (/^ot$|^occupational/i.test(d))
+    if (/^(ot|occupational\s*therapist)$/i.test(d))
         return "OT";
-    if (/^speech/i.test(d))
+    if (/^(speech\s*therapy|speech\s*therapist|speech\s*and\s*language\s*therapist)$/i.test(d))
         return "Speech Therapy";
-    if (/^pediatric\s+physiotherapist$|^physical\s+therapy$/i.test(d))
+    if (/^(physical\s*therapy|physiotherapy|pediatric\s*physiotherapist)$/i.test(d))
         return "Physical Therapy";
-    if (/^nios\s+instructor$|^academic\s+support$/i.test(d))
+    if (/^(nios\s*instructor|academic\s*support)$/i.test(d))
         return "Academic Support";
-    if (/^special\s+educator$/i.test(d))
+    if (/^(special\s*educator)$/i.test(d))
         return "Special Educator";
-    if (/^counselling$/i.test(d))
+    if (/^(counselling)$/i.test(d))
         return "Counselling";
     return d;
 }
@@ -177,16 +177,28 @@ async function loadTherapists(department) {
  * Returns ONLY the available 45-min slots for a department on a given date.
  */
 export async function getAvailableSlots(department, date) {
-    const dayOfWeek = getDayOfWeek(date);
     const normalizedDept = normalizeDepartment(department);
+    // Sunday check: force 0 slots
+    const [yr, mo, dy] = date.split("-").map(Number);
+    const dateObj = new Date(yr, mo - 1, dy);
+    if (dateObj.getDay() === 0) {
+        console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0 (Sunday: Not Scheduled)`);
+        return [];
+    }
+    const dayOfWeek = getDayOfWeek(date);
     // 1. Load active therapists for this department
     const therapists = await loadTherapists(normalizedDept);
-    if (therapists.length === 0)
+    if (therapists.length === 0) {
+        console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0`);
         return [];
+    }
     // 2. Filter to those who work on this weekday
     const workingTherapists = therapists.filter((t) => t.weeklySchedule.some((s) => s.day === dayOfWeek));
-    if (workingTherapists.length === 0)
+    const workingTherapistNames = workingTherapists.map((t) => t.name);
+    if (workingTherapists.length === 0) {
+        console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [${workingTherapistNames.join(", ")}], Generated Slots: 0`);
         return [];
+    }
     // 3. Load leave records for these therapists on this date
     const therapistIds = workingTherapists.map((t) => String(t._id));
     const leaves = await TherapistUnavailability.find({
@@ -262,6 +274,7 @@ export async function getAvailableSlots(department, date) {
             });
         }
     }
+    console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [${workingTherapistNames.join(", ")}], Generated Slots: ${availableSlots.length}`);
     return availableSlots;
 }
 /**

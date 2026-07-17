@@ -33,6 +33,7 @@ export const config = {
     allowedOrigins: Array.from(allowedOrigins),
     razorpayKeyId: process.env.RAZORPAY_KEY_ID ?? "",
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET ?? "",
+    appointmentFeeInr: Number(process.env.APPOINTMENT_FEE_INR ?? 500),
     mongoUri: process.env.MONGODB_URI ?? "",
     mongoDbName: process.env.MONGODB_DB_NAME ?? "udai",
     projectRoot,

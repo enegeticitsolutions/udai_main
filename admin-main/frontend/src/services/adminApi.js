@@ -227,3 +227,33 @@ export async function uploadImageFile(file) {
   }
   return data; // returns { success: true, url: "/uploads/filename", message: "..." }
 }
+
+export async function getTherapistLeaves() {
+  const response = await fetch(`${PUBLIC_UPLOAD_BASE}/api/therapists/unavailability`);
+  const data = await response.json().catch(() => null);
+  return data?.data ?? [];
+}
+
+export async function addTherapistLeave(payload) {
+  const response = await fetch(`${PUBLIC_UPLOAD_BASE}/api/therapists/unavailability`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.message ?? "Failed to add leave.");
+  }
+  return data?.data ?? null;
+}
+
+export async function deleteTherapistLeave(id) {
+  const response = await fetch(`${PUBLIC_UPLOAD_BASE}/api/therapists/unavailability/${id}`, {
+    method: "DELETE",
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.message ?? "Failed to delete leave.");
+  }
+  return data;
+}

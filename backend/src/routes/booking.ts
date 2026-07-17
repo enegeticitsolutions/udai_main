@@ -131,6 +131,17 @@ bookingRouter.get("/available-slots", async (req, res) => {
       value: s.time,
     }));
 
+    if (mappedSlots.length === 0) {
+      res.status(404).json({
+        success: false,
+        department: normalizedDept,
+        date: extractedDate,
+        slots: [],
+        message: "No appointment slots are available for the selected date.",
+      });
+      return;
+    }
+
     res.json({
       success: true,
       department: normalizedDept,

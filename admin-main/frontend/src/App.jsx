@@ -35,6 +35,9 @@ import {
   patchCareer,
   deleteCareer as removeCareerApi,
   uploadImageFile,
+  getTherapistLeaves,
+  addTherapistLeave,
+  deleteTherapistLeave,
 } from "./services/adminApi";
 import { adminLogin } from "./services/adminApi";
 import ProductsPage from "./components/ProductsPage";
@@ -1356,21 +1359,137 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
 }
 
 function AvailabilityPage({ therapists, deactivatedDates, onToggleDeactivate }) {
+  const [leaves, setLeaves] = useState([]);
+
+  useEffect(() => {
+    async function loadLeaves() {
+      try {
+        const data = await getTherapistLeaves();
+        setLeaves(data || []);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    loadLeaves();
+  }, []);
+
   const days = useMemo(() => {
     const arr = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i <= 4; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
       arr.push({
         iso: d.toISOString().split("T")[0],
         display: d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
+        dayOfWeek: d.getDay(),
       });
     }
     return arr;
   }, []);
 
-  const isDeactivated = (therapistId, date) => {
-    return deactivatedDates.some((d) => String(d.therapistId) === String(therapistId) && d.date === date);
+  const displayTherapists = useMemo(() => {
+    const seededNames = ["Harsimran", "Nikki", "Anamika", "Divya", "Veshali", "Sakshi"];
+    return therapists.filter(t => 
+      t.active !== false && 
+      seededNames.includes(t.name)
+    );
+  }, [therapists]);
+
+  const getStatus = (therapist, day) => {
+    const dayOfWeek = day.dayOfWeek;
+    const dateStr = day.iso;
+    const therapistIdStr = String(therapist.id ?? therapist._id);
+
+    // 1. Check weeklySchedule base availability
+    const isScheduled = therapist.weeklySchedule?.some((s) => s.day === dayOfWeek);
+    if (!isScheduled) {
+      return "Not Scheduled";
+    }
+
+    // 2. Check full-day leave record
+    const hasFullLeave = leaves.some(
+      (l) => String(l.therapistId) === therapistIdStr && l.date === dateStr && l.type === "full"
+    );
+    if (hasFullLeave) {
+      return "Unavailable";
+    }
+
+    // 3. Check partial leave record
+    const hasPartialLeave = leaves.some(
+      (l) => String(l.therapistId) === therapistIdStr && l.date === dateStr && l.type === "partial"
+    );
+    if (hasPartialLeave) {
+      return "Partially Unavailable";
+    }
+
+    // 4. Check legacy deactivatedDates
+    const isDeactivated = deactivatedDates.some(
+      (d) => String(d.therapistId) === therapistIdStr && d.date === dateStr
+    );
+    if (isDeactivated) {
+      return "Unavailable";
+    }
+
+    return "Available";
+  };
+
+  async function toggleStatus(therapist, day) {
+    const status = getStatus(therapist, day);
+    const therapistIdStr = String(therapist.id ?? therapist._id);
+    const dateStr = day.iso;
+
+    if (status === "Available") {
+      try {
+        await addTherapistLeave({
+          therapistId: therapistIdStr,
+          date: dateStr,
+          type: "full",
+          reason: "Marked Unavailable from Calendar",
+        });
+        const data = await getTherapistLeaves();
+        setLeaves(data || []);
+      } catch (err) {
+        alert("Failed to mark therapist unavailable.");
+      }
+    } else if (status === "Unavailable" || status === "Partially Unavailable") {
+      const record = leaves.find(
+        (l) => String(l.therapistId) === therapistIdStr && l.date === dateStr
+      );
+      if (record) {
+        try {
+          await deleteTherapistLeave(record.id);
+          const data = await getTherapistLeaves();
+          setLeaves(data || []);
+        } catch (err) {
+          alert("Failed to restore therapist availability.");
+        }
+      } else {
+        await onToggleDeactivate(therapist.id, dateStr);
+      }
+    }
+  }
+
+  const getButtonProps = (status) => {
+    switch (status) {
+      case "Available":
+        return { className: "date-toggle active", text: "Available", style: {} };
+      case "Unavailable":
+        return { className: "date-toggle deactivated", text: "Unavailable", style: {} };
+      case "Partially Unavailable":
+        return {
+          className: "date-toggle deactivated",
+          text: "Partially Unavailable",
+          style: { background: "#e9d5ff", color: "#6b21a8", borderColor: "#c084fc" }
+        };
+      case "Not Scheduled":
+      default:
+        return {
+          className: "date-toggle deactivated",
+          text: "Not Scheduled",
+          style: { background: "#f1f5f9", color: "#94a3b8", borderColor: "#e2e8f0", cursor: "not-allowed" },
+          disabled: true
+        };
+    }
   };
 
   return (
@@ -1378,9 +1497,9 @@ function AvailabilityPage({ therapists, deactivatedDates, onToggleDeactivate }) 
       <div className="section-head">
         <div>
           <h2>Availability Manager</h2>
-          <p className="section-copy">Manage doctor availability for the next 7 days. Click a date to deactivate/activate.</p>
+          <p className="section-copy">Manage doctor availability for today and the next 4 days. Click an available day to mark unavailable.</p>
         </div>
-        <Badge tone="amber">Next 7 Days</Badge>
+        <Badge tone="amber">Today + 4 Days</Badge>
       </div>
 
       <div className="availability-grid-container">
@@ -1395,7 +1514,7 @@ function AvailabilityPage({ therapists, deactivatedDates, onToggleDeactivate }) 
               </tr>
             </thead>
             <tbody>
-              {therapists.map((therapist) => (
+              {displayTherapists.map((therapist) => (
                 <tr key={therapist.id}>
                   <td className="sticky-col">
                     <div className="doctor-info">
@@ -1404,16 +1523,19 @@ function AvailabilityPage({ therapists, deactivatedDates, onToggleDeactivate }) 
                     </div>
                   </td>
                   {days.map((day) => {
-                    const deactivated = isDeactivated(therapist.id, day.iso);
+                    const status = getStatus(therapist, day);
+                    const props = getButtonProps(status);
                     return (
                       <td key={day.iso}>
                         <button
                           type="button"
-                          className={`date-toggle ${deactivated ? "deactivated" : "active"}`}
-                          onClick={() => onToggleDeactivate(therapist.id, day.iso)}
-                          title={deactivated ? "Click to Activate" : "Click to Deactivate"}
+                          className={props.className}
+                          style={props.style}
+                          disabled={props.disabled}
+                          onClick={() => toggleStatus(therapist, day)}
+                          title={`${status} — Click to toggle`}
                         >
-                          {deactivated ? "Unavailable" : "Available"}
+                          {props.text}
                         </button>
                       </td>
                     );
