@@ -142,11 +142,13 @@ bookingRouter.get("/available-slots", async (req, res) => {
       return;
     }
 
+    const visibleSlots = mappedSlots.slice(0, 8);
+
     res.json({
       success: true,
       department: normalizedDept,
       date: extractedDate,
-      slots: mappedSlots,
+      slots: visibleSlots,
     });
   } catch (error) {
     console.error("[GET /api/booking/available-slots] Error:", error);
