@@ -26,6 +26,7 @@ apiRouter.get("/health", (_req, res) => {
 apiRouter.use("/content", contentRouter);
 apiRouter.use("/forms", formsRouter);
 apiRouter.use("/payments", paymentsRouter);
+apiRouter.use("/", paymentsRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/user", userRouter);
 apiRouter.use("/admin", adminRouter);

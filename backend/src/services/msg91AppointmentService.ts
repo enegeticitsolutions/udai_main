@@ -7,24 +7,33 @@ import { config } from "../config.js";
 import { readJsonFile, writeJsonFile } from "../lib/fileStore.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 
+import { assignTherapist, getAvailableSlots, normalizeDepartment } from "./bookingService.js";
+
+export class NoSlotsAvailableError extends Error {
+  constructor(message = "No appointment slots available for the selected date.") {
+    super(message);
+    this.name = "NoSlotsAvailableError";
+  }
+}
+
 const appointmentTypeSchema = z.enum(["online", "in-person"]);
 const paymentStatusSchema = z.enum(["pending", "paid", "failed", "not-required"]);
 const bookingStatusSchema = z.enum(["pending", "confirmed", "completed", "cancelled"]);
 
 const msg91AppointmentSchema = z.object({
   bookingId: z.string().trim().min(2).max(180).optional(),
-  patientName: z.string().trim().min(2).max(160),
+  patientName: z.string().trim().min(1).max(160),
   phoneNumber: z.string().trim().regex(/^\+?\d{10,15}$/, "Phone number must contain 10 to 15 digits"),
   age: z.coerce.number().int().min(0).max(120),
-  gender: z.string().trim().min(1).max(60),
-  city: z.string().trim().min(2).max(160),
-  preferredLanguage: z.string().trim().min(2).max(80),
+  gender: z.string().trim().optional().default("Not specified"),
+  city: z.string().trim().optional().default("Not specified"),
+  preferredLanguage: z.string().trim().optional().default("English"),
   therapistId: z.string().trim().max(160).optional().nullable(),
-  therapistName: z.string().trim().min(2).max(160),
+  therapistName: z.string().trim().min(1).max(160),
   appointmentDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Appointment date must use YYYY-MM-DD"),
-  appointmentTime: z.string().trim().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Appointment time must use HH:mm"),
-  appointmentType: appointmentTypeSchema,
-  mainConcern: z.string().trim().min(2).max(500),
+  appointmentTime: z.string().trim().optional().default(""),
+  appointmentType: appointmentTypeSchema.optional().default("in-person"),
+  mainConcern: z.string().trim().max(500).optional().default("General Consultation"),
   concernDescription: z.string().trim().max(3000).optional().default(""),
   additionalNotes: z.string().trim().max(3000).optional().default(""),
   paymentStatus: paymentStatusSchema.optional().default("pending"),
@@ -80,22 +89,29 @@ function payloadData(payload: unknown) {
 
 export function parseMsg91AppointmentPayload(payload: unknown) {
   const data = payloadData(payload);
+  const rawTime = pick(data, "appointment_time", "appointmentTime", "time");
+  const rawGender = pick(data, "gender");
+  const rawCity = pick(data, "city");
+  const rawLang = pick(data, "preferred_language", "preferredLanguage", "language");
+  const rawPatientName = pick(data, "patient_name", "patientName", "name", "full_name", "child_name", "childName");
+  const rawTherapistName = pick(data, "therapist_name", "therapistName", "doctor", "doctor_name", "department");
+
   return msg91AppointmentSchema.parse({
     bookingId: pick(data, "booking_id", "bookingId", "id") || undefined,
-    patientName: pick(data, "patient_name", "patientName", "name", "full_name"),
+    patientName: rawPatientName || "Patient",
     phoneNumber: normalizePhone(pick(data, "phone_number", "phoneNumber", "mobile", "phone", "wa_id")),
     age: pick(data, "age", "patient_age", "patientAge"),
-    gender: pick(data, "gender"),
-    city: pick(data, "city"),
-    preferredLanguage: pick(data, "preferred_language", "preferredLanguage", "language"),
+    gender: rawGender || undefined,
+    city: rawCity || undefined,
+    preferredLanguage: rawLang || undefined,
     therapistId: pick(data, "therapist_id", "therapistId", "doctor_id", "doctorId") || null,
-    therapistName: pick(data, "therapist_name", "therapistName", "doctor", "doctor_name"),
+    therapistName: rawTherapistName || "General Consultation",
     appointmentDate: pick(data, "appointment_date", "appointmentDate", "date"),
-    appointmentTime: pick(data, "appointment_time", "appointmentTime", "time"),
-    appointmentType: normalizeAppointmentType(pick(data, "appointment_type", "appointmentType", "visit_type")),
-    mainConcern: pick(data, "main_concern", "mainConcern", "concern"),
-    concernDescription: pick(data, "concern_description", "concernDescription", "description"),
-    additionalNotes: pick(data, "additional_notes", "additionalNotes", "notes"),
+    appointmentTime: rawTime || undefined,
+    appointmentType: normalizeAppointmentType(pick(data, "appointment_type", "appointmentType", "visit_type") || "in-person"),
+    mainConcern: pick(data, "main_concern", "mainConcern", "concern") || "General Consultation",
+    concernDescription: pick(data, "concern_description", "concernDescription", "description") || "",
+    additionalNotes: pick(data, "additional_notes", "additionalNotes", "notes") || "",
     paymentStatus: normalizeStatus(pick(data, "payment_status", "paymentStatus") || "pending"),
     bookingStatus: normalizeStatus(pick(data, "booking_status", "bookingStatus", "status") || "pending"),
   });
@@ -152,6 +168,23 @@ async function readStoredAppointments(): Promise<AppointmentRecord[]> {
 
 export async function saveMsg91Appointment(payload: unknown) {
   const input = parseMsg91AppointmentPayload(payload);
+
+  // If appointmentTime is missing or empty, automatically pick the first available slot
+  if (!input.appointmentTime || input.appointmentTime.trim() === "") {
+    const availableSlots = await getAvailableSlots(input.therapistName, input.appointmentDate);
+    if (!availableSlots || availableSlots.length === 0) {
+      throw new NoSlotsAvailableError("No appointment slots available for the selected date.");
+    }
+    input.appointmentTime = availableSlots[0].time;
+  }
+
+  // Reserve slot by assigning available therapist
+  const assigned = await assignTherapist(input.therapistName, input.appointmentDate, input.appointmentTime);
+  if (assigned) {
+    input.therapistId = assigned.id;
+    input.therapistName = assigned.name;
+    input.bookingStatus = "confirmed";
+  }
   const bookingId = input.bookingId || generatedBookingId(input);
   const now = new Date().toISOString();
   const document = {

@@ -15,6 +15,7 @@ const allowedOrigins = new Set(
 );
 
 export const config = {
+  baseUrl: (process.env.BASE_URL ?? process.env.BACKEND_URL ?? "https://udai-main.onrender.com").replace(/\/$/, ""),
   env: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 5003),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5191",
@@ -24,7 +25,7 @@ export const config = {
   projectRoot,
   storageDir: path.resolve(projectRoot, "backend-storage"),
   sharedUploadDir: path.resolve(projectRoot, "..", "backend", "storage", "uploads"),
-  publicUploadBaseUrl: (process.env.PUBLIC_UPLOAD_BASE_URL ?? process.env.PUBLIC_API_BASE_URL ?? "http://localhost:4000").replace(/\/$/, ""),
+  publicUploadBaseUrl: (process.env.PUBLIC_UPLOAD_BASE_URL ?? process.env.BASE_URL ?? process.env.BACKEND_URL ?? "https://udai-main.onrender.com").replace(/\/$/, ""),
   supabaseUrl: process.env.SUPABASE_URL ?? "",
   supabaseAnon: process.env.SUPABASE_ANON ?? "",
   supabaseServiceRole: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",

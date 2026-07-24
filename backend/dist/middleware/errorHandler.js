@@ -8,9 +8,15 @@ export function notFoundHandler(req, res) {
 }
 export function errorHandler(error, _req, res, _next) {
     if (error instanceof ZodError) {
+        const details = error.issues
+            .map((issue) => {
+            const path = issue.path.join(".");
+            return path ? `${path}: ${issue.message}` : issue.message;
+        })
+            .join("; ");
         res.status(400).json({
             success: false,
-            message: "Validation failed",
+            message: `Validation failed${details ? `: ${details}` : ""}`,
             errors: error.flatten(),
         });
         return;

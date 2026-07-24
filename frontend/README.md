@@ -15,10 +15,10 @@
 Set `VITE_API_URL` to your backend URL, for example:
 
 ```env
-VITE_API_URL=https://api.example.com/api
-VITE_ADMIN_API_BASE=https://api.example.com/api/admin
-VITE_SITE_URL=https://www.example.com
-VITE_ADMIN_URL=https://admin.example.com
+VITE_API_URL=https://udaiapi.datamoshtechnologies.com/api
+VITE_ADMIN_API_BASE=https://udaiapi.datamoshtechnologies.com/api/admin
+VITE_SITE_URL=https://udairehab.org
+VITE_ADMIN_URL=https://admin.udairehab.org
 VITE_RAZORPAY_KEY_ID=rzp_test_your_key_id
 ```
   

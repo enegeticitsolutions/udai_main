@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { MongoServerError } from "mongodb";
 import { ZodError } from "zod";
-import { saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import { NoSlotsAvailableError, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
 const msg91WebhookRouter = Router();
 msg91WebhookRouter.post("/", async (req, res) => {
@@ -29,6 +29,9 @@ msg91WebhookRouter.post("/", async (req, res) => {
                 appointmentTime: appointment.appointmentTime || "",
                 department: appointment.therapistName || "",
                 concern: appointment.mainConcern || "",
+                assignedTherapist: appointment.therapistName || "",
+                status: "confirmed",
+                bookingSource: "whatsapp",
             });
             console.log(`[MSG91 appointment webhook] Logged appointment payload to WebhookMessage`);
         }
@@ -42,6 +45,10 @@ msg91WebhookRouter.post("/", async (req, res) => {
         });
     }
     catch (error) {
+        if (error instanceof NoSlotsAvailableError) {
+            res.status(400).json({ success: false, message: error.message });
+            return;
+        }
         if (error instanceof ZodError) {
             console.warn("[MSG91 appointment webhook] Validation failed:", error.flatten());
             res.status(422).json({ success: false, message: "Invalid booking payload", errors: error.flatten().fieldErrors });

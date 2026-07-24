@@ -40,15 +40,15 @@ This keeps the current frontend content in sync with the backend without forcing
 If you host the admin app on a different domain, update `.env` in `backend/`:
 
 ```env
-CORS_ORIGIN=https://www.example.com,https://admin.example.com
-FRONTEND_ORIGIN=https://www.example.com
-ADMIN_ORIGIN=https://admin.example.com
+CORS_ORIGIN=https://udairehab.org,https://admin.udairehab.org
+FRONTEND_ORIGIN=https://udairehab.org
+ADMIN_ORIGIN=https://admin.udairehab.org
 ```
 
 If you prefer a single line, `CORS_ORIGIN` can also be a comma-separated list:
 
 ```env
-CORS_ORIGIN=https://admin.example.com,https://www.example.com
+CORS_ORIGIN=https://admin.udairehab.org,https://udairehab.org
 ```
 
 The backend accepts a comma-separated list of allowed origins.

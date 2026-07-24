@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { MongoServerError } from "mongodb";
 import { ZodError } from "zod";
-import { saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import { NoSlotsAvailableError, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
 
 const msg91BookingRouter = Router();
 
@@ -19,6 +19,11 @@ msg91BookingRouter.post("/", async (req, res) => {
       message: duplicate ? "Duplicate booking already recorded" : "Booking saved successfully",
     });
   } catch (error) {
+    if (error instanceof NoSlotsAvailableError) {
+      res.status(400).json({ success: false, message: error.message });
+      return;
+    }
+
     if (error instanceof ZodError) {
       console.warn("[MSG91 legacy booking] Validation failed:", error.flatten());
       res.status(422).json({ success: false, message: "Invalid booking payload", errors: error.flatten().fieldErrors });

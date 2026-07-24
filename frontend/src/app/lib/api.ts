@@ -1,39 +1,36 @@
 const getApiBaseUrl = () => {
+  const envBase = (import.meta.env.VITE_BASE_URL as string | undefined)?.replace(/\/$/, "");
+  const envApi = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "");
+
+  if (envApi) return envApi;
+  if (envBase) return `${envBase}/api`;
+
   if (typeof window === "undefined") {
-    return (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "http://localhost:4000/api";
+    return "https://udai-main.onrender.com/api";
   }
 
-  const { hostname, protocol } = window.location;
-  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
-
-  // If a custom production API URL is provided, use it
-  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
-    return envUrl.replace(/\/$/, "");
-  }
-
-  // Local development
+  const { hostname } = window.location;
   if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return envUrl?.replace(/\/$/, "") ?? "http://localhost:4000/api";
+    return "http://localhost:4000/api";
   }
 
-  // Deployed site standard path: relative to current domain
   return "/api";
 };
 
 const getAdminApiBaseUrl = () => {
+  const envBase = (import.meta.env.VITE_BASE_URL as string | undefined)?.replace(/\/$/, "");
+  const envAdmin = (import.meta.env.VITE_ADMIN_API_BASE as string | undefined)?.replace(/\/$/, "");
+
+  if (envAdmin) return envAdmin;
+  if (envBase) return `${envBase}/api/admin`;
+
   if (typeof window === "undefined") {
-    return (import.meta.env.VITE_ADMIN_API_BASE as string | undefined)?.replace(/\/$/, "") ?? "http://localhost:5003/api/admin";
+    return "https://udai-main.onrender.com/api/admin";
   }
 
   const { hostname } = window.location;
-  const envUrl = import.meta.env.VITE_ADMIN_API_BASE as string | undefined;
-
-  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
-    return envUrl.replace(/\/$/, "");
-  }
-
   if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return envUrl?.replace(/\/$/, "") ?? "http://localhost:5003/api/admin";
+    return "http://localhost:5003/api/admin";
   }
 
   return "/api/admin";
@@ -41,6 +38,7 @@ const getAdminApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 const ADMIN_API_BASE_URL = getAdminApiBaseUrl();
+const BASE_URL = (import.meta.env.VITE_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? API_BASE_URL.replace(/\/api$/, "");
 
 interface ApiSuccessResponse<T> {
   success: true;
@@ -63,13 +61,13 @@ async function request<T>(baseUrl: string, path: string, options?: RequestInit):
     },
     ...options,
   });
-  const payload = (await response.json()) as ApiSuccessResponse<T> | ApiErrorResponse;
+  const payload = (await response.json()) as any;
 
-  if (!response.ok || !payload.success) {
-    throw new Error(payload.message ?? "Request failed");
+  if (!response.ok || !payload || payload.success === false) {
+    throw new Error(payload?.message ?? "Request failed");
   }
 
-  return payload.data;
+  return (payload.data !== undefined ? payload.data : payload) as T;
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
@@ -90,7 +88,7 @@ export function adminApiPost<T>(path: string, body: unknown): Promise<T> {
   });
 }
 
-export { API_BASE_URL, ADMIN_API_BASE_URL };
+export { API_BASE_URL, ADMIN_API_BASE_URL, BASE_URL };
 
 export const AUTH_TOKEN_KEY = "udai_auth_token";
 

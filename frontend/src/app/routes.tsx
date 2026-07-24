@@ -17,6 +17,7 @@ import { Careers } from "./pages/Careers";
 import { Appointment } from "./pages/Appointment";
 import { AuthPage } from "./pages/AuthPage";
 import { AccountOrders } from "./pages/AccountOrders";
+import { DonationSuccess } from "./pages/DonationSuccess";
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
       { path: "contact", Component: Contact },
       { path: "auth", Component: AuthPage },
       { path: "account/orders", Component: AccountOrders },
+      { path: "donation-success", Component: DonationSuccess },
     ],
   },
 ]);

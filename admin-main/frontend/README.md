@@ -23,9 +23,9 @@ In a second terminal:
 Set the admin API base URL before building:
 
 ```env
-VITE_ADMIN_API_BASE=https://api.example.com/api/admin
-VITE_ADMIN_URL=https://admin.example.com
-VITE_SITE_URL=https://www.example.com
+VITE_ADMIN_API_BASE=https://udaiapi.datamoshtechnologies.com/api/admin
+VITE_ADMIN_URL=https://admin.udairehab.org
+VITE_SITE_URL=https://udairehab.org
 ```
 
 Then build:
@@ -41,9 +41,9 @@ Deploy the generated `dist/` folder to your static host.
 The backend must allow the admin domain in `CORS_ORIGIN`, for example:
 
 ```env
-CORS_ORIGIN=https://admin.example.com,https://www.example.com
-FRONTEND_ORIGIN=https://www.example.com
-ADMIN_ORIGIN=https://admin.example.com
+CORS_ORIGIN=https://admin.udairehab.org,https://udairehab.org
+FRONTEND_ORIGIN=https://udairehab.org
+ADMIN_ORIGIN=https://admin.udairehab.org
 ```
 
 For local development, the admin frontend proxy points to `http://localhost:5003`.

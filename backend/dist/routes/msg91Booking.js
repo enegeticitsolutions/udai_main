@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { MongoServerError } from "mongodb";
 import { ZodError } from "zod";
-import { saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import { NoSlotsAvailableError, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
 const msg91BookingRouter = Router();
 /**
  * Backward-compatible alias for older MSG91 bot flow nodes.
@@ -18,6 +18,10 @@ msg91BookingRouter.post("/", async (req, res) => {
         });
     }
     catch (error) {
+        if (error instanceof NoSlotsAvailableError) {
+            res.status(400).json({ success: false, message: error.message });
+            return;
+        }
         if (error instanceof ZodError) {
             console.warn("[MSG91 legacy booking] Validation failed:", error.flatten());
             res.status(422).json({ success: false, message: "Invalid booking payload", errors: error.flatten().fieldErrors });

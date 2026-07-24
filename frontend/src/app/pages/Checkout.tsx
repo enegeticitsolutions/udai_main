@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
-import { apiPost } from "../lib/api";
+import { apiGet, apiPost } from "../lib/api";
 import { clearCart, clearCheckoutProduct, getCart, getCheckoutProduct } from "../lib/cart";
 import { useAuth } from "../context/AuthContext";
 import type { CartItem } from "../lib/cart";
@@ -19,10 +19,10 @@ declare global {
       name: string;
       description: string;
       order_id: string;
-      prefill: {
-        name: string;
-        email: string;
-        contact: string;
+      prefill?: {
+        name?: string;
+        email?: string;
+        contact?: string;
       };
       theme?: {
         color?: string;
@@ -35,14 +35,20 @@ declare global {
       }) => void;
       modal?: {
         ondismiss?: () => void;
+        onDismiss?: () => void;
+        escape?: boolean;
+        animation?: boolean;
+        handleback?: boolean;
+        confirm_close?: boolean;
       };
     }) => {
       open: () => void;
+      on?: (event: string, callback: (response: any) => void) => void;
     };
   }
 }
 
-type PaymentMethod = "qr" | "upi" | "card" | "netbanking";
+type PaymentMethod = "razorpay_modal" | "qr";
 
 type AddressForm = {
   country: string;
@@ -95,20 +101,19 @@ type RazorpayCreateResponse = {
   };
 };
 
-type RazorpayVerificationResponse = Order;
-
-type RazorpayQrCreateResponse = {
-  order: Order;
-  qrCode: {
-    id: string;
-    status: string;
-    imageUrl: string;
-    imageContent?: string;
-    amount: number;
-    currency: string;
-    isFallback?: boolean;
-  };
+type DynamicQrCodeData = {
+  id: string;
+  status: string;
+  imageUrl: string;
+  imageContent?: string;
+  amount: number;
+  currency: string;
+  localOrderId: string;
+  orderNumber: string;
+  isFallback?: boolean;
 };
+
+type RazorpayVerificationResponse = Order;
 
 function loadRazorpayScript() {
   return new Promise<boolean>((resolve) => {
@@ -139,10 +144,25 @@ export function Checkout() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [checkoutProduct, setCheckoutProduct] = useState<Product | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay_modal");
   const [address, setAddress] = useState<AddressForm>(initialAddress);
   const [submitting, setSubmitting] = useState(false);
-  const [qrPayment, setQrPayment] = useState<RazorpayQrCreateResponse | null>(null);
+  const [dynamicQr, setDynamicQr] = useState<DynamicQrCodeData | null>(null);
+  const [qrStatusText, setQrStatusText] = useState<string>("");
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const stopQrPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopQrPolling();
+    };
+  }, [stopQrPolling]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -173,7 +193,6 @@ export function Checkout() {
     if (checkoutProduct) {
       return [{ product: checkoutProduct, quantity: 1 }];
     }
-
     return cartItems;
   }, [checkoutProduct, cartItems]);
 
@@ -188,6 +207,8 @@ export function Checkout() {
     setAddress((current) => ({ ...current, [key]: value }));
   }
 
+
+
   async function handlePayNow(event: React.FormEvent) {
     event.preventDefault();
 
@@ -200,7 +221,7 @@ export function Checkout() {
       !address.city ||
       !address.state
     ) {
-      toast.error("Please fill the delivery address fields.");
+      toast.error("Please fill all required delivery address fields.");
       return;
     }
 
@@ -212,10 +233,17 @@ export function Checkout() {
     setSubmitting(true);
 
     try {
+      const cleanPhone = address.mobile.replace(/\D/g, "").slice(-10);
+      const itemsSummary = orderItems.map((item) => `${item.product.title} (x${item.quantity})`).join(", ");
+
       const payload = {
+        amount: total,
         customerName: address.fullName.trim(),
         customerEmail: address.email.trim() || undefined,
-        customerPhone: address.mobile.trim(),
+        customerPhone: cleanPhone,
+        purpose: `Shop Order: ${itemsSummary}`,
+        donationCategory: "shop",
+        callbackUrl: `${window.location.origin}/donation-success`,
         shippingAddress: {
           ...address,
           email: address.email.trim() || undefined,
@@ -230,82 +258,24 @@ export function Checkout() {
         })),
         subtotal,
         shippingAmount: shipping,
-        totalAmount: total,
-        currency: "INR",
-        paymentMethod,
-        paymentStatus: "initiated",
-        orderStatus: "new",
-        notes: address.instructions.trim(),
       };
 
-      if (paymentMethod === "qr") {
-        const qrCheckout = await apiPost<RazorpayQrCreateResponse>("/payments/razorpay/qr-code", payload);
-        setQrPayment(qrCheckout);
-        toast.success(`QR code generated for order ${qrCheckout.order.orderNumber ?? qrCheckout.order.id}.`);
-        return;
+      const res = await apiPost<any>("/payments/razorpay/create-payment-link", payload);
+      const linkUrl = res?.short_url || res?.paymentLinkUrl || res?.data?.short_url;
+
+      if (!linkUrl) {
+        throw new Error(res?.message || "Failed to create Razorpay Payment Link.");
       }
 
-      setQrPayment(null);
-      const checkout = await apiPost<RazorpayCreateResponse>("/payments/razorpay/order", payload);
-      const scriptLoaded = await loadRazorpayScript();
+      clearCheckoutProduct();
+      clearCart();
 
-      if (!scriptLoaded) {
-        throw new Error("Failed to load Razorpay checkout.");
-      }
-
-      await new Promise<void>((resolve, reject) => {
-        const instance = new (window as any).Razorpay({
-          key: checkout.razorpay.keyId,
-          amount: checkout.razorpay.amount,
-          currency: checkout.razorpay.currency,
-          name: checkout.razorpay.name,
-          description: checkout.razorpay.description,
-          order_id: checkout.razorpay.orderId,
-          prefill: checkout.razorpay.prefill,
-          theme: {
-            color: "#2f5597",
-          },
-          notes: {
-            localOrderId: checkout.order.id,
-            paymentMethod,
-          },
-          handler: async (response: any) => {
-            try {
-              const verified = await apiPost<RazorpayVerificationResponse>("/payments/razorpay/verify", {
-                localOrderId: checkout.order.id,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-                paymentMethod,
-              });
-
-              clearCheckoutProduct();
-              clearCart();
-              toast.success(`Payment verified successfully. Order ${verified.orderNumber ?? verified.id} is confirmed.`);
-              navigate("/products");
-              resolve();
-            } catch (verificationError) {
-              reject(verificationError instanceof Error ? verificationError : new Error("Payment verification failed."));
-            }
-          },
-          modal: {
-            ondismiss: () => {
-              reject(new Error("Payment window closed before completion."));
-            },
-          },
-        });
-
-        instance.open();
-      });
+      // Redirect user to Razorpay Hosted Payment Link page (supports UPI, QR, Cards, NetBanking, Wallets)
+      window.location.href = linkUrl;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to start Razorpay checkout.";
-      if (message === "Payment window closed before completion.") {
-        toast.info(message);
-      } else {
-        toast.error(message);
-      }
-    } finally {
       setSubmitting(false);
+      const message = error instanceof Error ? error.message : "Unable to initiate payment.";
+      toast.error(message);
     }
   }
 
@@ -339,286 +309,240 @@ export function Checkout() {
         <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
           <div className="mb-4 sm:mb-8">
             <h1 className="text-2xl font-semibold tracking-tight text-[#2b1b15] sm:text-4xl">Checkout</h1>
-            <p className="mt-1 text-sm text-[#776a66] sm:mt-2">Add delivery details and choose a payment method.</p>
+            <p className="mt-1 text-sm text-[#776a66] sm:mt-2">Add delivery details and proceed to secure payment.</p>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8">
-          <form onSubmit={handlePayNow} className="order-1 space-y-4 sm:space-y-8">
-            <div className="rounded-[0.9rem] bg-white p-3 shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
-              <h2 className="text-lg font-semibold text-[#2b1b15] sm:text-2xl">Delivery address</h2>
-              <p className="mt-1 text-sm text-[#776a66] sm:mt-2">Use an address where you can receive your order.</p>
+            <form onSubmit={handlePayNow} className="order-1 space-y-4 sm:space-y-8">
+              <div className="rounded-[0.9rem] bg-white p-3 shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+                <h2 className="text-lg font-semibold text-[#2b1b15] sm:text-2xl">Delivery address</h2>
+                <p className="mt-1 text-sm text-[#776a66] sm:mt-2">Use an address where you can receive your order.</p>
 
-              <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Country / Region</label>
-                  <select
-                    value={address.country}
-                    onChange={(event) => updateField("country", event.target.value)}
-                    className="w-full rounded-xl border border-[#d8d0c8] bg-white px-4 py-3 text-sm outline-none focus:border-[#2f5597]"
-                  >
-                    <option value="India">India</option>
-                    <option value="Uganda">Uganda</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Full name</label>
-                    <Input value={address.fullName} onChange={(e) => updateField("fullName", e.target.value)} placeholder="Enter full name" />
+                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Country / Region</label>
+                    <select
+                      value={address.country}
+                      onChange={(event) => updateField("country", event.target.value)}
+                      className="w-full rounded-xl border border-[#d8d0c8] bg-white px-4 py-3 text-sm outline-none focus:border-[#2f5597]"
+                    >
+                      <option value="India">India</option>
+                      <option value="Uganda">Uganda</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Email address</label>
-                    <Input value={address.email} onChange={(e) => updateField("email", e.target.value)} placeholder="Enter email address" />
-                  </div>
-                </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Mobile number</label>
-                    <Input value={address.mobile} onChange={(e) => updateField("mobile", e.target.value)} placeholder="Enter mobile number" />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Pincode</label>
-                    <Input value={address.pincode} onChange={(e) => updateField("pincode", e.target.value)} placeholder="6 digits PIN code" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Flat, House no., Building, Company, Apartment</label>
-                  <Input value={address.house} onChange={(e) => updateField("house", e.target.value)} placeholder="Enter address line 1" />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Area, Street, Sector, Village</label>
-                  <Input value={address.area} onChange={(e) => updateField("area", e.target.value)} placeholder="Enter address line 2" />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Landmark</label>
-                  <Input value={address.landmark} onChange={(e) => updateField("landmark", e.target.value)} placeholder="E.g. near Apollo hospital" />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Town / City</label>
-                    <Input value={address.city} onChange={(e) => updateField("city", e.target.value)} placeholder="Enter city" />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">State</label>
-                    <Input value={address.state} onChange={(e) => updateField("state", e.target.value)} placeholder="Enter state" />
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-3 text-sm text-[#2b1b15]">
-                  <input
-                    type="checkbox"
-                    checked={address.defaultAddress}
-                    onChange={(e) => updateField("defaultAddress", e.target.checked)}
-                    className="size-4 rounded border-[#c7beb6]"
-                  />
-                  Make this my default address
-                </label>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Delivery instructions (optional)</label>
-                  <Textarea
-                    value={address.instructions}
-                    onChange={(e) => updateField("instructions", e.target.value)}
-                    placeholder="Add preferences, notes, or access details"
-                    rows={4}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[0.9rem] bg-white p-3 shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
-              <h2 className="text-lg font-semibold text-[#2b1b15] sm:text-2xl">Payment Method</h2>
-              <p className="mt-1 text-sm text-[#776a66] sm:mt-2">
-                This checkout now opens Razorpay test checkout for the selected payment method.
-              </p>
-
-              <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4">
-                <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "qr" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === "qr"}
-                      onChange={() => {
-                        setPaymentMethod("qr");
-                        setQrPayment(null);
-                      }}
-                    />
-                    <div className="min-w-0">
-                      <div className="font-semibold text-[#2b1b15]">QR Code</div>
-                      <div className="text-sm text-[#776a66]">Scan the QR code to complete payment.</div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Full name</label>
+                      <Input value={address.fullName} onChange={(e) => updateField("fullName", e.target.value)} placeholder="Enter full name" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Email address</label>
+                      <Input value={address.email} onChange={(e) => updateField("email", e.target.value)} placeholder="Enter email address" />
                     </div>
                   </div>
-                  {paymentMethod === "qr" ? (
-                    <div className="mt-4 rounded-xl border border-dashed border-[#cfd8f6] bg-[#f7f9ff] p-4 text-center sm:rounded-2xl sm:p-5">
-                      {qrPayment ? (
-                        <>
-                          <img
-                            src={qrPayment.qrCode.imageUrl}
-                            alt="Razorpay payment QR code"
-                            className="mx-auto h-40 w-40 rounded-2xl border border-[#d8e0fb] bg-white object-contain p-2 sm:h-44 sm:w-44"
-                          />
-                          <p className="mt-3 text-sm text-[#776a66]">
-                            Test QR generated for {money(qrPayment.qrCode.amount / 100)}. Scan it from a UPI app.
-                          </p>
-                          {qrPayment.qrCode.isFallback ? (
-                            <p className="mt-2 text-xs text-[#9a6a12]">
-                              Razorpay QR API is unavailable for this test account, so this is a local test QR.
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Mobile number</label>
+                      <Input value={address.mobile} onChange={(e) => updateField("mobile", e.target.value)} placeholder="Enter mobile number" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Pincode</label>
+                      <Input value={address.pincode} onChange={(e) => updateField("pincode", e.target.value)} placeholder="6 digits PIN code" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Flat, House no., Building, Company, Apartment</label>
+                    <Input value={address.house} onChange={(e) => updateField("house", e.target.value)} placeholder="Enter address line 1" />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Area, Street, Sector, Village</label>
+                    <Input value={address.area} onChange={(e) => updateField("area", e.target.value)} placeholder="Enter address line 2" />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Landmark</label>
+                    <Input value={address.landmark} onChange={(e) => updateField("landmark", e.target.value)} placeholder="E.g. near Apollo hospital" />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Town / City</label>
+                      <Input value={address.city} onChange={(e) => updateField("city", e.target.value)} placeholder="Enter city" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2b1b15]">State</label>
+                      <Input value={address.state} onChange={(e) => updateField("state", e.target.value)} placeholder="Enter state" />
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-3 text-sm text-[#2b1b15]">
+                    <input
+                      type="checkbox"
+                      checked={address.defaultAddress}
+                      onChange={(e) => updateField("defaultAddress", e.target.checked)}
+                      className="size-4 rounded border-[#c7beb6]"
+                    />
+                    Make this my default address
+                  </label>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2b1b15]">Delivery instructions (optional)</label>
+                    <Textarea
+                      value={address.instructions}
+                      onChange={(e) => updateField("instructions", e.target.value)}
+                      placeholder="Add preferences, notes, or access details"
+                      rows={4}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[0.9rem] bg-white p-3 shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+                <h2 className="text-lg font-semibold text-[#2b1b15] sm:text-2xl">Payment Method</h2>
+                <p className="mt-1 text-sm text-[#776a66] sm:mt-2">
+                  Choose your preferred payment method below.
+                </p>
+
+                <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4">
+                  <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "razorpay_modal" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="payment"
+                        checked={paymentMethod === "razorpay_modal"}
+                        onChange={() => {
+                          setPaymentMethod("razorpay_modal");
+                          stopQrPolling();
+                          setDynamicQr(null);
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[#2b1b15]">Standard Razorpay Checkout</div>
+                        <div className="text-sm text-[#776a66]">Pay securely via Razorpay popup (Cards, NetBanking, UPI, Wallets).</div>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "qr" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="payment"
+                        checked={paymentMethod === "qr"}
+                        onChange={() => {
+                          setPaymentMethod("qr");
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[#2b1b15]">Dynamic UPI QR Code</div>
+                        <div className="text-sm text-[#776a66]">Generate a dynamic transaction QR code and scan from any UPI app.</div>
+                      </div>
+                    </div>
+                    {paymentMethod === "qr" ? (
+                      <div className="mt-4 flex flex-col items-center justify-center rounded-2xl bg-white p-4 text-center shadow-sm border border-[#ddd8d1]">
+                        {dynamicQr ? (
+                          <div className="mx-auto flex flex-col items-center w-full">
+                            <img
+                              src={dynamicQr.imageUrl}
+                              alt="Razorpay QR Code"
+                              className="mx-auto h-auto max-h-[340px] w-full max-w-[280px] rounded-2xl object-contain shadow-md"
+                            />
+                            <p className="mt-3 text-sm font-semibold text-[#2b1b15]">
+                              Scan to pay {money(dynamicQr.amount / 100)}
                             </p>
-                          ) : null}
-                          {qrPayment.qrCode.imageContent ? (
-                            <a
-                              href={qrPayment.qrCode.imageContent}
-                              className="mt-3 inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#2f5597] shadow-sm"
-                            >
-                              Open UPI Link
-                            </a>
-                          ) : null}
-                        </>
-                      ) : (
-                        <p className="text-sm text-[#776a66]">
-                          Click Pay Now to generate a Razorpay test QR code for this order.
-                        </p>
-                      )}
-                    </div>
-                  ) : null}
-                </label>
-
-                <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "card" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === "card"}
-                      onChange={() => {
-                        setPaymentMethod("card");
-                        setQrPayment(null);
-                      }}
-                    />
-                    <div className="min-w-0">
-                      <div className="font-semibold text-[#2b1b15]">Credit Card / Debit Card</div>
-                      <div className="text-sm text-[#776a66]">Pay securely with your card.</div>
-                    </div>
-                  </div>
-                </label>
-
-                <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "upi" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === "upi"}
-                      onChange={() => {
-                        setPaymentMethod("upi");
-                        setQrPayment(null);
-                      }}
-                    />
-                    <div className="min-w-0">
-                      <div className="font-semibold text-[#2b1b15]">Pay with UPI</div>
-                      <div className="text-sm text-[#776a66]">Enter your UPI ID to complete payment.</div>
-                    </div>
-                  </div>
-                  {paymentMethod === "upi" ? (
-                    <div className="mt-4">
-                      <Input placeholder="example@upi" />
-                    </div>
-                  ) : null}
-                </label>
-
-                <label className={`cursor-pointer rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${paymentMethod === "netbanking" ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#ddd8d1] bg-white"}`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === "netbanking"}
-                      onChange={() => {
-                        setPaymentMethod("netbanking");
-                        setQrPayment(null);
-                      }}
-                    />
-                    <div className="min-w-0">
-                      <div className="font-semibold text-[#2b1b15]">Net Banking</div>
-                      <div className="text-sm text-[#776a66]">Choose your bank and continue to pay.</div>
-                    </div>
-                  </div>
-                  {paymentMethod === "netbanking" ? (
-                    <div className="mt-4">
-                      <select className="w-full rounded-xl border border-[#d8d0c8] bg-white px-4 py-3 text-sm outline-none">
-                        <option value="">Select bank</option>
-                        <option>State Bank of India</option>
-                        <option>HDFC Bank</option>
-                        <option>ICICI Bank</option>
-                        <option>Axis Bank</option>
-                      </select>
-                    </div>
-                  ) : null}
-                </label>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={submitting}
-                className="mt-5 w-full rounded-full bg-[#2f5597] py-5 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(47,85,151,0.22)] hover:bg-[#264882] sm:mt-6 sm:py-6 sm:text-base"
-              >
-                {submitting ? "Processing..." : paymentMethod === "qr" && !qrPayment ? "Generate QR" : "Pay Now"}
-              </Button>
-            </div>
-          </form>
-
-          <aside className="order-2 space-y-4 lg:space-y-6">
-            <div className="rounded-[0.9rem] bg-white p-3 shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
-              <h2 className="text-lg font-semibold text-[#2b1b15] sm:text-2xl">Order Summary</h2>
-              <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
-                {orderItems.map((item) => (
-                  <div key={item.product.id} className="flex min-w-0 gap-3 border-b border-[#eee7e1] pb-3 last:border-b-0 last:pb-0 sm:gap-4 sm:pb-4">
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#f0ece7] sm:h-20 sm:w-20">
-                      <img src={item.product.image} alt={item.product.title} className="h-full w-full object-cover" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="line-clamp-2 text-sm font-semibold leading-5 text-[#2b1b15] sm:text-base">{item.product.title}</div>
-                      <div className="text-sm text-[#776a66]">Qty: {item.quantity}</div>
-                      <div className="mt-1 font-medium text-[#4f4038]">{money(item.product.price * item.quantity)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 space-y-3 border-t border-[#eee7e1] pt-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-[#776a66]">Subtotal</span>
-                  <span className="font-medium text-[#2b1b15]">{money(subtotal)}</span>
+                            <p className="mt-1 text-xs font-medium text-[#2f5597] animate-pulse">
+                              {qrStatusText || "Polling payment status..."}
+                            </p>
+                            {dynamicQr.imageContent ? (
+                              <div className="mt-3">
+                                <a
+                                  href={dynamicQr.imageContent}
+                                  className="inline-flex rounded-full bg-[#f0f4ff] px-4 py-2 text-sm font-semibold text-[#2f5597] shadow-sm hover:bg-[#e2ebff]"
+                                >
+                                  Open UPI Link
+                                </a>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-[#776a66]">
+                            Fill delivery details and click &quot;Generate QR Code&quot; below.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </label>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[#776a66]">Shipping</span>
-                  <span className="font-medium text-[#2b1b15]">{shipping === 0 ? "Free" : money(shipping)}</span>
+
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="mt-5 w-full rounded-full bg-[#2f5597] py-5 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(47,85,151,0.22)] hover:bg-[#264882] sm:mt-6 sm:py-6 sm:text-base"
+                >
+                  {submitting
+                    ? "Processing..."
+                    : paymentMethod === "qr"
+                      ? dynamicQr
+                        ? "Regenerate QR Code"
+                        : `Generate QR Code ${money(total)}`
+                      : `Pay Now ${money(total)}`}
+                </Button>
+              </div>
+            </form>
+
+            <aside className="order-2 space-y-4 lg:space-y-6">
+              <div className="rounded-[0.9rem] bg-white p-3 shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+                <h2 className="text-lg font-semibold text-[#2b1b15] sm:text-2xl">Order Summary</h2>
+                <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
+                  {orderItems.map((item) => (
+                    <div key={item.product.id} className="flex min-w-0 gap-3 border-b border-[#eee7e1] pb-3 last:border-b-0 last:pb-0 sm:gap-4 sm:pb-4">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#f0ece7] sm:h-20 sm:w-20">
+                        <img src={item.product.image} alt={item.product.title} className="h-full w-full object-cover" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="line-clamp-2 text-sm font-semibold leading-5 text-[#2b1b15] sm:text-base">{item.product.title}</div>
+                        <div className="text-sm text-[#776a66]">Qty: {item.quantity}</div>
+                        <div className="mt-1 font-medium text-[#4f4038]">{money(item.product.price * item.quantity)}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between text-base">
-                  <span className="font-semibold text-[#2b1b15]">Total</span>
-                  <span className="font-semibold text-[#2b1b15]">{money(total)}</span>
+
+                <div className="mt-6 space-y-3 border-t border-[#eee7e1] pt-4 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-[#776a66]">Subtotal</span>
+                    <span className="font-medium text-[#2b1b15]">{money(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#776a66]">Shipping</span>
+                    <span className="font-medium text-[#2b1b15]">{shipping === 0 ? "Free" : money(shipping)}</span>
+                  </div>
+                  <div className="flex justify-between text-base">
+                    <span className="font-semibold text-[#2b1b15]">Total</span>
+                    <span className="font-semibold text-[#2b1b15]">{money(total)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="rounded-[0.9rem] bg-[#20325c] p-4 text-white shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
-              <h3 className="text-lg font-semibold sm:text-2xl">Existing User?</h3>
-              <p className="mt-3 text-sm leading-7 text-white/75">
-                You can use the saved delivery details on this device and proceed directly to payment.
-              </p>
-              <button
-                type="button"
-                onClick={() => toast.info("Saved details will be used if available on this device.")}
-                className="mt-5 rounded-full border border-white/30 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Use Saved Details
-              </button>
-            </div>
-          </aside>
+              <div className="rounded-[0.9rem] bg-[#20325c] p-4 text-white shadow-[0_10px_22px_rgba(48,32,22,0.07)] sm:rounded-[1.4rem] sm:p-8">
+                <h3 className="text-lg font-semibold sm:text-2xl">Existing User?</h3>
+                <p className="mt-3 text-sm leading-7 text-white/75">
+                  You can use the saved delivery details on this device and proceed directly to payment.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => toast.info("Saved details will be used if available on this device.")}
+                  className="mt-5 rounded-full border border-white/30 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                >
+                  Use Saved Details
+                </button>
+              </div>
+            </aside>
           </div>
         </div>
       </section>

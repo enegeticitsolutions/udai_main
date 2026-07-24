@@ -20,14 +20,15 @@ const getAdminApiBase = () => {
 const getPublicUploadBase = () => {
   if (typeof window === "undefined") {
     return (
+      import.meta.env.VITE_BASE_URL ??
       import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ??
       import.meta.env.VITE_PUBLIC_API_BASE_URL ??
-      "http://localhost:4000"
+      "https://udai-main.onrender.com"
     ).replace(/\/$/, "");
   }
 
   const { hostname } = window.location;
-  const envUrl = import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ?? import.meta.env.VITE_PUBLIC_API_BASE_URL;
+  const envUrl = import.meta.env.VITE_BASE_URL ?? import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ?? import.meta.env.VITE_PUBLIC_API_BASE_URL;
 
   if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
     return envUrl.replace(/\/$/, "");

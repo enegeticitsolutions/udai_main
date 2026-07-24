@@ -159,7 +159,17 @@ function normalizeCareerDocument(doc: Record<string, any>): CareerOpportunity {
 function normalizeUploadUrl(url: unknown) {
   const value = String(url ?? "").trim();
   if (!value) {
-    return value;
+    return "/images/bag.png";
+  }
+
+  // If the image points to dead/unreachable Supabase storage, map to valid local product images
+  if (value.includes("smosbngvdtnzlsnnihwy.supabase.co")) {
+    if (value.includes("264289046")) return "/images/bag.png";
+    if (value.includes("580561876")) return "/images/item1.png";
+    if (value.includes("31699126")) return "/images/candle.png";
+    if (value.includes("488949944")) return "/images/item2.png";
+    if (value.includes("832515811")) return "/images/foot.png";
+    return "/images/shirt.png";
   }
 
   if (value.startsWith("/uploads/")) {

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 
-const BACKEND_BASE = "http://localhost:4000";
+const BACKEND_BASE = (import.meta.env.VITE_BASE_URL ?? import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ?? "https://udai-main.onrender.com").replace(/\/$/, "");
 
 function formatTime(dateStr) {
   if (!dateStr) return "—";

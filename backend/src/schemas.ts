@@ -27,9 +27,9 @@ export const volunteerSchema = z.object({
 });
 
 export const donationIntentSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  email: z.string().trim().email(),
-  amount: z.coerce.number().positive().max(1_000_000),
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
+  email: z.string().trim().email("Please enter a valid email address"),
+  amount: z.coerce.number().positive("Amount must be a positive number").max(1_000_000),
   currency: z.string().trim().min(3).max(10).default("INR"),
   purpose: z.string().trim().min(2).max(120),
   message: z.string().trim().max(2000).default(""),
@@ -37,14 +37,6 @@ export const donationIntentSchema = z.object({
   donationCategory: z.enum(["meal", "future"]).optional().default("future"),
   campaignName: z.string().trim().max(160).optional(),
   meals: z.coerce.number().int().positive().optional(),
-}).superRefine((data, ctx) => {
-  if (data.donationCategory === "future" && data.amount % 1000 !== 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["amount"],
-      message: "Future support donation amount must be in multiples of 1000",
-    });
-  }
 });
 
 export const eventRsvpSchema = z.object({
@@ -74,7 +66,8 @@ export const therapistInquirySchema = z.object({
   appointmentTime: z
     .string()
     .trim()
-    .regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    .optional()
+    .default(""),
 });
 
 export const productSchema = z.object({
