@@ -87,6 +87,68 @@ function payloadData(payload: unknown) {
   return (body.data ?? body.payload ?? body.variables ?? body) as Record<string, unknown>;
 }
 
+function normalizeAppointmentDate(dateInput: unknown): string {
+  const str = String(dateInput ?? "").trim();
+  if (!str) return new Date().toISOString().slice(0, 10);
+
+  // 1. If already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+
+  // 2. If YYYY/MM/DD
+  if (/^\d{4}\/\d{2}\/\d{2}$/.test(str)) {
+    return str.replace(/\//g, "-");
+  }
+
+  // 3. If DD/MM/YYYY or DD-MM-YYYY
+  const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmyMatch) {
+    const day = String(dmyMatch[1]).padStart(2, "0");
+    const month = String(dmyMatch[2]).padStart(2, "0");
+    const year = dmyMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  // 4. Try extract YYYY-MM-DD inside text
+  const ymdMatch = str.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (ymdMatch) {
+    const year = ymdMatch[1];
+    const month = String(ymdMatch[2]).padStart(2, "0");
+    const day = String(ymdMatch[3]).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  // 5. Try text match like "27 Jul" or "Mon, 27 Jul"
+  const textMatch = str.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+  if (textMatch) {
+    const dayNumber = Number(textMatch[1]);
+    const monthStr = textMatch[2].toLowerCase();
+    const monthMap: Record<string, number> = {
+      jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+      jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+    };
+    const monthNumber = monthMap[monthStr];
+    if (monthNumber) {
+      const currentYear = new Date().getFullYear();
+      const monthPart = String(monthNumber).padStart(2, "0");
+      const dayPart = String(dayNumber).padStart(2, "0");
+      return `${currentYear}-${monthPart}-${dayPart}`;
+    }
+  }
+
+  // 6. Native Date fallback
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function parseMsg91AppointmentPayload(payload: unknown) {
   const data = payloadData(payload);
   const rawTime = pick(data, "appointment_time", "appointmentTime", "time");
@@ -95,6 +157,7 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
   const rawLang = pick(data, "preferred_language", "preferredLanguage", "language");
   const rawPatientName = pick(data, "patient_name", "patientName", "name", "full_name", "child_name", "childName");
   const rawTherapistName = pick(data, "therapist_name", "therapistName", "doctor", "doctor_name", "department");
+  const rawDate = pick(data, "appointment_date", "appointmentDate", "date");
 
   return msg91AppointmentSchema.parse({
     bookingId: pick(data, "booking_id", "bookingId", "id") || undefined,
@@ -106,7 +169,7 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
     preferredLanguage: rawLang || undefined,
     therapistId: pick(data, "therapist_id", "therapistId", "doctor_id", "doctorId") || null,
     therapistName: rawTherapistName || "General Consultation",
-    appointmentDate: pick(data, "appointment_date", "appointmentDate", "date"),
+    appointmentDate: normalizeAppointmentDate(rawDate),
     appointmentTime: rawTime || undefined,
     appointmentType: normalizeAppointmentType(pick(data, "appointment_type", "appointmentType", "visit_type") || "in-person"),
     mainConcern: pick(data, "main_concern", "mainConcern", "concern") || "General Consultation",
@@ -169,22 +232,23 @@ async function readStoredAppointments(): Promise<AppointmentRecord[]> {
 export async function saveMsg91Appointment(payload: unknown) {
   const input = parseMsg91AppointmentPayload(payload);
 
-  // If appointmentTime is missing or empty, automatically pick the first available slot
+  // If appointmentTime is missing or empty, pick first available slot or fallback to default slot 10:00
   if (!input.appointmentTime || input.appointmentTime.trim() === "") {
     const availableSlots = await getAvailableSlots(input.therapistName, input.appointmentDate);
-    if (!availableSlots || availableSlots.length === 0) {
-      throw new NoSlotsAvailableError("No appointment slots available for the selected date.");
+    if (availableSlots && availableSlots.length > 0) {
+      input.appointmentTime = availableSlots[0].time;
+    } else {
+      input.appointmentTime = "10:00";
     }
-    input.appointmentTime = availableSlots[0].time;
   }
 
-  // Reserve slot by assigning available therapist
+  // Reserve slot by assigning available therapist if possible
   const assigned = await assignTherapist(input.therapistName, input.appointmentDate, input.appointmentTime);
   if (assigned) {
     input.therapistId = assigned.id;
     input.therapistName = assigned.name;
-    input.bookingStatus = "confirmed";
   }
+  input.bookingStatus = "confirmed";
   const bookingId = input.bookingId || generatedBookingId(input);
   const now = new Date().toISOString();
   const document = {

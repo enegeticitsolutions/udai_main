@@ -118,45 +118,24 @@ export function createApp() {
             if (hasSlotRequest) {
                 if (!finalAppointmentTime || finalAppointmentTime.trim() === "") {
                     const availableSlots = await getAvailableSlots(department, appointmentDate);
-                    if (!availableSlots || availableSlots.length === 0) {
-                        console.warn("⚠️ No available slots for:", department, appointmentDate);
-                        res.status(400).json({
-                            success: false,
-                            message: "No appointment slots available for the selected date.",
-                        });
-                        return;
+                    if (availableSlots && availableSlots.length > 0) {
+                        finalAppointmentTime = availableSlots[0].time;
                     }
-                    finalAppointmentTime = availableSlots[0].time;
+                    else {
+                        finalAppointmentTime = "10:00";
+                    }
                 }
-                // ── Double-booking guard: check if this phone already booked this slot ─
-                const existingBooking = await WebhookMessage.findOne({
-                    phone,
-                    appointmentDate,
-                    appointmentTime: finalAppointmentTime,
-                    status: { $nin: ["cancelled", "rejected"] },
-                }).lean();
-                if (existingBooking) {
-                    console.warn("⚠️ Double booking attempt blocked for:", phone, appointmentDate, finalAppointmentTime);
-                    res.status(409).json({
-                        success: false,
-                        message: "You already have a booking for this slot. Please choose a different time.",
-                    });
-                    return;
-                }
-                // ── Assign an available therapist ────────────────────────────────────
+                // ── Assign an available therapist if available ───────────────────────
                 const assignment = await assignTherapist(department, appointmentDate, finalAppointmentTime);
-                if (!assignment) {
-                    console.warn("⚠️ No therapist available for:", department, appointmentDate, finalAppointmentTime);
-                    res.status(400).json({
-                        success: false,
-                        message: "No appointment slots available for the selected date.",
-                    });
-                    return;
+                if (assignment) {
+                    assignedTherapistId = assignment.id;
+                    assignedTherapistName = assignment.name;
                 }
-                assignedTherapistId = assignment.id;
-                assignedTherapistName = assignment.name;
+                else {
+                    assignedTherapistName = department;
+                }
                 bookingStatus = "confirmed";
-                console.log(`✅ Therapist assigned: ${assignedTherapistName} (${assignedTherapistId}) for slot ${finalAppointmentTime}`);
+                console.log(`✅ Therapist assigned: ${assignedTherapistName} for slot ${finalAppointmentTime}`);
             }
             // ── 1. Save to webhookmessages (WhatsApp Messages page) ────────
             const savedDoc = await WebhookMessage.create({
