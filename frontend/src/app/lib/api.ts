@@ -97,7 +97,7 @@ export const apiClient = {
     const token = typeof window !== "undefined" ? window.localStorage.getItem(AUTH_TOKEN_KEY) : null;
     const headers: Record<string, string> = {};
     if (token) headers.Authorization = `Bearer ${token}`;
-    
+
     const response = await fetch(`${API_BASE_URL}${path}`, { headers });
     if (response.status === 401 && typeof window !== "undefined") {
       window.dispatchEvent(new Event("udai-auth-expired"));
@@ -110,7 +110,7 @@ export const apiClient = {
     const token = typeof window !== "undefined" ? window.localStorage.getItem(AUTH_TOKEN_KEY) : null;
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (token) headers.Authorization = `Bearer ${token}`;
-    
+
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method: "POST",
       headers,
