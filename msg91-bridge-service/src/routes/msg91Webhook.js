@@ -1,66 +1,53 @@
 import { Router } from "express";
-import { MongoServerError } from "mongodb";
-import { ZodError } from "zod";
-import { saveMsg91Appointment } from "../services/msg91AppointmentService.js";
-import { WebhookMessage } from "../models/WebhookMessage.js";
+import { apiKeyAuth } from "../middleware/apiKeyAuth.js";
+import { mapMsg91Payload } from "../services/payloadMapper.js";
 
 const msg91WebhookRouter = Router();
 
-msg91WebhookRouter.post("/", async (req, res) => {
-  console.info("[MSG91 appointment webhook] Incoming payload:", JSON.stringify(req.body));
+msg91WebhookRouter.post("/", apiKeyAuth, async (req, res, next) => {
   try {
-    const configuredSecret = process.env.MSG91_WEBHOOK_SECRET?.trim();
-    const receivedSecret = String(req.header("x-msg91-webhook-secret") ?? req.header("x-webhook-secret") ?? "");
-    if (configuredSecret && receivedSecret !== configuredSecret) {
-      console.warn("[MSG91 appointment webhook] Rejected request with invalid webhook secret");
-      res.status(401).json({ success: false, message: "Invalid webhook secret" });
-      return;
+    const payload = mapMsg91Payload(req.body);
+
+    const errors = [];
+    if (!payload.phone || payload.phone.length < 8 || payload.phone.length > 32) {
+      errors.push("Phone number must be between 8 and 32 characters");
+    }
+    if (!payload.message || payload.message.length > 4000) {
+      errors.push("Message is required and must not exceed 4000 characters");
+    }
+    if (!payload.transactionId || payload.transactionId.length < 3 || payload.transactionId.length > 160) {
+      errors.push("Transaction ID must be between 3 and 160 characters");
     }
 
-    const { appointment, duplicate } = await saveMsg91Appointment(req.body);
-    console.info(`[MSG91 appointment webhook] ${duplicate ? "Duplicate ignored" : "Booking saved"}: ${appointment.bookingId}`);
+    const age = payload.userDetails?.age;
+    if (age !== undefined && age !== null) {
+      if (!Number.isInteger(age) || age < 0 || age > 120) {
+        errors.push("Age must be an integer between 0 and 120");
+      }
+    }
 
-    // Save to WebhookMessage for the WhatsApp Messages dashboard
-    try {
-      await WebhookMessage.create({
-        rawData: req.body,
-        phone: appointment.phoneNumber || "",
-        childName: appointment.patientName || "",
-        parentName: appointment.patientName || "",
-        age: appointment.age || "",
-        firstSession: "",
-        appointmentDate: appointment.appointmentDate || "",
-        appointmentTime: appointment.appointmentTime || "",
-        department: appointment.therapistName || "",
-        concern: appointment.mainConcern || "",
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Validation error: ${errors.join("; ")}`,
+        errors,
       });
-      console.log(`[MSG91 appointment webhook] Logged appointment payload to WebhookMessage`);
-    } catch (dbErr) { // 👈 CHANGE: yahan se ': any' hata diya hai
-      console.error("[MSG91 appointment webhook] Failed to log WebhookMessage:", dbErr.message);
     }
 
-    res.status(duplicate ? 200 : 201).json({
+    const record = await req.repository.create(payload);
+
+    return res.status(201).json({
       success: true,
-      data: appointment,
-      message: duplicate ? "Duplicate booking already recorded" : "Booking saved successfully",
+      message: "MSG91 chatbot data recorded",
+      data: {
+        id: record.id ?? record._id ?? "recorded",
+        transactionId: record.transactionId,
+        receivedAt: record.createdAt ?? new Date().toISOString(),
+      },
     });
   } catch (error) {
-    if (error instanceof ZodError) {
-      console.warn("[MSG91 appointment webhook] Validation failed:", error.flatten());
-      res.status(422).json({ success: false, message: "Invalid booking payload", errors: error.flatten().fieldErrors });
-      return;
-    }
-
-    if (error instanceof MongoServerError && error.code === 11000) {
-      console.info("[MSG91 appointment webhook] Duplicate booking ignored after concurrent delivery");
-      res.status(200).json({ success: true, message: "Duplicate booking already recorded" });
-      return;
-    }
-
-    console.error("[MSG91 appointment webhook] Database save failed:", error);
-    res.status(500).json({ success: false, message: "Failed to save booking" });
+    return next(error);
   }
 });
 
-// 👈 IMPORTANT: default export ho raha hai
 export default msg91WebhookRouter;

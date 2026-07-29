@@ -34,6 +34,7 @@ msg91WebhookRouter.post("/", async (req, res) => {
         department: appointment.therapistName || "",
         concern: appointment.mainConcern || "",
         assignedTherapist: appointment.therapistName || "",
+        assignedTherapistId: appointment.therapistId || "",
         status: "confirmed",
         bookingSource: "whatsapp",
       });
