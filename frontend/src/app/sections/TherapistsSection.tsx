@@ -73,6 +73,7 @@ export function TherapistsSection() {
                   <div className="therapist-marquee-image">
                     <ImageWithFallback
                       src={therapist.image}
+                      fallbackImage="/images/doctor2.png"
                       alt={therapist.name}
                       className="h-full w-full object-cover"
                       style={{ objectPosition: "center 12%" }}

@@ -35,12 +35,36 @@ const getPublicUploadBase = () => {
   }
 
   const envUrl = import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ?? import.meta.env.VITE_PUBLIC_API_BASE_URL ?? import.meta.env.VITE_BASE_URL;
-  return envUrl?.replace(/\/$/, "") ?? "https://udai-main.onrender.com";
+  return envUrl?.replace(/\/$/, "") ?? "https://udaiapi.datamoshtechnologies.com";
 };
 
 const API_BASE = getAdminApiBase();
 export const PUBLIC_UPLOAD_BASE = getPublicUploadBase();
 export const APPOINTMENT_EVENTS_URL = `${API_BASE}/appointments/events`;
+
+export function resolveImageUrl(url) {
+  if (!url) return "";
+  const val = String(url).trim();
+  if (!val) return "";
+  if (val.startsWith("http://") || val.startsWith("https://") || val.startsWith("data:")) {
+    try {
+      const parsed = new URL(val);
+      if (
+        (parsed.hostname === "localhost" ||
+          parsed.hostname === "127.0.0.1" ||
+          parsed.hostname === "0.0.0.0") &&
+        parsed.pathname.startsWith("/uploads/")
+      ) {
+        return `${PUBLIC_UPLOAD_BASE}${parsed.pathname}`;
+      }
+    } catch {}
+    return val;
+  }
+  if (val.startsWith("/uploads/")) {
+    return `${PUBLIC_UPLOAD_BASE}${val}`;
+  }
+  return val;
+}
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {

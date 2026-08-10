@@ -311,11 +311,11 @@ adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
       if (config.supabaseUrl && (config.supabaseServiceRole || config.supabaseAnon)) {
         fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
       } else {
-        fileUrl = `${config.publicUploadBaseUrl}/uploads/${req.file.filename}`;
+        fileUrl = `/uploads/${req.file.filename}`;
       }
     } catch (supabaseErr) {
       console.warn("⚠️ Supabase upload failed, falling back to local file storage:", supabaseErr?.message || supabaseErr);
-      fileUrl = `${config.publicUploadBaseUrl}/uploads/${req.file.filename}`;
+      fileUrl = `/uploads/${req.file.filename}`;
     }
     res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
   } catch (error) {

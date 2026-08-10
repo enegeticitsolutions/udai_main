@@ -12,10 +12,20 @@ const FALLBACK_IMAGES = [
   '/images/shirt.png',
 ];
 
-export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElement>) {
+export interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  fallbackImage?: string;
+}
+
+export function ImageWithFallback(props: ImageWithFallbackProps) {
   const [fallbackIndex, setFallbackIndex] = useState(-1)
 
+  const { fallbackImage, src, alt, style, className, ...rest } = props
+
   const handleError = () => {
+    if (fallbackImage) {
+      setFallbackIndex(FALLBACK_IMAGES.length)
+      return
+    }
     if (fallbackIndex < FALLBACK_IMAGES.length - 1) {
       setFallbackIndex((prev) => prev + 1)
     } else {
@@ -23,11 +33,11 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
     }
   }
 
-  const { src, alt, style, className, ...rest } = props
-
   const currentSrc =
     fallbackIndex === -1
       ? src
+      : fallbackImage
+      ? fallbackImage
       : fallbackIndex < FALLBACK_IMAGES.length
       ? FALLBACK_IMAGES[fallbackIndex]
       : null

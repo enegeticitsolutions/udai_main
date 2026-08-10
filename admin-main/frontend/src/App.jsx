@@ -35,6 +35,7 @@ import {
   patchCareer,
   deleteCareer as removeCareerApi,
   uploadImageFile,
+  resolveImageUrl,
   getTherapistLeaves,
   addTherapistLeave,
   deleteTherapistLeave,
@@ -1384,7 +1385,7 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
               <div className="therapist-top">
                 <img
                   className="therapist-photo"
-                  src={therapist.image || "/images/doctor2.png"}
+                  src={resolveImageUrl(therapist.image) || "/images/doctor2.png"}
                   alt={therapist.name}
                 />
                 <div>

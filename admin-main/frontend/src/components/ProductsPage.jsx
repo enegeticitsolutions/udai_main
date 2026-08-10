@@ -3,7 +3,7 @@ import Badge from "./Badge";
 import Button from "./Button";
 import Input from "./Input";
 import StatCard from "./StatCard";
-import { PUBLIC_UPLOAD_BASE, uploadImageFile } from "../services/adminApi";
+import { PUBLIC_UPLOAD_BASE, uploadImageFile, resolveImageUrl } from "../services/adminApi";
 
 export default function ProductsPage({ products, onAddProduct, onUpdateProduct, onDeleteProduct }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -348,7 +348,7 @@ export default function ProductsPage({ products, onAddProduct, onUpdateProduct, 
                 <tr key={product.id}>
                   <td>
                     <img
-                      src={product.image}
+                      src={resolveImageUrl(product.image)}
                       alt={product.title}
                       style={{
                         width: "48px",
@@ -708,6 +708,16 @@ export default function ProductsPage({ products, onAddProduct, onUpdateProduct, 
                             style={{ display: "none" }}
                           />
                         </div>
+                        {formData.image && (
+                          <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                            <img
+                              src={resolveImageUrl(formData.image)}
+                              alt="Preview"
+                              style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "6px", border: "1px solid #cbd5e0" }}
+                            />
+                            <span style={{ fontSize: "13px", color: "#4a5568", fontWeight: 500 }}>Image Preview</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

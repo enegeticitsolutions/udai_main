@@ -5,7 +5,6 @@ import { addCareer, addProduct, deleteCareer, updateCareer, updateProduct, delet
 import { careerSchema, productSchema } from "../schemas.js";
 import { upload } from "../middleware/upload.js";
 import { uploadToSupabase } from "../lib/supabase.js";
-import { config } from "../config.js";
 export const adminRouter = Router();
 adminRouter.post("/login", async (req, res, next) => {
     try {
@@ -253,7 +252,7 @@ adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
         }
         const fileUrl = process.env.SUPABASE_URL
             ? await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype)
-            : `${config.publicUploadBaseUrl}/uploads/${req.file.filename}`;
+            : `/uploads/${req.file.filename}`;
         res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
     }
     catch (error) {

@@ -62,7 +62,7 @@ function normalizeTherapistDocument(doc) {
     return {
         ...therapist,
         id: therapist.id ?? _id?.toString(),
-        image: therapist.image || "/images/doctor2.png",
+        image: normalizeUploadUrl(therapist.image, "/images/doctor2.png"),
         active: therapist.active ?? therapist.isActive ?? true,
     };
 }
@@ -118,10 +118,10 @@ function normalizeCareerDocument(doc) {
         id: career.id ?? _id.toString(),
     };
 }
-function normalizeUploadUrl(url) {
+function normalizeUploadUrl(url, defaultFallback = "/images/bag.png") {
     const value = String(url ?? "").trim();
     if (!value) {
-        return "/images/bag.png";
+        return defaultFallback;
     }
     // If the image points to dead/unreachable Supabase storage, map to valid local product images
     if (value.includes("smosbngvdtnzlsnnihwy.supabase.co")) {
@@ -137,17 +137,26 @@ function normalizeUploadUrl(url) {
             return "/images/foot.png";
         return "/images/shirt.png";
     }
+    let uploadPath = "";
     if (value.startsWith("/uploads/")) {
-        return `${config.publicUploadBaseUrl}${value}`;
+        uploadPath = value;
     }
-    try {
-        const parsed = new URL(value);
-        if ((parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") && parsed.pathname.startsWith("/uploads/")) {
-            return `${config.publicUploadBaseUrl}${parsed.pathname}`;
+    else {
+        try {
+            const parsed = new URL(value);
+            if ((parsed.hostname === "localhost" ||
+                parsed.hostname === "127.0.0.1" ||
+                parsed.hostname === "0.0.0.0") &&
+                parsed.pathname.startsWith("/uploads/")) {
+                uploadPath = parsed.pathname;
+            }
+        }
+        catch {
+            // Keep non-URL values such as /images/foo.png or valid external URLs unchanged.
         }
     }
-    catch {
-        // Keep non-URL values such as /images/foo.png unchanged.
+    if (uploadPath) {
+        return `${config.publicUploadBaseUrl}${uploadPath}`;
     }
     return value;
 }

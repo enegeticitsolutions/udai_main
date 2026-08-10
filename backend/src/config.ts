@@ -50,7 +50,19 @@ export const config = {
   frontendDataDir: path.resolve(projectRoot, "..", "frontend", "src", "app", "data"),
   storageDir: path.resolve(projectRoot, "storage"),
   get publicUploadBaseUrl() {
-    return (process.env.PUBLIC_UPLOAD_BASE_URL ?? process.env.BASE_URL ?? process.env.BACKEND_URL ?? "http://localhost:4000").replace(/\/$/, "");
+    if (process.env.PUBLIC_UPLOAD_BASE_URL) {
+      return process.env.PUBLIC_UPLOAD_BASE_URL.replace(/\/$/, "");
+    }
+    if (process.env.BASE_URL) {
+      return process.env.BASE_URL.replace(/\/$/, "");
+    }
+    if (process.env.BACKEND_URL) {
+      return process.env.BACKEND_URL.replace(/\/$/, "");
+    }
+    if (process.env.NODE_ENV === "production") {
+      return "https://udaiapi.datamoshtechnologies.com";
+    }
+    return "http://localhost:4000";
   },
   jwtSecret: process.env.JWT_SECRET || "default_jwt_secret",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
