@@ -34,37 +34,37 @@ export function About() {
     {
       name: "Dr. Kanchan Sharma",
       role: "Sr. Consultant & Educator - Vice Chairman",
-      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_kanchan_sharma_1778844027897.png",
+      image: "/images/kanchan.png",
     },
     {
       name: "Smt. Savita Sharma",
       role: "Microbiologist - Secretary",
-      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_savita_sharma_1778844046994.png",
+      image: "/images/savita.png",
     },
     {
       name: "Sh. Praveen Kumar",
       role: "Rtd. Civil Engineer - Treasurer",
-      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_praveen_kumar_1778844063930.png",
+      image: "/images/praveen.png",
     },
     {
       name: "Sh. Surjeet Singh Duggal",
       role: "Business - Executive Member",
-      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_surjeet_duggal_1778844078326.png",
+      image: "/images/surjeet.png",
     },
     {
       name: "Smt. Kajal Chanana",
       role: "Business - Executive Member",
-      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_kajal_chanana_1778844097284.png",
+      image: "/images/kajal.png",
     },
     {
       name: "Smt. Diksha Bharti",
       role: "Consultant - Executive Member",
-      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_diksha_bharti_1778844112744.png",
+      image: "/images/diksha.png",
     },
     {
       name: "Sh. Harish Kumar Chandna",
       role: "Rtd. Govt Servant - Executive Member",
-      image: "/Users/shubhamtripathi/.gemini/antigravity/brain/0df16e44-4603-499e-9a2a-d26d52e0d3a6/executive_harish_chandna_1778844129009.png",
+      image: "/images/harish.png",
     },
   ];
 

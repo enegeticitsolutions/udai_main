@@ -28,7 +28,9 @@ apiRouter.get("/health", (_req, res) => {
 
 apiRouter.use("/content", contentRouter);
 apiRouter.use("/forms", formsRouter);
+apiRouter.use("/payments/razorpay", paymentsRouter);
 apiRouter.use("/payments", paymentsRouter);
+apiRouter.use("/razorpay", paymentsRouter);
 apiRouter.use("/", paymentsRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/user", userRouter);

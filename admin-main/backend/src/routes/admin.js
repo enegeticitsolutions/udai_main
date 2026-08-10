@@ -3,6 +3,7 @@ import { authenticateAdmin } from "../services/adminAuthService.js";
 import { createAdminRecord, deleteAdminRecord, getAdminBootstrap, updateAdminRecord } from "../services/adminService.js";
 import { upload } from "../middleware/upload.js";
 import { uploadToSupabase } from "../lib/supabase.js";
+import { config } from "../config.js";
 
 import { getVolunteerApprovalTemplate, sendEmail } from "../services/emailService.js";
 import {
@@ -305,11 +306,17 @@ adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
       res.status(400).json({ success: false, message: "No file uploaded" });
       return;
     }
-    if (!process.env.SUPABASE_URL) {
-      res.status(500).json({ success: false, message: "Image storage is not configured. Please set SUPABASE_URL in the server environment." });
-      return;
+    let fileUrl = "";
+    try {
+      if (config.supabaseUrl && (config.supabaseServiceRole || config.supabaseAnon)) {
+        fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+      } else {
+        fileUrl = `${config.publicUploadBaseUrl}/uploads/${req.file.filename}`;
+      }
+    } catch (supabaseErr) {
+      console.warn("⚠️ Supabase upload failed, falling back to local file storage:", supabaseErr?.message || supabaseErr);
+      fileUrl = `${config.publicUploadBaseUrl}/uploads/${req.file.filename}`;
     }
-    const fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
     res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
   } catch (error) {
     next(error);

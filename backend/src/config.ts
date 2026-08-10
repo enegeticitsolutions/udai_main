@@ -33,7 +33,9 @@ if ((process.env.NODE_ENV ?? "development") === "development") {
 }
 
 export const config = {
-  baseUrl: (process.env.BASE_URL ?? process.env.BACKEND_URL ?? "https://udai-main.onrender.com").replace(/\/$/, ""),
+  get baseUrl() {
+    return (process.env.BASE_URL ?? process.env.BACKEND_URL ?? "http://localhost:4000").replace(/\/$/, "");
+  },
   env: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 4000),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
@@ -47,7 +49,9 @@ export const config = {
   backendDataDir: path.resolve(projectRoot, "src", "data"),
   frontendDataDir: path.resolve(projectRoot, "..", "frontend", "src", "app", "data"),
   storageDir: path.resolve(projectRoot, "storage"),
-  publicUploadBaseUrl: (process.env.PUBLIC_UPLOAD_BASE_URL ?? process.env.BASE_URL ?? process.env.BACKEND_URL ?? "https://udai-main.onrender.com").replace(/\/$/, ""),
+  get publicUploadBaseUrl() {
+    return (process.env.PUBLIC_UPLOAD_BASE_URL ?? process.env.BASE_URL ?? process.env.BACKEND_URL ?? "http://localhost:4000").replace(/\/$/, "");
+  },
   jwtSecret: process.env.JWT_SECRET || "default_jwt_secret",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   supabaseUrl: process.env.SUPABASE_URL ?? "",

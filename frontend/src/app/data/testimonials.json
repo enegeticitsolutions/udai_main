@@ -1,25 +1,25 @@
 [
   {
     "id": 1,
-    "name": "Maria Gonzalez",
+    "name": "Jaishri Sharma",
     "role": "Community Leader",
-    "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200",
+    "avatar": "",
     "quote": "Heart & Soil didn't just bring food; they brought dignity and hope back to our village. We are forever grateful.",
     "rating": 5
   },
   {
     "id": 2,
-    "name": "David Chen",
+    "name": "Shubham Tripathi",
     "role": "Volunteer",
-    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200",
+    "avatar": "",
     "quote": "Volunteering here changed my perspective on life. It's not about charity, it's about shared humanity.",
     "rating": 5
   },
   {
     "id": 3,
-    "name": "Sarah Omondi",
+    "name": "Narendra Vishvakarma",
     "role": "Program Graduate",
-    "avatar": "https://images.unsplash.com/photo-1544717305-2782549b5136?w=200",
+    "avatar": "",
     "quote": "The sustainable farming program gave me the skills to support my family independently. This is real empowerment.",
     "rating": 5
   },

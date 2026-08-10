@@ -1219,8 +1219,40 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Edit State
+  const [editingTherapistId, setEditingTherapistId] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    department: "",
+    role: "",
+    experience: "",
+    image: "",
+    imageFile: null,
+  });
+  const [editError, setEditError] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
   function updateForm(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function startEditTherapist(therapist) {
+    setEditingTherapistId(therapist.id);
+    setEditForm({
+      name: therapist.name ?? "",
+      department: therapist.department ?? "",
+      role: therapist.role ?? "",
+      experience: therapist.experience ?? "",
+      image: therapist.image ?? "",
+      imageFile: null,
+    });
+    setEditError("");
+  }
+
+  function cancelEditTherapist() {
+    setEditingTherapistId(null);
+    setEditForm({ name: "", department: "", role: "", experience: "", image: "", imageFile: null });
+    setEditError("");
   }
 
   async function handleAddTherapist(event) {
@@ -1254,6 +1286,41 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
       setError(err instanceof Error ? err.message : "Unable to add therapist.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveEdit(event) {
+    event.preventDefault();
+    if (!editingTherapistId) return;
+    setEditError("");
+
+    const payload = {
+      name: editForm.name.trim(),
+      department: editForm.department.trim(),
+      role: editForm.role.trim(),
+      experience: editForm.experience.trim(),
+      image: editForm.image,
+    };
+
+    if (!payload.name || !payload.department || !payload.role) {
+      setEditError("Name, department, and role are required.");
+      return;
+    }
+
+    setEditSaving(true);
+    try {
+      if (editForm.imageFile) {
+        const uploadResult = await uploadImageFile(editForm.imageFile);
+        if (uploadResult?.url) {
+          payload.image = uploadResult.url;
+        }
+      }
+      await onUpdateTherapist(editingTherapistId, payload);
+      cancelEditTherapist();
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Unable to update therapist.");
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -1308,51 +1375,101 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
           </div>
         </form>
       ) : null}
+
       <div className="therapist-grid">
-        {therapists.map((therapist, index) => (
-          <article className="therapist-card" key={String(therapist.id ?? therapist.name)}>
-            <div className="therapist-top">
-              <img
-                className="therapist-photo"
-                src={therapist.image || "/images/doctor2.png"}
-                alt={therapist.name}
-              />
-              <div>
-                <h3>{therapist.name}</h3>
-                <p>{therapist.role}</p>
+        {therapists.map((therapist, index) => {
+          const isEditing = String(therapist.id) === String(editingTherapistId);
+          return (
+            <article className="therapist-card" key={String(therapist.id ?? therapist.name)} style={isEditing ? { border: "2px solid #2f5597", boxShadow: "0 8px 24px rgba(47, 85, 151, 0.15)" } : {}}>
+              <div className="therapist-top">
+                <img
+                  className="therapist-photo"
+                  src={therapist.image || "/images/doctor2.png"}
+                  alt={therapist.name}
+                />
+                <div>
+                  <h3>{therapist.name}</h3>
+                  <p>{therapist.role}</p>
+                </div>
+                <Badge tone={therapist.active !== false ? "green" : "slate"}>
+                  {therapist.active !== false ? "Active" : "Inactive"}
+                </Badge>
               </div>
-              <Badge tone={therapist.active !== false ? "green" : "slate"}>
-                {therapist.active !== false ? "Active" : "Inactive"}
-              </Badge>
-            </div>
-            <dl>
-              <div>
-                <dt>Role</dt>
-                <dd>{therapist.role}</dd>
-              </div>
-              <div>
-                <dt>Department</dt>
-                <dd>{therapist.department}</dd>
-              </div>
-              <div>
-                <dt>Experience</dt>
-                <dd>{therapist.experience}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{therapist.active !== false ? "Active" : "Inactive"}</dd>
-              </div>
-            </dl>
-            <div className="therapist-actions">
-              <Button variant="secondary" onClick={() => toggleActive(index)}>
-                {therapist.active !== false ? "Deactivate" : "Activate"}
-              </Button>
-              <Button variant="danger" onClick={() => removeTherapist(therapist)}>
-                Remove
-              </Button>
-            </div>
-          </article>
-        ))}
+
+              {isEditing ? (
+                <form onSubmit={handleSaveEdit} style={{ marginTop: "1rem", display: "grid", gap: "0.75rem" }}>
+                  <Input
+                    label="Name"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                  />
+                  <Input
+                    label="Department"
+                    value={editForm.department}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, department: e.target.value }))}
+                  />
+                  <Input
+                    label="Role"
+                    value={editForm.role}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, role: e.target.value }))}
+                  />
+                  <Input
+                    label="Experience"
+                    value={editForm.experience}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, experience: e.target.value }))}
+                  />
+                  <Input
+                    label="Change Picture"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, imageFile: e.target.files?.[0] ?? null }))}
+                  />
+                  {editError && <div className="error-box" style={{ fontSize: "0.85rem", color: "#dc2626" }}>{editError}</div>}
+                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+                    <Button type="submit" disabled={editSaving}>
+                      {editSaving ? "Saving..." : "Save Changes"}
+                    </Button>
+                    <Button variant="secondary" onClick={cancelEditTherapist}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <dl>
+                    <div>
+                      <dt>Role</dt>
+                      <dd>{therapist.role}</dd>
+                    </div>
+                    <div>
+                      <dt>Department</dt>
+                      <dd>{therapist.department}</dd>
+                    </div>
+                    <div>
+                      <dt>Experience</dt>
+                      <dd>{therapist.experience}</dd>
+                    </div>
+                    <div>
+                      <dt>Status</dt>
+                      <dd>{therapist.active !== false ? "Active" : "Inactive"}</dd>
+                    </div>
+                  </dl>
+                  <div className="therapist-actions">
+                    <Button variant="secondary" onClick={() => startEditTherapist(therapist)}>
+                      Edit
+                    </Button>
+                    <Button variant="secondary" onClick={() => toggleActive(index)}>
+                      {therapist.active !== false ? "Deactivate" : "Activate"}
+                    </Button>
+                    <Button variant="danger" onClick={() => removeTherapist(therapist)}>
+                      Remove
+                    </Button>
+                  </div>
+                </>
+              )}
+            </article>
+          );
+        })}
       </div>
     </section>
   );

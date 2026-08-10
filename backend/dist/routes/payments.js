@@ -458,7 +458,7 @@ paymentsRouter.post("/verify-payment", async (req, res, next) => {
  * Body: { amount: number, customerName?: string, customerEmail?: string, customerPhone?: string, purpose?: string, donationCategory?: string, callbackUrl?: string }
  * Creates a Razorpay Payment Link using the Razorpay Payment Links API.
  */
-paymentsRouter.post(["/create-payment-link", "/razorpay/create-payment-link"], async (req, res, next) => {
+async function createPaymentLinkHandler(req, res, next) {
     try {
         requireRazorpayConfig();
         const userId = getAuthenticatedUserId(req);
@@ -582,13 +582,12 @@ paymentsRouter.post(["/create-payment-link", "/razorpay/create-payment-link"], a
             error: error?.error || error,
         });
     }
-});
-/**
- * GET /api/payments/razorpay/verify-link-status
- * Aliases: /api/payments/verify-link-status, /api/verify-link-status
- * Checks Razorpay Payment Link status directly from Razorpay API or DB.
- */
-paymentsRouter.get(["/verify-link-status", "/razorpay/verify-link-status"], async (req, res, next) => {
+}
+paymentsRouter.post("/create-payment-link", createPaymentLinkHandler);
+paymentsRouter.post("/razorpay/create-payment-link", createPaymentLinkHandler);
+paymentsRouter.post("/payments/create-payment-link", createPaymentLinkHandler);
+paymentsRouter.post("/payments/razorpay/create-payment-link", createPaymentLinkHandler);
+async function verifyLinkStatusHandler(req, res, next) {
     try {
         requireRazorpayConfig();
         const paymentLinkId = String(req.query.paymentLinkId || req.query.razorpay_payment_link_id || "").trim();
@@ -656,13 +655,12 @@ paymentsRouter.get(["/verify-link-status", "/razorpay/verify-link-status"], asyn
     catch (error) {
         next(error);
     }
-});
-/**
- * POST /api/payments/razorpay/webhook
- * Aliases: /api/payments/webhook, /api/webhook/razorpay
- * Listens for Razorpay Webhook notifications for Payment Links and Payments.
- */
-paymentsRouter.post(["/webhook", "/razorpay/webhook"], async (req, res) => {
+}
+paymentsRouter.get("/verify-link-status", verifyLinkStatusHandler);
+paymentsRouter.get("/razorpay/verify-link-status", verifyLinkStatusHandler);
+paymentsRouter.get("/payments/verify-link-status", verifyLinkStatusHandler);
+paymentsRouter.get("/payments/razorpay/verify-link-status", verifyLinkStatusHandler);
+async function webhookHandler(req, res) {
     try {
         const signature = req.headers["x-razorpay-signature"];
         const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || config.razorpayKeySecret;
@@ -714,13 +712,12 @@ paymentsRouter.post(["/webhook", "/razorpay/webhook"], async (req, res) => {
         console.error("🚨 Razorpay Webhook Error:", err?.message || err);
         res.status(200).json({ status: "ok" });
     }
-});
-/**
- * POST /api/create-qr (and /api/payments/create-qr, /api/payments/razorpay/create-qr)
- * Body: { amount: number, amountInPaise?: number, customerName?: string, customerPhone?: string, customerEmail?: string }
- * Generates a dynamic Razorpay QR Code via SDK/API for the specific transaction.
- */
-paymentsRouter.post(["/create-qr", "/razorpay/create-qr"], async (req, res, next) => {
+}
+paymentsRouter.post("/webhook", webhookHandler);
+paymentsRouter.post("/razorpay/webhook", webhookHandler);
+paymentsRouter.post("/payments/webhook", webhookHandler);
+paymentsRouter.post("/payments/razorpay/webhook", webhookHandler);
+async function createQrHandler(req, res, next) {
     try {
         requireRazorpayConfig();
         const userId = getAuthenticatedUserId(req);
@@ -828,12 +825,12 @@ paymentsRouter.post(["/create-qr", "/razorpay/create-qr"], async (req, res, next
         console.error("🚨 [POST /api/create-qr] Error:", error);
         next(error);
     }
-});
-/**
- * GET /api/qr-status/:qrCodeId (and /api/payments/qr-status/:qrCodeId, /api/payments/razorpay/qr-status/:qrCodeId)
- * Polls Razorpay / DB for QR payment completion status.
- */
-paymentsRouter.get(["/qr-status/:qrCodeId", "/razorpay/qr-status/:qrCodeId"], async (req, res, next) => {
+}
+paymentsRouter.post("/create-qr", createQrHandler);
+paymentsRouter.post("/razorpay/create-qr", createQrHandler);
+paymentsRouter.post("/payments/create-qr", createQrHandler);
+paymentsRouter.post("/payments/razorpay/create-qr", createQrHandler);
+async function qrStatusHandler(req, res, next) {
     try {
         requireRazorpayConfig();
         const { qrCodeId } = req.params;
@@ -909,7 +906,11 @@ paymentsRouter.get(["/qr-status/:qrCodeId", "/razorpay/qr-status/:qrCodeId"], as
     catch (error) {
         next(error);
     }
-});
+}
+paymentsRouter.get("/qr-status/:qrCodeId", qrStatusHandler);
+paymentsRouter.get("/razorpay/qr-status/:qrCodeId", qrStatusHandler);
+paymentsRouter.get("/payments/qr-status/:qrCodeId", qrStatusHandler);
+paymentsRouter.get("/payments/razorpay/qr-status/:qrCodeId", qrStatusHandler);
 paymentsRouter.post("/create-link", async (req, res, next) => {
     try {
         const { bookingId } = req.body ?? {};

@@ -55,13 +55,15 @@ export function TestimonialsSection() {
                 </p>
 
                 <div className="flex items-center gap-3">
-                  <div className="size-12 overflow-hidden rounded-full">
-                    <ImageWithFallback
-                      src={testimonial.avatar}
-                      alt={testimonial.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+                  {testimonial.avatar ? (
+                    <div className="size-12 overflow-hidden rounded-full">
+                      <ImageWithFallback
+                        src={testimonial.avatar}
+                        alt={testimonial.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : null}
                   <div>
                     <div className="font-semibold text-[#2b1b15]">{testimonial.name}</div>
                     <div className="text-sm text-[#d66943]">{testimonial.role}</div>

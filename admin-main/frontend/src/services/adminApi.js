@@ -4,14 +4,16 @@ const getAdminApiBase = () => {
   }
 
   const { hostname } = window.location;
-  const envUrl = import.meta.env.VITE_ADMIN_API_BASE;
-
-  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
-    return envUrl.replace(/\/$/, "");
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    const envUrl = import.meta.env.VITE_ADMIN_API_BASE;
+    return envUrl && (envUrl.includes("localhost") || envUrl.includes("127.0.0.1"))
+      ? envUrl.replace(/\/$/, "")
+      : "http://localhost:5003/api/admin";
   }
 
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return envUrl?.replace(/\/$/, "") ?? "http://localhost:5003/api/admin";
+  const envUrl = import.meta.env.VITE_ADMIN_API_BASE;
+  if (envUrl) {
+    return envUrl.replace(/\/$/, "");
   }
 
   return "/api/admin";
@@ -20,25 +22,20 @@ const getAdminApiBase = () => {
 const getPublicUploadBase = () => {
   if (typeof window === "undefined") {
     return (
-      import.meta.env.VITE_BASE_URL ??
       import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ??
       import.meta.env.VITE_PUBLIC_API_BASE_URL ??
-      "https://udai-main.onrender.com"
+      import.meta.env.VITE_BASE_URL ??
+      "http://localhost:4000"
     ).replace(/\/$/, "");
   }
 
   const { hostname } = window.location;
-  const envUrl = import.meta.env.VITE_BASE_URL ?? import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ?? import.meta.env.VITE_PUBLIC_API_BASE_URL;
-
-  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
-    return envUrl.replace(/\/$/, "");
-  }
-
   if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return envUrl?.replace(/\/$/, "") ?? "http://localhost:4000";
+    return "http://localhost:4000";
   }
 
-  return window.location.origin;
+  const envUrl = import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ?? import.meta.env.VITE_PUBLIC_API_BASE_URL ?? import.meta.env.VITE_BASE_URL;
+  return envUrl?.replace(/\/$/, "") ?? "https://udai-main.onrender.com";
 };
 
 const API_BASE = getAdminApiBase();
