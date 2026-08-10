@@ -1,8 +1,14 @@
 import { useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
+import { toast } from "sonner";
+import type { Order } from "../types/api";
 
-function printInvoice(orderId: string) {
-  const invoice = document.getElementById(`invoice-${orderId}`);
+function printInvoice(order: Order) {
+  if (order.paymentStatus !== "paid" && order.orderStatus !== "confirmed") {
+    toast.error("Invoice can only be printed or downloaded for paid orders.");
+    return;
+  }
+  const invoice = document.getElementById(`invoice-${order.id}`);
   if (!invoice) return;
 
   const printWindow = window.open("", "_blank", "width=900,height=700");
@@ -10,7 +16,7 @@ function printInvoice(orderId: string) {
 
   printWindow.document.write(`
     <html>
-      <head><title>Invoice ${orderId}</title></head>
+      <head><title>Invoice ${order.orderNumber || order.id}</title></head>
       <body>${invoice.innerHTML}</body>
     </html>
   `);
@@ -20,7 +26,10 @@ function printInvoice(orderId: string) {
 
 export function AccountOrders() {
   const { user, orders, addresses, refreshUserData } = useAuth();
-  const paidOrders = useMemo(() => orders.filter((order) => order.paymentStatus === "paid"), [orders]);
+  const paidOrders = useMemo(
+    () => orders.filter((order) => order.paymentStatus === "paid" || order.orderStatus === "confirmed"),
+    [orders]
+  );
 
   return (
     <div className="bg-[#f8f3ef] py-12">
@@ -31,7 +40,7 @@ export function AccountOrders() {
             <h1 className="mt-2 text-3xl font-semibold text-[#2b1b15]">{user?.name}</h1>
             <p className="mt-1 text-sm text-[#776a66]">{user?.email}</p>
           </div>
-          <button type="button" onClick={refreshUserData} className="rounded-full bg-[#2f5597] px-5 py-3 text-sm font-semibold text-white">
+          <button type="button" onClick={refreshUserData} className="rounded-full bg-[#2f5597] px-5 py-3 text-sm font-semibold text-white hover:bg-[#204077] transition">
             Refresh Orders
           </button>
         </div>
@@ -52,8 +61,8 @@ export function AccountOrders() {
         </div>
 
         <div className="grid gap-5">
-          {orders.length ? (
-            orders.map((order) => (
+          {paidOrders.length ? (
+            paidOrders.map((order) => (
               <article key={order.id} className="rounded-[1.2rem] bg-white p-4 shadow-[0_12px_24px_rgba(48,32,22,0.07)] sm:p-6">
                 <div id={`invoice-${order.id}`} className="overflow-x-auto">
                   <div className="flex min-w-0 flex-col justify-between gap-3 sm:flex-row sm:gap-5">
@@ -81,14 +90,14 @@ export function AccountOrders() {
                   </table>
                   <hr />
                   <p><strong>Total:</strong> Rs. {Number(order.totalAmount ?? 0).toFixed(2)}</p>
-                  <p><strong>Payment:</strong> {order.paymentStatus}</p>
+                  <p><strong>Payment:</strong> <span className="inline-block rounded bg-green-100 px-2 py-0.5 font-semibold text-green-800 uppercase">{order.paymentStatus}</span></p>
                   <p><strong>Status:</strong> {order.orderStatus}</p>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <button type="button" onClick={() => printInvoice(order.id)} className="rounded-full bg-[#2f5597] px-4 py-2 text-sm font-semibold text-white">
+                  <button type="button" onClick={() => printInvoice(order)} className="rounded-full bg-[#2f5597] px-4 py-2 text-sm font-semibold text-white hover:bg-[#204077] transition">
                     Print Invoice
                   </button>
-                  <button type="button" onClick={() => printInvoice(order.id)} className="rounded-full border border-[#2f5597] px-4 py-2 text-sm font-semibold text-[#2f5597]">
+                  <button type="button" onClick={() => printInvoice(order)} className="rounded-full border border-[#2f5597] px-4 py-2 text-sm font-semibold text-[#2f5597] hover:bg-blue-50 transition">
                     Download Invoice
                   </button>
                 </div>
@@ -96,7 +105,7 @@ export function AccountOrders() {
             ))
           ) : (
             <div className="rounded-[1.2rem] border border-dashed border-[#d9d2cb] bg-white p-8 text-center text-sm text-[#776a66]">
-              No orders yet.
+              No paid orders found. Invoices are generated only for completed Razorpay payments.
             </div>
           )}
         </div>

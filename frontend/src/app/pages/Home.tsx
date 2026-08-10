@@ -15,13 +15,13 @@ export function Home() {
       title: "Healthcare Services",
       description: "Providing essential medical care and rehabilitation services to underserved communities.",
       icon: Heart,
-      image: "https://images.unsplash.com/photo-1589104759909-e355f8999f7e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwY2FyZSUyMHZvbHVudGVlcnN8ZW58MXx8fHwxNzczNzI4NTIzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+      image: "/images/healthcare.png",
     },
     {
       title: "Education & Skills",
       description: "Empowering youth and adults through education and vocational training programs.",
       icon: Users,
-      image: "https://images.unsplash.com/photo-1765223111660-cdf94396832a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjBjaGlsZHJlbiUyMGxlYXJuaW5nfGVufDF8fHx8MTc3MzY5MjU0MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+      image: "/images/skill.png",
     },
     {
       title: "Community Development",

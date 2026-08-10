@@ -6,17 +6,17 @@ export function ArtsSection() {
     {
       icon: Palette,
       title: "Art Workshops",
-      description: "Painting, drawing, and sculpting classes that allow children to explore colors and forms, fostering imagination and fine motor skills.",
+      description: "Painting, drawing, and craft activities encourage imagination, self-expression, and fine motor development while fostering creativity in a supportive environment.",
     },
     {
       icon: Music,
       title: "Music & Dance",
-      description: "Traditional and contemporary dance, choir, and instrument lessons that build rhythm, confidence, and cultural appreciation.",
+      description: "Music and movement sessions promote confidence, coordination, teamwork, and cultural appreciation, encouraging children to express themselves through rhythm and performance.",
     },
     {
       icon: Camera,
       title: "Media Arts",
-      description: "Photography and storytelling workshops that empower youth to document their lives and share their unique perspectives with the world.",
+      description: "Photography, storytelling, and digital media activities help learners strengthen communication skills, explore their perspectives, and build confidence through creative expression.",
     },
   ];
 
@@ -38,10 +38,10 @@ export function ArtsSection() {
             Arts & Culture
           </div>
           <h2 className="mb-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Unleashing Creativity
+            Inspiring Creativity. Celebrating Expression.
           </h2>
           <p className="mx-auto max-w-2xl text-base leading-8 text-white/70">
-            Art heals, inspires, and connects. We provide safe spaces for children to express themselves through various creative mediums.
+            Creative expression helps children build confidence, communicate their ideas, and develop meaningful connections with others. UDAI&apos;s Arts &amp; Culture Program provides inclusive opportunities for children and young adults with special needs to explore their creativity through visual, performing, and digital arts.
           </p>
         </motion.div>
 

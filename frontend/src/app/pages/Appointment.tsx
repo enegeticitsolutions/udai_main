@@ -22,34 +22,66 @@ const paymentMethods: Array<{
   description: string;
   icon: typeof QrCode;
 }> = [
-  {
-    id: "qr",
-    title: "QR",
-    description: "Scan the QR code to pay ₹100 booking fee.",
-    icon: QrCode,
-  },
-  {
-    id: "upi",
-    title: "UPI",
-    description: "Pay via UPI app for the booking fee.",
-    icon: Smartphone,
-  },
-  {
-    id: "netbanking",
-    title: "Net Banking",
-    description: "Complete payment via your bank portal.",
-    icon: Landmark,
-  },
-  {
-    id: "card",
-    title: "Debit / Credit Card",
-    description: "Pay booking fee with your card.",
-    icon: CreditCard,
-  },
-];
+    {
+      id: "qr",
+      title: "QR",
+      description: "Scan the QR code to pay ₹100 booking fee.",
+      icon: QrCode,
+    },
+    {
+      id: "upi",
+      title: "UPI",
+      description: "Pay via UPI app for the booking fee.",
+      icon: Smartphone,
+    },
+    {
+      id: "netbanking",
+      title: "Net Banking",
+      description: "Complete payment via your bank portal.",
+      icon: Landmark,
+    },
+    {
+      id: "card",
+      title: "Debit / Credit Card",
+      description: "Pay booking fee with your card.",
+      icon: CreditCard,
+    },
+  ];
 
 function todayValue() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function maxDateValue() {
+  const d = new Date();
+  d.setDate(d.getDate() + 4); // Today + 4 days = 5 days total
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function getNext5Days() {
+  const days = [];
+  const now = new Date();
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const dayLabel = i === 0 ? "Today" : i === 1 ? "Tomorrow" : d.toLocaleDateString("en-US", { weekday: "short" });
+    const formattedDate = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    days.push({
+      isoDate,
+      dayLabel,
+      formattedDate,
+      buttonLabel: `${dayLabel} (${formattedDate})`,
+    });
+  }
+  return days;
+}
+
+function isWithinNext5Days(dateStr: string) {
+  if (!dateStr) return false;
+  const minD = todayValue();
+  const maxD = maxDateValue();
+  return dateStr >= minD && dateStr <= maxD;
 }
 
 function formatDisplayDate(value: string) {
@@ -85,6 +117,8 @@ export function Appointment() {
   });
   const [error, setError] = useState("");
 
+  const next5Days = useMemo(() => getNext5Days(), []);
+
   const selectedSlot = useMemo(
     () => availability?.slots.find((slot) => slot.time === form.appointmentTime) ?? null,
     [availability, form.appointmentTime],
@@ -99,6 +133,7 @@ export function Appointment() {
       form.majorConcerns.trim().length >= 5 &&
       form.enquirySource.length > 0 &&
       form.appointmentDate.trim().length > 0 &&
+      isWithinNext5Days(form.appointmentDate) &&
       form.appointmentTime.trim().length > 0 &&
       Boolean(selectedSlot?.isAvailable)
     );
@@ -160,13 +195,104 @@ export function Appointment() {
     };
   }, [form.department, form.appointmentDate]);
 
-  function goToPayment() {
+  async function handleContinueToPayment() {
     if (!canContinue) {
       setError("Please complete all required fields and choose an available time slot.");
       return;
     }
+
     setError("");
-    setStage("payment");
+    setIsSubmitting(true);
+
+    try {
+      const payload: Omit<TherapistInquiry, "id" | "createdAt"> = {
+        department: form.department.trim(),
+        childName: form.childName.trim(),
+        age: Number(form.age),
+        referredBy: form.referredBy.trim(),
+        majorConcerns: form.majorConcerns.trim(),
+        enquirySource: form.enquirySource as "Given by Tanu" | "Direct",
+        requestType: "contact",
+        bookingAmount,
+        sessionAmount,
+        paymentMethod: "card",
+        appointmentDate: form.appointmentDate,
+        appointmentTime: form.appointmentTime,
+      };
+
+      await apiPost<TherapistInquiry>("/forms/therapists/inquiries", payload);
+
+      const origin = window.location.origin;
+      const callbackUrl = `${origin}/donation-success?type=appointment&dept=${encodeURIComponent(form.department)}&date=${form.appointmentDate}&time=${form.appointmentTime}`;
+
+      let res: any = null;
+      try {
+        res = await apiPost<any>("/payments/create-payment-link", {
+          amount: bookingAmount,
+          customerName: form.childName.trim(),
+          purpose: `Therapist Booking Fee (Non-refundable) - ${form.department}`,
+          category: "appointment",
+          callbackUrl,
+        });
+      } catch (linkErr) {
+        console.warn("Payment link creation fallback:", linkErr);
+      }
+
+      if (res?.paymentLinkUrl || res?.short_url) {
+        window.location.href = res.paymentLinkUrl || res.short_url;
+        return;
+      }
+
+      try {
+        const orderRes = await apiPost<any>("/payments/create-order", {
+          amount: bookingAmount,
+          receipt: `appt_${Date.now()}`,
+          notes: {
+            department: form.department,
+            childName: form.childName,
+            appointmentDate: form.appointmentDate,
+            appointmentTime: form.appointmentTime,
+          },
+        });
+
+        const scriptLoaded = await loadRazorpayScript();
+        if (scriptLoaded && window.Razorpay && orderRes?.order?.id) {
+          const rzp = new window.Razorpay({
+            key: orderRes.keyId || "rzp_test_fallback",
+            amount: bookingAmount * 100,
+            currency: "INR",
+            name: "UDAI Rehab",
+            description: `Appointment Booking Fee - ${form.department}`,
+            order_id: orderRes.order.id,
+            prefill: {
+              name: form.childName.trim(),
+            },
+            theme: {
+              color: "#24396f",
+            },
+            handler: function () {
+              window.location.href = callbackUrl;
+            },
+            modal: {
+              ondismiss: function () {
+                setIsSubmitting(false);
+              },
+            },
+          });
+          rzp.open();
+          return;
+        }
+      } catch (orderErr) {
+        console.warn("Order creation fallback:", orderErr);
+      }
+
+      setStage("payment");
+    } catch (err: any) {
+      console.error("Payment initialization error:", err);
+      setError(err?.message || "Unable to initiate Razorpay payment. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function payNow(paymentMethod: PaymentMethod) {
@@ -251,13 +377,21 @@ export function Appointment() {
                   <input
                     type="date"
                     min={todayValue()}
+                    max={maxDateValue()}
                     value={form.appointmentDate}
                     onChange={(e) => {
-                      updateField("appointmentDate", e.target.value);
+                      const val = e.target.value;
+                      const minD = todayValue();
+                      const maxD = maxDateValue();
+                      const finalVal = val < minD || val > maxD ? minD : val;
+                      updateField("appointmentDate", finalVal);
                       updateField("appointmentTime", "");
                     }}
-                    className="mt-1 w-full rounded-lg border border-[#ddd8d1] px-3 py-3 text-sm outline-none"
+                    className="mt-1 w-full rounded-lg border border-[#ddd8d1] px-3 py-3 text-sm font-medium outline-none focus:border-[#2f5597]"
                   />
+                  <div className="mt-1.5 text-xs font-semibold text-[#2f5597]">
+                    Select from next 5 available days
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-[#2b1b15]">Available Slot</label>
@@ -337,15 +471,16 @@ export function Appointment() {
               </div>
             </div>
 
-            {error ? <div className="mt-3 text-sm text-[#b91c1c]">{error}</div> : null}
+            {error ? <div className="mt-3 text-sm font-semibold text-[#b91c1c]">{error}</div> : null}
 
             <div className="mt-5 flex gap-3">
               <button
                 type="button"
-                onClick={goToPayment}
-                className="inline-flex items-center justify-center rounded-full bg-[#2f5597] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#264882]"
+                onClick={handleContinueToPayment}
+                disabled={isSubmitting}
+                className="inline-flex items-center justify-center rounded-full bg-[#ef3c32] px-8 py-3.5 text-sm font-bold text-white transition hover:bg-[#da2f26] disabled:opacity-50 shadow-md"
               >
-                Continue to Payment
+                {isSubmitting ? "Redirecting to Razorpay..." : "Continue to Payment (Pay ₹100)"}
               </button>
             </div>
           </div>
@@ -383,19 +518,9 @@ export function Appointment() {
                   <span>₹{sessionAmount - bookingAmount}</span>
                 </div>
               </div>
-              {stage === "payment" ? (
-                <button
-                  type="button"
-                  onClick={() => setStage("methods")}
-                  className="mt-4 w-full rounded-full bg-[#ef3c32] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#da2f26]"
-                >
-                  Pay Booking Fee ₹{bookingAmount}
-                </button>
-              ) : (
-                <div className="mt-4 text-sm text-[#6f6460]">
-                  Complete the form, select an available slot, and proceed to payment. The remaining fee can be paid during your visit.
-                </div>
-              )}
+              <div className="mt-4 text-xs text-[#6f6460] bg-[#f8f6f3] p-3 rounded-xl border border-[#ece4dd] leading-relaxed">
+                💡 Fill in your details and click <strong>&quot;Continue to Payment&quot;</strong> to proceed directly to Razorpay for the ₹100 booking fee.
+              </div>
             </div>
 
             {stage === "methods" ? (
@@ -430,9 +555,8 @@ export function Appointment() {
                           setSelectedMethod(method.id);
                           payNow(method.id);
                         }}
-                        className={`flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
-                          active ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#e4dcd4] bg-[#f9fafc]"
-                        }`}
+                        className={`flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${active ? "border-[#2f5597] bg-[#f3f6ff]" : "border-[#e4dcd4] bg-[#f9fafc]"
+                          }`}
                         disabled={isSubmitting}
                       >
                         <div className="flex items-center gap-3 text-left">
@@ -517,13 +641,12 @@ export function Appointment() {
                             updateField("appointmentTime", slot.time);
                             setSlotPickerOpen(false);
                           }}
-                          className={`rounded-2xl border p-4 text-left transition ${
-                            active
-                              ? "border-[#2f5597] bg-[#eef3ff]"
-                              : slot.isAvailable
-                                ? "border-[#dbe5ff] bg-white hover:border-[#2f5597] hover:bg-[#f8fbff]"
-                                : "cursor-not-allowed border-[#ebe4dc] bg-[#f8f6f3] opacity-70"
-                          }`}
+                          className={`rounded-2xl border p-4 text-left transition ${active
+                            ? "border-[#2f5597] bg-[#eef3ff]"
+                            : slot.isAvailable
+                              ? "border-[#dbe5ff] bg-white hover:border-[#2f5597] hover:bg-[#f8fbff]"
+                              : "cursor-not-allowed border-[#ebe4dc] bg-[#f8f6f3] opacity-70"
+                            }`}
                           disabled={!slot.isAvailable}
                         >
                           <div className="text-sm font-semibold text-[#24396f]">{slot.label}</div>

@@ -4,7 +4,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
-// 1. CHANGE: Default import use kiya kyunki msg91Webhook.js se default export ho raha hai
+// 1. CHANGE: Direct default import kiya hai bina curly braces {} ke
 import msg91WebhookRouter from "./routes/msg91Webhook.js";
 
 export function createApp({ repository }) {
@@ -43,17 +43,15 @@ export function createApp({ repository }) {
     res.json({ success: true, status: "ok" });
   });
 
-  // 2. CHANGE: Repository ko globally req object mein daal diya taaki webhook file ise access kar sake (agar zaroorat ho)
+  // 2. CHANGE: Repository ko request mein attach kar diya taaki agar services ko zaroorat ho toh use kar sakein
   app.use((req, _res, next) => {
     req.repository = repository;
     next();
   });
 
-  // 3. CHANGE: Router ko function ki tarah call karne ke bajaye direct object use kiya aur saaf routes banaye
+  // 3. CHANGE: Router object ko bina call kiye seedhe clean paths par mount kar diya
   app.use("/api/v1/msg91-webhook", msg91WebhookRouter);
-
-  // Backup routes (takki purane kisi URL par dikkat na aaye)
-  app.use("/webhook", msg91WebhookRouter);
+  app.use("/webhook", msg91WebhookRouter); 
 
   app.use(notFoundHandler);
   app.use(errorHandler);

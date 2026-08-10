@@ -7,17 +7,17 @@ export function HealthWellnessSection() {
     {
       icon: Activity,
       title: "Sports & Recreation",
-      description: "Weekly soccer, basketball, and yoga sessions to promote fitness and teamwork.",
+      description: "Inclusive sports and recreational activities that build fitness, coordination, confidence, and teamwork.",
     },
     {
       icon: HeartPulse,
       title: "Medical Camps",
-      description: "Quarterly free health screenings, dental check-ups, and vaccination drives.",
+      description: "Regular health screenings, dental check-ups, vaccinations, and preventive care to support early intervention and overall well-being.",
     },
     {
       icon: Apple,
       title: "Nutrition Program",
-      description: "Providing daily nutritious meals and teaching families about balanced diets.",
+      description: "Nutritious meals and family nutrition education that encourage healthy growth and lifelong eating habits.",
     },
   ];
 
@@ -40,7 +40,7 @@ export function HealthWellnessSection() {
             </h2>
 
             <p className="mt-5 max-w-xl text-base leading-7 text-[#6f625c] sm:mt-8 sm:text-lg sm:leading-10">
-              Physical health is the foundation of a child's development. We organize regular sports activities, health check-ups, and nutrition workshops to ensure our children grow up healthy and active.
+              Good health is the foundation of every child&apos;s growth, learning, and independence. UDAI&apos;s Health &amp; Wellness Program promotes physical, emotional, and nutritional well-being through preventive healthcare, active living, and healthy lifestyle practices.
             </p>
 
             <div className="mt-7 space-y-5 sm:mt-10 sm:space-y-7">

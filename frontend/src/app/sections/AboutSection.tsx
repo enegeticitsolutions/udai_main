@@ -19,7 +19,7 @@ export function AboutSection() {
               <ImageWithFallback
                 src="/images/about.png"
                 alt="About UDAI"
-                className="h-[230px] w-full object-cover sm:h-[520px]"
+                className="h-[250px] w-full object-cover object-center sm:h-[520px]"
               />
             </div>
 
@@ -38,9 +38,9 @@ export function AboutSection() {
             className="sm:pt-4 lg:pt-8"
           >
             <div className="mb-3 flex items-center gap-2 text-blue-700 sm:mb-4">
-  <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
-  <span className="text-base font-medium sm:text-lg">Who We Are</span>
-</div>
+              <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-base font-medium sm:text-lg">Who We Are</span>
+            </div>
 
             <h2 className="mb-3 text-2xl font-semibold leading-tight tracking-tight text-[#2b1b15] sm:mb-4 sm:text-4xl lg:text-5xl">
               <span className="block">Nurturing Potential,</span>
@@ -48,40 +48,20 @@ export function AboutSection() {
             </h2>
 
             <p className="mb-3 text-xs leading-5 text-[#6f625c] sm:mb-4 sm:text-[15px] sm:leading-7">
-              UDAI - Working Together Works is a registered charitable trust committed to serving children and young adults with special needs. Since its inception, the organization has focused on holistic rehabilitation through education, therapy, and skill development programs.
+              At <strong>UDAI – Working Together Works</strong>, we believe every child, regardless of ability, deserves the opportunity to learn, grow, and lead a fulfilling life.
+            </p>
+
+            <p className="mb-3 text-xs leading-5 text-[#6f625c] sm:mb-4 sm:text-[15px] sm:leading-7">
+              Children with developmental delays and special needs deserve more than care — they deserve opportunities to thrive. At UDAI, we partner with families to provide holistic education, therapeutic support, life skills training, and vocational development tailored to each child&apos;s unique journey.
+            </p>
+
+            <p className="mb-3 text-xs leading-5 text-[#6f625c] sm:mb-4 sm:text-[15px] sm:leading-7">
+              As a registered charitable trust, we are committed to nurturing every child&apos;s social, emotional, cognitive, and functional growth in an inclusive and supportive environment where abilities are celebrated and potential is unlocked.
             </p>
 
             <p className="mb-4 text-xs leading-5 text-[#6f625c] sm:mb-6 sm:text-[15px] sm:leading-7">
-              Founded with the vision of holistic development, UDAI provides structured programs that nurture the social, emotional, cognitive, and life skills of children with special needs.
+              We believe every child deserves the chance to discover their strengths, build confidence, and create a future filled with possibilities.
             </p>
-
-            <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                className="rounded-[1rem] border border-[#e7e1da] border-l-[4px] border-l-green-600 bg-white p-3 shadow-[0_16px_36px_rgba(41,29,22,0.12)] sm:rounded-[1.2rem] md:aspect-[2.2/1]"
-              >
-                <h3 className="mb-1 text-sm font-semibold text-[#2b1b15] sm:mb-1.5 sm:text-lg">Mission</h3>
-                <p className="text-[11px] leading-4 text-[#6f625c] sm:text-[13px] sm:leading-5">
-                  We provide special education and therapeutic support to build independence and life skills. Through vocational training and family guidance, we empower every child to thrive.
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.15 }}
-                className="rounded-[1rem] border border-[#e7e1da] border-l-[4px] border-l-orange-400 bg-white p-3 shadow-[0_16px_36px_rgba(41,29,22,0.12)] sm:rounded-[1.2rem] md:aspect-[2.2/1]"
-              >
-                <h3 className="mb-1 text-sm font-semibold text-[#2b1b15] sm:mb-1.5 sm:text-lg">Vision</h3>
-                <p className="text-[11px] leading-4 text-[#6f625c] sm:text-[13px] sm:leading-5">
-                  To create an inclusive world where individuals with special needs are empowered to live with dignity, independence, and confidence.
-                </p>
-              </motion.div>
-            </div>
           </motion.div>
         </div>
       </div>

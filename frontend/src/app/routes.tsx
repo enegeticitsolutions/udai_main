@@ -18,6 +18,9 @@ import { Appointment } from "./pages/Appointment";
 import { AuthPage } from "./pages/AuthPage";
 import { AccountOrders } from "./pages/AccountOrders";
 import { DonationSuccess } from "./pages/DonationSuccess";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
+import { TermsOfService } from "./pages/TermsOfService";
+import { ProjectDetail } from "./pages/ProjectDetail";
 
 export const router = createBrowserRouter([
   {
@@ -28,6 +31,7 @@ export const router = createBrowserRouter([
       { path: "about", Component: About },
       { path: "programs", Component: Programs },
       { path: "projects", Component: Projects },
+      { path: "projects/:slug", Component: ProjectDetail },
       { path: "products", Component: Products },
       { path: "new-arrivals", Component: NewArrivals },
       { path: "corporate-gifting", Component: CorporateGifting },
@@ -42,6 +46,9 @@ export const router = createBrowserRouter([
       { path: "auth", Component: AuthPage },
       { path: "account/orders", Component: AccountOrders },
       { path: "donation-success", Component: DonationSuccess },
+      { path: "privacy-policy", Component: PrivacyPolicy },
+      { path: "terms-of-service", Component: TermsOfService },
+      { path: "terms", Component: TermsOfService },
     ],
   },
 ]);

@@ -115,11 +115,11 @@ export function About() {
               </div>
             </div>
 
-            <div className="relative h-64 overflow-hidden rounded-[1.8rem] bg-[#dfe8f7] shadow-[0_16px_34px_rgba(39,63,107,0.12)] sm:h-[28rem]">
+            <div className="relative overflow-hidden rounded-[1.8rem] shadow-[0_16px_34px_rgba(39,63,107,0.12)]">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1739298061740-5ed03045b280?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWFtJTIwbWVldGluZyUyMGNvbGxhYm9yYXRpb258ZW58MXx8fHwxNzczNjgxNTQwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt="About UDAIREHAB"
-                className="h-full w-full object-cover"
+                src="/images/mobile-unit.png"
+                alt="About UDAIREHAB Mobile Unit"
+                className="w-full h-auto block"
               />
             </div>
           </div>

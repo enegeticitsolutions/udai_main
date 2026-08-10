@@ -52,16 +52,15 @@ export function Layout() {
       name: "Projects",
       type: "dropdown" as const,
       children: [
-        { name: "Early Intervention Programme", href: "/projects#early-intervention-programme" },
-        { name: "School Readiness Programme", href: "/projects#school-readiness-programme" },
-        { name: "Therapy Services", href: "/projects#therapy-services" },
-        { name: "Special Education and Life-Skills Development", href: "/projects#special-education-life-skills" },
-        { name: "Ek Prayas – Intervention on Wheels", href: "/projects#ek-prayas-intervention-on-wheels" },
-        { name: "Ek Prayas – Vocational Training and Employability Support", href: "/projects#ek-prayas-vocational-training" },
-        { name: "Assistive Living Hostel for Boys", href: "/projects#assistive-living-hostel" },
-        { name: "Community Outreach Program", href: "/projects#community-outreach" },
-        { name: "Assistive Living Programme (Residential facility for Boys)", href: "/projects#assistive-living-programme" },
-        { name: "Teachers Training & Parent Empowerment Program", href: "/projects#teachers-training-parent-empowerment" },
+        { name: "Early Intervention Programme", href: "/projects/early-intervention" },
+        { name: "School Readiness Programme", href: "/projects/school-readiness" },
+        { name: "Therapy Services", href: "/projects/therapy-services" },
+        { name: "Special Education and Life-Skills Development", href: "/projects/special-education" },
+        { name: "Ek Prayas – Intervention on Wheels", href: "/projects/intervention-on-wheels" },
+        { name: "Ek Prayas – Vocational Training and Employability Support", href: "/projects/vocational-training" },
+        { name: "Assistive Living Hostel for Boys", href: "/projects/assistive-living" },
+        { name: "Community Outreach Program", href: "/projects/community-outreach" },
+        { name: "Teachers Training & Parent Empowerment Program", href: "/projects/teachers-training" },
       ],
     },
     { name: "Therapist", href: "/#therapists", type: "section" as const },
@@ -357,8 +356,8 @@ export function Layout() {
           <div className="mt-12 flex flex-col gap-4 border-t border-white/12 pt-6 text-xs text-white/65 sm:flex-row sm:items-center sm:justify-between">
             <p>&copy; {new Date().getFullYear()} UDAIREHAB NGO. All rights reserved.</p>
             <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
+              <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link to="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</Link>
             </div>
           </div>
         </div>

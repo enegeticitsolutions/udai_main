@@ -2,7 +2,55 @@ import { Router } from "express";
 import { MongoServerError } from "mongodb";
 import { ZodError } from "zod";
 import { NoSlotsAvailableError, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import { getAvailableDates, getAvailableSlots, getDepartments } from "../services/bookingService.js";
 const msg91BookingRouter = Router();
+/**
+ * Expose available departments for MSG91 flow
+ */
+msg91BookingRouter.get("/departments", async (_req, res, next) => {
+    try {
+        const departments = await getDepartments();
+        res.json({ success: true, data: departments });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+/**
+ * Expose available dates for a department (next 5 days with open slots)
+ */
+msg91BookingRouter.get("/dates", async (req, res, next) => {
+    try {
+        const department = String(req.query.department ?? "").trim();
+        if (!department) {
+            res.status(400).json({ success: false, message: "department query param is required" });
+            return;
+        }
+        const dates = await getAvailableDates(department);
+        res.json({ success: true, data: dates });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+/**
+ * Expose available 45-min slots for a department on a date
+ */
+msg91BookingRouter.get("/slots", async (req, res, next) => {
+    try {
+        const department = String(req.query.department ?? "").trim();
+        const date = String(req.query.date ?? "").trim();
+        if (!department || !date) {
+            res.status(400).json({ success: false, message: "department and date query params are required" });
+            return;
+        }
+        const slots = await getAvailableSlots(department, date);
+        res.json({ success: true, data: slots });
+    }
+    catch (error) {
+        next(error);
+    }
+});
 /**
  * Backward-compatible alias for older MSG91 bot flow nodes.
  * New integrations should call POST /api/webhooks/msg91.

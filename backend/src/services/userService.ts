@@ -525,7 +525,10 @@ export async function createUserAddress(userId: string, input: AddressInput) {
 export async function getUserOrders(userId: string) {
   const docs = await getMongoDb()
     .collection("orders")
-    .find({ userId })
+    .find({
+      userId,
+      $or: [{ paymentStatus: "paid" }, { orderStatus: "confirmed" }],
+    })
     .sort({ createdAt: -1 })
     .toArray();
 

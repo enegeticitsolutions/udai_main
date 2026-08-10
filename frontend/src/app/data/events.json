@@ -17,7 +17,7 @@
     "time": "9:00 AM - 4:00 PM",
     "location": "Central Park Community Center",
     "description": "Free health screenings, dental check-ups, and wellness workshops for families in our community.",
-    "image": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600",
+    "image": "/images/project2.png",
     "category": "Community",
     "attendees": 180
   },

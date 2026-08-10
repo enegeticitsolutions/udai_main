@@ -122,18 +122,28 @@ function normalizeAppointmentDate(dateInput) {
 }
 export function parseMsg91AppointmentPayload(payload) {
     const data = payloadData(payload);
-    const rawTime = pick(data, "appointment_time", "appointmentTime", "time");
+    const rawTime = pick(data, "appointment_time", "appointmentTime", "time", "selected_time", "slot");
     const rawGender = pick(data, "gender");
     const rawCity = pick(data, "city");
     const rawLang = pick(data, "preferred_language", "preferredLanguage", "language");
-    const rawPatientName = pick(data, "patient_name", "patientName", "name", "full_name", "child_name", "childName");
-    const rawTherapistName = pick(data, "therapist_name", "therapistName", "doctor", "doctor_name", "department");
-    const rawDate = pick(data, "appointment_date", "appointmentDate", "date");
+    const rawPatientName = pick(data, "patient_name", "patientName", "name", "full_name", "child_name", "childName", "customerName", "userName");
+    const rawTherapistName = pick(data, "therapist_name", "therapistName", "doctor", "doctor_name", "department", "service", "service_name", "selected_service");
+    const rawDate = pick(data, "appointment_date", "appointmentDate", "date", "selected_date");
+    const rawPhone = pick(data, "phone_number", "phoneNumber", "mobile", "phone", "wa_id", "customerNumber", "customer_number", "mobileNumber", "mobile_number", "user_phone", "from", "sender");
+    const rawAge = pick(data, "age", "patient_age", "patientAge", "child_age", "childAge");
+    // Extract clean integer for age or default to 0 to prevent Zod coercion crash
+    let parsedAge = 0;
+    if (rawAge !== undefined && rawAge !== null && rawAge !== "") {
+        const digitsOnly = String(rawAge).replace(/[^\d]/g, "");
+        if (digitsOnly) {
+            parsedAge = parseInt(digitsOnly, 10);
+        }
+    }
     return msg91AppointmentSchema.parse({
         bookingId: pick(data, "booking_id", "bookingId", "id") || undefined,
         patientName: rawPatientName || "Patient",
-        phoneNumber: normalizePhone(pick(data, "phone_number", "phoneNumber", "mobile", "phone", "wa_id")),
-        age: pick(data, "age", "patient_age", "patientAge"),
+        phoneNumber: normalizePhone(rawPhone),
+        age: parsedAge,
         gender: rawGender || undefined,
         city: rawCity || undefined,
         preferredLanguage: rawLang || undefined,

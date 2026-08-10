@@ -7,15 +7,15 @@
     "gallery": ["/images/afterschool.png", "/images/arteducation.png"],
     "accent": "from-[#2046b6] to-[#5a9ae8]",
     "overview": [
-      "Our After-School Tutoring program gives students a structured learning environment beyond regular school hours, with focused support in reading, writing, mathematics, and classroom readiness.",
-      "The program is designed to meet each learner at their current level and build steady progress through repetition, encouragement, and guided practice.",
-      "We work closely with families so that students receive consistent academic support, improved routines, and stronger confidence in school participation."
+      "Our After-School Tutoring program provides personalised academic support in a structured, nurturing environment beyond school hours. Through individualised instruction, we help students strengthen reading, writing, mathematics, homework skills, and classroom readiness while building confidence, independence, and a love for learning.",
+      "Sessions are offered one-to-one or in small groups and are tailored to each child's unique learning needs. By working closely with families, we promote consistent progress, stronger routines, and greater success both at school and at home."
     ],
     "highlights": [
-      "Personalized support in core academic subjects",
-      "Small-group and one-to-one guided sessions",
-      "Confidence-building through regular practice and feedback",
-      "Homework support and reinforcement of school learning"
+      "Personalised support in reading, writing, mathematics, and homework",
+      "One-to-one and small-group tutoring",
+      "Reinforcement of classroom learning through guided practice",
+      "Builds confidence, independence, and positive study habits",
+      "Ongoing collaboration with families to support student progress"
     ],
     "outcomes": [
       "Improved classroom participation and focus",
@@ -27,51 +27,52 @@
   {
     "slug": "scholarship-fund",
     "title": "Scholarship Fund",
-    "shortDescription": "Expanding access to learning by supporting students with essential educational resources, fee assistance, and continuity in their studies.",
+    "shortDescription": "Helping children and young adults with special needs overcome financial barriers to access education and therapeutic services.",
     "heroImage": "/images/fund.png",
-    "gallery": ["/images/fund.png", "/images/about.png"],
+    "gallery": ["/images/fund.png", "/images/mobile-unit.png"],
     "accent": "from-[#2b922f] to-[#63b853]",
     "overview": [
-      "The Scholarship Fund helps children and young adults continue their education by reducing the financial barriers that often interrupt learning journeys.",
-      "This support can include fee assistance, educational materials, uniforms, transport help, and other essentials that make consistent school participation possible.",
-      "The program is built to protect educational continuity and ensure that promising learners are not left behind because of economic hardship."
+      "At UDAI, we believe financial circumstances should never prevent a child from accessing education and the support they need to thrive. Our Scholarship Fund helps children and young adults with special needs overcome financial barriers by providing assistance for education and therapeutic services.",
+      "Scholarships are awarded to eligible families based on need and may cover tuition fees, educational materials, uniforms, transportation, and other essential learning resources. By reducing financial strain, the fund helps ensure uninterrupted learning, continued skill development, and equal opportunities for every child."
     ],
     "highlights": [
-      "Fee and resource support for eligible students",
-      "Assistance with books, uniforms, and learning materials",
-      "Encouragement for continued attendance and retention",
-      "Focused support for families facing financial pressure"
+      "Tuition and programme fees",
+      "Books, uniforms, and learning materials",
+      "Transportation support",
+      "Essential educational resources",
+      "Additional support based on individual needs"
     ],
     "outcomes": [
-      "Reduced dropout risk among vulnerable learners",
-      "Improved continuity in education",
-      "Greater family confidence in long-term schooling",
-      "More equitable access to learning opportunities"
+      "Improved access to education and support services",
+      "Reduced risk of interrupted learning or school dropout",
+      "Greater continuity in education and participation",
+      "Increased confidence and stability for children and their families",
+      "More equitable learning opportunities"
     ]
   },
   {
     "slug": "digital-literacy",
     "title": "Digital Literacy",
-    "shortDescription": "Equipping learners with practical digital skills so they can engage confidently with technology, communication tools, and modern learning methods.",
+    "shortDescription": "Equipping children and young adults with special needs with practical technology skills to engage confidently with digital tools.",
     "heroImage": "/images/digital.png",
     "gallery": ["/images/digital.png", "/images/section.png"],
     "accent": "from-[#f2a007] to-[#ffd15d]",
     "overview": [
-      "Our Digital Literacy program introduces learners to essential technology skills in a practical and supportive setting.",
-      "Students learn how to use digital devices, basic software tools, and communication platforms in ways that are relevant to education, independence, and future readiness.",
-      "The program focuses on confidence, safe technology use, and hands-on learning so participants can use digital tools meaningfully in everyday life."
+      "Digital skills are essential for learning, communication, independence, and participation in today's world. UDAI's Digital Literacy Program equips children and young adults with special needs with practical technology skills that enable them to engage confidently with digital tools in everyday life.",
+      "The program introduces learners to computers, digital devices, basic software applications, and communication platforms through structured, hands-on learning. Delivered in a supportive and accessible environment, it focuses on building confidence, promoting safe and responsible technology use, and developing skills that support education, daily living, and future opportunities.",
+      "By strengthening digital competence, we help learners become more independent, better prepared for modern learning environments, and more connected to the world around them."
     ],
     "highlights": [
       "Introduction to computers and digital devices",
-      "Basic typing, file handling, and educational software use",
+      "Basic typing, file management, and educational software",
       "Safe and guided use of online tools and communication platforms",
-      "Practical digital skills linked to study and daily life"
+      "Practical digital skills for learning, communication, and everyday life"
     ],
     "outcomes": [
-      "Improved confidence using technology",
-      "Better readiness for modern education and work environments",
-      "Increased independence in digital communication and tasks",
-      "Stronger participation in practical and skill-based learning"
+      "Greater confidence in using digital technology",
+      "Improved readiness for education and future employment",
+      "Increased independence in digital communication and everyday tasks",
+      "Stronger participation in learning and skill development"
     ]
   }
 ]

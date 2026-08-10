@@ -8,7 +8,7 @@ export function Programs() {
       title: "Healthcare & Rehabilitation",
       description:
         "We are committed to improving the physical, mental, and emotional well-being of individuals through holistic healthcare and rehabilitation services. Our programs focus on enabling individuals with special needs and health challenges to lead independent and dignified lives.",
-      image: "https://images.unsplash.com/photo-1589104759909-e355f8999f7e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwY2FyZSUyMHZvbHVudGVlcnN8ZW58MXx8fHwxNzczNzI4NTIzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+      image: "/images/healthcare.png",
       services: [
         "Personalized therapy programs (physical, occupational, behavioral)",
         "Mental health support and counseling",
@@ -21,7 +21,7 @@ export function Programs() {
       title: "Education & Skills Training",
       description:
         "We believe education is the foundation of empowerment. Our programs are designed to provide inclusive learning opportunities and skill development that help individuals become self-reliant and confident.",
-      image: "https://images.unsplash.com/photo-1765223111660-cdf94396832a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjBjaGlsZHJlbiUyMGxlYXJuaW5nfGVufDF8fHx8MTc3MzY5MjU0MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+      image: "/images/skill.png",
       services: [
         "Special education with customized curriculum",
         "Vocational training for employment readiness",
@@ -60,7 +60,7 @@ export function Programs() {
       title: "Women & Youth Empowerment",
       description:
         "We empower women and youth by providing them with opportunities, skills, and confidence to lead independent and impactful lives.",
-      image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGVtcG93ZXJtZW50JTIwZ3JvdXB8ZW58MXx8fHwxNzM2ODU5MjA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      image: "/images/youth.png",
       services: [
         "Skill development and employment programs",
         "Leadership and confidence-building initiatives",
@@ -73,7 +73,7 @@ export function Programs() {
       title: "Advocacy & Awareness",
       description:
         "We aim to create awareness and bring positive social change by addressing critical issues like mental health, disability inclusion, and social stigma.",
-      image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhZHZvY2FjeSUyMGNvbW11bml0eXxlbnwxfHx8fDE3MzY4NTkyMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      image: "/images/awareness.png",
       services: [
         "Awareness campaigns on mental health and disabilities",
         "Community outreach and education programs",
