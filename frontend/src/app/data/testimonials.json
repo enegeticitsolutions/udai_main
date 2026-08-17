@@ -3,7 +3,7 @@
     "id": 1,
     "name": "Jaishri Sharma",
     "role": "Community Leader",
-    "avatar": "",
+    "avatar": "/images/jaishri.png",
     "quote": "Heart & Soil didn't just bring food; they brought dignity and hope back to our village. We are forever grateful.",
     "rating": 5
   },
@@ -11,7 +11,7 @@
     "id": 2,
     "name": "Shubham Tripathi",
     "role": "Volunteer",
-    "avatar": "",
+    "avatar": "/images/shubham.png",
     "quote": "Volunteering here changed my perspective on life. It's not about charity, it's about shared humanity.",
     "rating": 5
   },
@@ -19,7 +19,7 @@
     "id": 3,
     "name": "Narendra Vishvakarma",
     "role": "Program Graduate",
-    "avatar": "",
+    "avatar": "/images/narendra.png",
     "quote": "The sustainable farming program gave me the skills to support my family independently. This is real empowerment.",
     "rating": 5
   },

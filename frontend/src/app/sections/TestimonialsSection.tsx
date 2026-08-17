@@ -56,7 +56,7 @@ export function TestimonialsSection() {
 
                 <div className="flex items-center gap-3">
                   {testimonial.avatar ? (
-                    <div className="size-12 overflow-hidden rounded-full">
+                    <div className="h-11 w-11 flex-shrink-0 overflow-hidden rounded-full border border-[#eee7e1] shadow-xs">
                       <ImageWithFallback
                         src={testimonial.avatar}
                         alt={testimonial.name}
