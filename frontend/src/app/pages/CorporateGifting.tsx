@@ -430,11 +430,12 @@ export function CorporateGifting() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#776a66] mb-1">Special Requirements</label>
+                    <label className="block text-xs font-semibold text-[#776a66] mb-1">Special Requirements *</label>
                     <textarea
                       name="message"
                       value={formData.message}
                       onChange={handleChange}
+                      required
                       rows={4}
                       className="w-full resize-none rounded-md border border-[#e5e7eb] px-4 py-3 text-sm outline-none focus:border-[#2f5597]"
                       placeholder="E.g., custom branding, branding tag, specific color requests..."

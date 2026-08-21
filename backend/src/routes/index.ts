@@ -11,6 +11,7 @@ import msg91BookingRouter from "./msg91Booking.js";
 import msg91WebhookRouter from "./msg91Webhook.js";
 import bookingRouter from "./booking.js";
 import therapistsRouter from "./therapists.js";
+import appointmentRouter from "./appointment.js";
 import { isMongoConnected } from "../lib/mongodb.js";
 
 export const apiRouter = Router();
@@ -41,3 +42,4 @@ apiRouter.use("/msg91-booking", msg91BookingRouter);
 apiRouter.use("/webhooks/msg91", msg91WebhookRouter);
 apiRouter.use("/booking", bookingRouter);
 apiRouter.use("/therapists", therapistsRouter);
+apiRouter.use("/appointments", appointmentRouter);

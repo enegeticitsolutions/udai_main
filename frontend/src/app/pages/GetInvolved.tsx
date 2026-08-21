@@ -254,7 +254,7 @@ export function GetInvolved() {
               <div className="mb-3 inline-flex rounded-full bg-[#ffe2d7] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#d85c43]">
                 Volunteer Form
               </div>
-              <h2 className="mb-4 text-3xl text-[#2b1b15] sm:text-4xl">Apply to Become a Volunteer</h2>
+              <h2 className="mb-4 text-3xl text-[#2b1b15] sm:text-4xl">Apply to Become a Volunteer and Intern</h2>
               <p className="mx-auto max-w-2xl text-sm leading-7 text-[#6f615a]">
                 Fill out this form and our team will contact you with the next steps.
               </p>

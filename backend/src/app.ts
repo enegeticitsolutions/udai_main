@@ -12,24 +12,7 @@ import { assignTherapist, getAvailableSlots, normalizeDepartment } from "./servi
 // ── MongoDB Connection & Lifecycle Logging ──────────────────────────
 // Uses config.mongoUri (from MONGODB_URI env) with explicit dbName
 if (config.mongoUri) {
-  mongoose.connection.on("connecting", () => {
-    console.log("[Mongoose Debug] Connecting to MongoDB...");
-  });
-  mongoose.connection.on("connected", () => {
-    console.log(`[Mongoose Debug] Connected to MongoDB database: "${config.mongoDbName}"`);
-  });
-  mongoose.connection.on("open", () => {
-    console.log("[Mongoose Debug] MongoDB connection successfully opened.");
-  });
-  mongoose.connection.on("error", (err) => {
-    console.error("🚨 [Mongoose Debug] MongoDB Connection Error:", err);
-  });
-  mongoose.connection.on("disconnected", () => {
-    console.warn("⚠️ [Mongoose Debug] MongoDB disconnected.");
-  });
-  mongoose.connection.on("reconnected", () => {
-    console.log("[Mongoose Debug] MongoDB successfully reconnected.");
-  });
+  // Verbose Mongoose debug logs removed to prevent console spam
 
   mongoose
     .connect(config.mongoUri, { dbName: config.mongoDbName })

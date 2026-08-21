@@ -48,7 +48,7 @@ export function VolunteerCTASection() {
                 to="/get-involved#volunteer-form"
                 className="rounded-full bg-white px-8 py-4 text-center text-sm font-semibold text-[#d85c43] shadow-[0_12px_26px_rgba(108,39,39,0.2)] transition hover:bg-[#fff1ec]"
               >
-                Become a Volunteer
+                Apply to Become a Volunteer and Intern
               </Link>
               <Link
                 to="/get-involved"

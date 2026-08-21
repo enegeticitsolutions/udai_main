@@ -312,9 +312,9 @@ export function Layout() {
               <h3 className="text-sm font-semibold text-[#ffd86b]">About Us</h3>
               <ul className="mt-6 space-y-4 text-sm text-white/78">
                 <li><Link to="/about">Our Mission</Link></li>
-                <li><Link to="/about">Team & Board</Link></li>
-                <li><Link to="/about">Financials</Link></li>
-                <li><Link to="/careers">Careers</Link></li>
+                <li><Link to="/about">Board of Trustees</Link></li>
+                <li><Link to="/about">Leadership Team</Link></li>
+                <li><Link to="/careers">Career</Link></li>
               </ul>
             </div>
 
@@ -322,6 +322,7 @@ export function Layout() {
               <h3 className="text-sm font-semibold text-[#ffd86b]">Get Involved</h3>
               <ul className="mt-6 space-y-4 text-sm text-white/78">
                 <li><Link to="/#donate">Donate</Link></li>
+                <li><Link to="/get-involved">Internships</Link></li>
                 <li><Link to="/#volunteer">Volunteer</Link></li>
                 <li><Link to="/get-involved">Partner with Us</Link></li>
                 <li><Link to="/contact">Contact Us</Link></li>

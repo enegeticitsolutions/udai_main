@@ -43,16 +43,16 @@ export function Programs() {
       ],
     },
     {
-      icon: Sprout,
-      title: "Food Security & Agriculture",
+      icon: Users, // Can use a more appropriate icon like Baby if available, but Users works
+      title: "Mom and Me",
       description:
-        "Ensuring access to basic needs like food is essential for a healthy society. We support sustainable practices and initiatives that promote food security and self-sufficiency.",
-      image: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhZ3JpY3VsdHVyZSUyMGZhcm1pbmd8ZW58MXx8fHwxNzM2ODU5MjA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+        "A specialized program designed to strengthen the bond between mothers and their children through interactive and developmental activities.",
+      image: "/images/mom_and_me.png", // Assuming a placeholder or if they have an image
       services: [
-        "Food distribution and nutrition programs",
-        "Support for sustainable agriculture practices",
-        "Awareness on healthy eating and nutrition",
-        "Livelihood support through farming initiatives",
+        "Early childhood development activities",
+        "Parenting workshops and support groups",
+        "Interactive play and bonding sessions",
+        "Guidance on child nutrition and care",
       ],
     },
     {
