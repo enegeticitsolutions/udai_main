@@ -1,0 +1,52 @@
+{
+  "name": "udai-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "kill:port": "kill-port",
+    "seed:therapists": "tsx src/scripts/seedTherapists.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.0",
+    "axios": "^1.16.1",
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.1.1",
+    "mongoose": "^9.3.3",
+    "morgan": "^1.10.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.7",
+    "razorpay": "^2.9.8",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^24.5.2",
+    "@types/nodemailer": "^8.0.0",
+    "kill-port": "^2.0.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3"
+  },
+  "description": "Standalone Express + TypeScript backend for the existing `frontend/` app.",
+  "main": "test_db.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,101 @@
+[
+  {
+    "slug": "after-school-tutoring",
+    "title": "After-School Tutoring",
+    "shortDescription": "Providing personalized academic support to help students master core subjects and build confidence in their abilities.",
+    "heroImage": "/images/afterschool.png",
+    "gallery": ["/images/afterschool.png", "/images/arteducation.png"],
+    "accent": "from-[#2046b6] to-[#5a9ae8]",
+    "overview": [
+      "Our After-School Tutoring program provides personalised academic support in a structured, nurturing environment beyond school hours. Through individualised instruction, we help students strengthen reading, writing, mathematics, homework skills, and classroom readiness while building confidence, independence, and a love for learning.",
+      "Sessions are offered one-to-one or in small groups and are tailored to each child's unique learning needs. By working closely with families, we promote consistent progress, stronger routines, and greater success both at school and at home."
+    ],
+    "highlights": [
+      "Personalised support in reading, writing, mathematics, and homework",
+      "One-to-one and small-group tutoring",
+      "Reinforcement of classroom learning through guided practice",
+      "Builds confidence, independence, and positive study habits",
+      "Ongoing collaboration with families to support student progress"
+    ],
+    "outcomes": [
+      "Improved classroom participation and focus",
+      "Better foundational reading and numeracy skills",
+      "Higher confidence in completing school tasks independently",
+      "Stronger communication between educators and families"
+    ]
+  },
+  {
+    "slug": "sponsorship-fund",
+    "title": "Sponsored Projects",
+    "shortDescription": "Sponsorship donations help support children and young adults with special needs by contributing toward their education, therapy, development, and related support.",
+    "heroImage": "/images/fund.png",
+    "gallery": ["/images/fund.png", "/images/mobile-unit.png"],
+    "accent": "from-[#2b922f] to-[#63b853]",
+    "overview": [
+      "Sponsorship donations directly empower children and young adults with special needs to access tailored education, comprehensive therapy, and skill development programs.",
+      "By becoming a sponsor or donor, you help cover tuition, therapy sessions, learning materials, and specialized care, ensuring every individual receives the opportunity to live an independent and fulfilling life."
+    ],
+    "highlights": [
+      "Direct support for special education and therapy sessions",
+      "Provision of learning materials and assistive tools",
+      "Contribution toward rehabilitation and skill-building programs",
+      "Regular updates on student progress and impact"
+    ],
+    "outcomes": [
+      "Enhanced access to specialized therapies and learning resources",
+      "Reduced financial burden on families with special needs",
+      "Sustained development and long-term empowerment for students",
+      "Direct and measurable community impact"
+    ]
+  },
+  {
+    "slug": "digital-literacy",
+    "title": "Digital Literacy",
+    "shortDescription": "Equipping children and young adults with special needs with practical technology skills to engage confidently with digital tools.",
+    "heroImage": "/images/digital.png",
+    "gallery": ["/images/digital.png", "/images/section.png"],
+    "accent": "from-[#f2a007] to-[#ffd15d]",
+    "overview": [
+      "Digital skills are essential for learning, communication, independence, and participation in today's world. UDAI's Digital Literacy Program equips children and young adults with special needs with practical technology skills that enable them to engage confidently with digital tools in everyday life.",
+      "The program introduces learners to computers, digital devices, basic software applications, and communication platforms through structured, hands-on learning. Delivered in a supportive and accessible environment, it focuses on building confidence, promoting safe and responsible technology use, and developing skills that support education, daily living, and future opportunities.",
+      "By strengthening digital competence, we help learners become more independent, better prepared for modern learning environments, and more connected to the world around them."
+    ],
+    "highlights": [
+      "Introduction to computers and digital devices",
+      "Basic typing, file management, and educational software",
+      "Safe and guided use of online tools and communication platforms",
+      "Practical digital skills for learning, communication, and everyday life"
+    ],
+    "outcomes": [
+      "Greater confidence in using digital technology",
+      "Improved readiness for education and future employment",
+      "Increased independence in digital communication and everyday tasks",
+      "Stronger participation in learning and skill development"
+    ]
+  },
+  {
+    "slug": "special-education",
+    "title": "Special Education",
+    "shortDescription": "Providing specialized education and developmental support for children and young adults with special needs, focusing on individualized learning, skill building, and independence.",
+    "heroImage": "/images/arteducation.png",
+    "gallery": ["/images/arteducation.png", "/images/aboutsection.png"],
+    "accent": "from-[#8b20b6] to-[#b85ae8]",
+    "overview": [
+      "Our Special Education program is dedicated to nurturing the unique abilities of children and young adults with special needs. We offer individualized education plans (IEPs) designed to meet cognitive, social, emotional, and physical development goals.",
+      "Through a combination of structured classroom learning, creative arts, therapeutic interventions, and practical life skills training, our experienced educators foster a safe, inclusive, and empowering environment where every student can achieve their full potential."
+    ],
+    "highlights": [
+      "Individualized Education Plans (IEPs) for every learner",
+      "Holistic curriculum covering academic, emotional, and life skills",
+      "Creative arts, sensory activities, and interactive learning",
+      "Certified special educators and supportive staff",
+      "Parent consultation and continuous progress tracking"
+    ],
+    "outcomes": [
+      "Improved cognitive, social, and functional life skills",
+      "Greater self-reliance, confidence, and classroom engagement",
+      "Tailored progress aligned with individual developmental milestones",
+      "Strong foundation for vocational training and independent living"
+    ]
+  }
+]

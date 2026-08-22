@@ -1,0 +1,238 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Improve text rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+@keyframes therapist-marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.therapist-marquee {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+}
+
+.therapist-marquee::before,
+.therapist-marquee::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 72px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.therapist-marquee::before {
+  left: 0;
+  background: linear-gradient(90deg, #f7f4ef 0%, rgba(247, 244, 239, 0) 100%);
+}
+
+.therapist-marquee::after {
+  right: 0;
+  background: linear-gradient(270deg, #f7f4ef 0%, rgba(247, 244, 239, 0) 100%);
+}
+
+.therapist-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 1rem;
+  animation: therapist-marquee-scroll 38s linear infinite;
+}
+
+.therapist-marquee:hover .therapist-marquee-track {
+  animation-play-state: paused;
+}
+
+.therapist-marquee-card {
+  width: 290px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(36, 25, 18, 0.08);
+  border-radius: 1.5rem;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(41, 29, 22, 0.08);
+  overflow: hidden;
+}
+
+.therapist-marquee-image {
+  height: 280px;
+  background: #f7f4f1;
+}
+
+.therapist-marquee-copy {
+  padding: 1rem 1rem 1.1rem;
+}
+
+.therapist-marquee-department {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #d36f47;
+}
+
+.therapist-marquee-copy h3 {
+  margin: 0.55rem 0 0;
+  color: #24396f;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .therapist-marquee-track {
+    animation: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: 15px;
+  }
+
+  body {
+    overflow-x: hidden;
+    background: #f8f3ef;
+  }
+
+  section {
+    scroll-margin-top: 96px;
+  }
+
+  p,
+  a,
+  button,
+  label,
+  h1,
+  h2,
+  h3,
+  h4 {
+    overflow-wrap: anywhere;
+  }
+
+  input,
+  textarea,
+  select {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  button,
+  [role="button"],
+  input,
+  select {
+    min-height: 40px;
+  }
+
+  table {
+    min-width: 100%;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  .therapist-marquee {
+    border-radius: 1.25rem;
+  }
+
+  .therapist-marquee::before,
+  .therapist-marquee::after {
+    width: 28px;
+  }
+
+  .therapist-marquee-track {
+    gap: 0.75rem;
+    animation-duration: 28s;
+  }
+
+  .therapist-marquee-card {
+    width: 220px;
+  }
+
+  .therapist-marquee-image {
+    height: 210px;
+  }
+
+  .therapist-marquee-copy {
+    padding: 0.85rem 0.85rem 0.95rem;
+  }
+
+  .therapist-marquee-copy h3 {
+    font-size: 1.02rem;
+  }
+
+  .mx-auto.max-w-7xl,
+  .mx-auto.max-w-6xl,
+  .mx-auto.max-w-4xl,
+  .mx-auto.max-w-3xl {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .grid {
+    gap: 1rem;
+  }
+
+  .line-clamp-2,
+  .line-clamp-3 {
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 420px) {
+  html {
+    font-size: 14px;
+  }
+
+  .therapist-marquee-card {
+    width: 196px;
+  }
+
+  .therapist-marquee-image {
+    height: 188px;
+  }
+}

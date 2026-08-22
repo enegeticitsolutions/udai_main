@@ -1,0 +1,101 @@
+[
+  {
+    "id": "CAR-1782651023010",
+    "createdAt": "2026-06-28T12:50:23.010Z",
+    "title": "aasasaassasss",
+    "department": "Education",
+    "location": "Delhi, India",
+    "type": "Full-time",
+    "experience": "5+ years",
+    "description": "vgsacjvgdshhvsyvdhycqjgxcvqscdgqscdv,qay",
+    "responsibilities": [
+      "djghcvs.ahjdcxgvaqhydbghydgbqsyhdgseydgqhcbehkqscb"
+    ],
+    "requirements": [
+      "asdfghjmnbvcxdsertyujnbvcxsertyuikmnbvcxsertyuikmnbcxsertyujmn"
+    ],
+    "status": "open"
+  },
+  {
+    "id": "CAR-1782650776002",
+    "createdAt": "2026-06-28T12:46:16.002Z",
+    "title": "Volunteer",
+    "department": "Education",
+    "location": "Delhi, India",
+    "type": "Full-time",
+    "experience": "5+ years",
+    "description": "asdfghjkjhgfdsasdfghjkjhgfdsa",
+    "responsibilities": [
+      "qazxswedcvfrtgbnhyujmkiopl"
+    ],
+    "requirements": [
+      "qawsedrftgyhjuikolp"
+    ],
+    "applyLink": "mailto:info@udairehab.org?subject=Career%20Application%20-%20Special%20Educator",
+    "status": "open"
+  },
+  {
+    "id": "CAR-1781543244768",
+    "createdAt": "2026-06-15T17:07:24.769Z",
+    "title": "hvdhcbdhcbe bjdbcjdwcb",
+    "department": "hcbdwcbjdiwcb. chejwecbew",
+    "location": "hbcdwbcwejc bciewbc",
+    "type": "Full-time",
+    "experience": "10+ year",
+    "description": "khdbchdbchdwc hbcedcbenbjehch jhbubec",
+    "responsibilities": [
+      "hchdbc hb ehdc hcbehc ecubecbrhv hcbruecb che"
+    ],
+    "requirements": [
+      "bhrfbcrv bneucb hfcbuerb hbrec ecbec"
+    ],
+    "applyLink": "mailto:info@udairehab.org?subject=Career%20Application%20-%20Special%20Educator",
+    "status": "open"
+  },
+  {
+    "id": 2,
+    "title": "Occupational Therapist",
+    "department": "Therapy",
+    "location": "Delhi, India",
+    "type": "Full-time",
+    "experience": "3+ years",
+    "description": "Help children improve daily living skills, coordination, and functional independence.",
+    "responsibilities": [
+      "Assess and design therapy plans",
+      "Work with families on home programs",
+      "Maintain therapy documentation"
+    ],
+    "requirements": [
+      "Degree in Occupational Therapy",
+      "Valid professional registration",
+      "Experience in pediatric therapy"
+    ],
+    "applyLink": "mailto:info@udairehab.org?subject=Career%20Application%20-%20Occupational%20Therapist",
+    "status": "open",
+    "createdAt": "2026-05-30T15:15:33.449Z",
+    "updatedAt": "2026-05-30T15:35:25.945Z"
+  },
+  {
+    "id": 1,
+    "title": "Special Educator",
+    "department": "Education",
+    "location": "Delhi, India",
+    "type": "Full-time",
+    "experience": "5+ years",
+    "description": "Support children with special needs through individualized learning plans and classroom guidance.",
+    "responsibilities": [
+      "Create and implement learning plans",
+      "Track student progress and provide reports",
+      "Collaborate with therapists and parents"
+    ],
+    "requirements": [
+      "Degree in Special Education or related field",
+      "Experience working with children with disabilities",
+      "Strong communication and teamwork skills"
+    ],
+    "applyLink": "mailto:info@udairehab.org?subject=Career%20Application%20-%20Special%20Educator",
+    "status": "open",
+    "createdAt": "2026-05-30T15:15:33.449Z",
+    "updatedAt": "2026-05-30T15:32:34.635Z"
+  }
+]

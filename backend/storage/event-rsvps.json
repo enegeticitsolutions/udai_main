@@ -1,0 +1,18 @@
+[
+  {
+    "eventId": 1,
+    "name": "shubham",
+    "email": "shubham5690@gmail.com",
+    "attendees": 1,
+    "id": "464104cb-6883-4274-9511-c7170e243c2d",
+    "createdAt": "2026-03-27T08:54:18.363Z"
+  },
+  {
+    "eventId": 1,
+    "name": "ss",
+    "email": "shubham5730@gmail.com",
+    "attendees": 1,
+    "id": "0e8620e5-3b5d-469e-b4ee-b7759bb3834e",
+    "createdAt": "2026-03-27T09:58:14.985Z"
+  }
+]
