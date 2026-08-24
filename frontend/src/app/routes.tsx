@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { Layout } from "./components/Layout";
 import { HomePage } from "./pages/HomePage";
 import { About } from "./pages/About";
@@ -21,11 +21,13 @@ import { DonationSuccess } from "./pages/DonationSuccess";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { ProjectDetail } from "./pages/ProjectDetail";
+import { NotFound, RouteErrorBoundary } from "./pages/NotFound";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: Layout,
+    ErrorBoundary: RouteErrorBoundary,
     children: [
       { index: true, Component: HomePage },
       { path: "about", Component: About },
@@ -49,6 +51,9 @@ export const router = createBrowserRouter([
       { path: "privacy-policy", Component: PrivacyPolicy },
       { path: "terms-of-service", Component: TermsOfService },
       { path: "terms", Component: TermsOfService },
+      { path: "udai", element: <Navigate to="/" replace /> },
+      { path: "udai/*", element: <Navigate to="/" replace /> },
+      { path: "*", Component: NotFound },
     ],
   },
 ]);
