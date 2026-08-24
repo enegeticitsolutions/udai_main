@@ -1,263 +1,126 @@
 const express = require("express");
 const router = express.Router();
-
 const Appointment = require("../models/Appointment");
-const Payment = require("../models/Payment");
-const { getNextId } = require("../utils/idGenerator");
+const Patient = require("../models/Patient");
+const User = require("../models/User");
 
+const getNext5Days = () => {
+  const dates = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    dates.push(d.toISOString().split("T")[0]);
+  }
+  return dates;
+};
 
-// ============================
-// CREATE APPOINTMENT
-// ============================
-router.post("/", async (req, res) => {
-    try {
+// 1. Available Dates
+router.get("/available-dates", async (req, res) => {
+  try {
+    const next5Days = getNext5Days();
+    const dateOptions = next5Days.map(date => ({
+      id: date,
+      title: date,
+      description: `Slots for ${date}`
+    }));
 
-        if (!req.body || Object.keys(req.body).length === 0) {
-            return res.status(400).json({ error: "Body is empty" });
-        }
-
-        const { patientId, therapistId, date, time, sessionType } = req.body;
-
-        if (!patientId || !therapistId || !date || !time || !sessionType) {
-            return res.status(400).json({ error: "Missing required fields" });
-        }
-
-        // ======================
-        // PAYMENT CHECK — DISABLED FOR DEVELOPMENT
-        // ======================
-        // const payment = await Payment.findOne({
-        //     patientId,
-        //     paymentStatus: "paid"
-        // });
-        //
-        // if (!payment) {
-        //     return res.status(400).json({ error: "No active payment found" });
-        // }
-
-        // ======================
-        // SESSION CHECK — DISABLED FOR DEVELOPMENT
-        // ======================
-        // if (payment.type === "package" && payment.remainingSessions <= 0) {
-        //     return res.status(400).json({ error: "No sessions left" });
-        // }
-
-        // ======================
-        // CHECK SLOT CONFLICT
-        // ======================
-        const existing = await Appointment.findOne({
-            therapistId,
-            date,
-            time,
-            status: "booked"
-        });
-
-        if (existing) {
-            return res.status(400).json({ error: "Slot already booked" });
-        }
-
-        // ======================
-        // CREATE APPOINTMENT
-        // ======================
-        const appointmentCode = await getNextId("appointment", "APT");
-
-        const appointment = await Appointment.create({
-            patientId,
-            therapistId,
-            date,
-            time,
-            sessionType,
-            appointmentCode
-        });
-
-        res.json({
-            message: "Appointment created",
-            appointment
-        });
-
-    } catch (err) {
-        console.log("CREATE ERROR:", err);
-        res.status(500).json({ error: err.message });
-    }
+    return res.status(200).json({
+      success: true,
+      data: dateOptions,
+      dates: next5Days
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
+// 2. Available Slots
+router.get("/available-slots", async (req, res) => {
+  try {
+    const service = req.query.service || req.query.department;
+    const date = req.query.date || req.query.appointmentDate;
 
-// ============================
-// GET ALL APPOINTMENTS
-// ============================
-router.get("/", async (req, res) => {
-    try {
-        const data = await Appointment.find()
-            .populate("patientId")
-            .populate("therapistId");
+    const allSlots = [
+      "10:00 AM",
+      "11:30 AM",
+      "02:00 PM",
+      "03:30 PM",
+      "05:00 PM"
+    ];
 
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    const bookedAppointments = await Appointment.find({
+      date: date,
+      sessionType: service,
+      status: { $ne: "cancelled" }
+    }).select("time");
+
+    const bookedTimes = bookedAppointments.map(a => a.time);
+    const available = allSlots.filter(slot => !bookedTimes.includes(slot));
+
+    const slotOptions = available.map(slot => ({
+      id: slot,
+      title: slot,
+      description: "Available"
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: slotOptions,
+      slots: available
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
+// 3. Book Appointment (Supports both camelCase & snake_case)
+router.post("/book", async (req, res) => {
+  try {
+    const child_name = req.body.childName || req.body.child_name;
+    const child_age = req.body.age || req.body.child_age;
+    const parent_name = req.body.parentName || req.body.parent_name;
+    const concern = req.body.concern || req.body.concern_of_child;
+    const service = req.body.department || req.body.service;
+    const appointment_date = req.body.appointmentDate || req.body.appointment_date;
+    const appointment_time = req.body.appointmentTime || req.body.appointment_time;
+    const phone_number = req.body.customerNumber || req.body.phone_number || "N/A";
 
-// ============================
-// COMPLETE SESSION
-// ============================
-router.put("/:id/complete", async (req, res) => {
-    try {
+    let therapist = await User.findOne({
+      role: "therapist",
+      specialization: service,
+      status: "active"
+    });
 
-        const appointment = await Appointment.findById(req.params.id);
-
-        if (!appointment) {
-            return res.status(404).json({ error: "Appointment not found" });
-        }
-
-        if (appointment.status === "completed") {
-            return res.status(400).json({ error: "Already completed" });
-        }
-
-        // ======================
-        // UPDATE STATUS
-        // ======================
-        appointment.status = "completed";
-        await appointment.save();
-
-        // ======================
-        // DEDUCT SESSION
-        // ======================
-        const payment = await Payment.findOne({
-            patientId: appointment.patientId,
-            paymentStatus: "paid"
-        });
-
-        if (payment && payment.type === "package") {
-
-            if (payment.remainingSessions > 0) {
-                payment.sessionsUsed += 1;
-                payment.remainingSessions -= 1;
-                await payment.save();
-            }
-        }
-
-        res.json({
-            message: "Session completed and deducted",
-            appointment,
-            payment
-        });
-
-    } catch (err) {
-        console.log("COMPLETE ERROR:", err);
-        res.status(500).json({ error: err.message });
+    if (!therapist) {
+      therapist = await User.findOne({ role: "therapist" });
     }
+
+    const patient = await Patient.create({
+      name: child_name || "Guest Child",
+      age: Number(child_age) || 0,
+      parentName: parent_name || "N/A",
+      phone: phone_number,
+      concerns: concern || "General",
+      enquirySource: "WhatsApp MSG91"
+    });
+
+    const appointment = await Appointment.create({
+      patientId: patient._id,
+      therapistId: therapist ? therapist._id : patient._id,
+      sessionType: service || "General",
+      date: appointment_date,
+      time: appointment_time,
+      status: "booked"
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Appointment booked successfully!",
+      booking_id: appointment._id
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
-
-
-// ============================
-// CANCEL APPOINTMENT
-// ============================
-router.put("/:id/cancel", async (req, res) => {
-    try {
-
-        const appointment = await Appointment.findById(req.params.id);
-
-        if (!appointment) {
-            return res.status(404).json({ error: "Appointment not found" });
-        }
-
-        if (appointment.status === "cancelled") {
-            return res.status(400).json({ error: "Already cancelled" });
-        }
-
-        // ======================
-        // UPDATE STATUS
-        // ======================
-        appointment.status = "cancelled";
-        await appointment.save();
-
-        // ======================
-        // APPLY PENALTY
-        // ======================
-        const payment = await Payment.findOne({
-            patientId: appointment.patientId,
-            paymentStatus: "paid"
-        });
-
-        if (payment && payment.type === "package") {
-
-            if (payment.remainingSessions > 0) {
-                payment.remainingSessions -= 1;
-                await payment.save();
-            }
-        }
-
-        res.json({
-            message: "Appointment cancelled and session deducted",
-            appointment,
-            payment
-        });
-
-    } catch (err) {
-        console.log("CANCEL ERROR:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-
-// ============================
-// RESCHEDULE APPOINTMENT
-// ============================
-router.put("/:id/reschedule", async (req, res) => {
-    try {
-
-        const { date, time } = req.body;
-
-        const appointment = await Appointment.findById(req.params.id);
-
-        if (!appointment) {
-            return res.status(404).json({ error: "Appointment not found" });
-        }
-
-        // CHECK SLOT
-        const existing = await Appointment.findOne({
-            therapistId: appointment.therapistId,
-            date,
-            time,
-            status: "booked"
-        });
-
-        if (existing) {
-            return res.status(400).json({ error: "Slot already booked" });
-        }
-
-        appointment.date = date;
-        appointment.time = time;
-        appointment.status = "rescheduled";
-
-        await appointment.save();
-
-        res.json({
-            message: "Appointment rescheduled",
-            appointment
-        });
-
-    } catch (err) {
-        console.log("RESCHEDULE ERROR:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-
-// ============================
-// DELETE APPOINTMENT
-// ============================
-router.delete("/:id", async (req, res) => {
-    try {
-
-        await Appointment.findByIdAndDelete(req.params.id);
-
-        res.json({ message: "Appointment deleted" });
-
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
 
 module.exports = router;
