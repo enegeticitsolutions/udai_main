@@ -89,7 +89,9 @@ export function Programs() {
       <section className="text-[#2b1b15] py-5 sm:py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl sm:text-4xl mb-2">Our Programs</h1>
+            <h1 className="text-3xl sm:text-4xl font-semibold mb-2 text-[#2b1b15]">
+              Our <span className="text-[#ff3d39]">Programs</span>
+            </h1>
           </div>
         </div>
       </section>
@@ -129,37 +131,6 @@ export function Programs() {
                 </div>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      {/* Impact Section */}
-      <section className="py-16 sm:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl mb-4">Program Impact</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Our programs have reached thousands of individuals across multiple communities, creating measurable and sustainable impact.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-3xl text-emerald-600 mb-2">12,000+</div>
-              <div className="text-gray-600 text-sm">Rehabilitation Services Provided</div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-3xl text-emerald-600 mb-2">8,500+</div>
-              <div className="text-gray-600 text-sm">Students Educated</div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-3xl text-emerald-600 mb-2">150+</div>
-              <div className="text-gray-600 text-sm">Communities Served</div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-3xl text-emerald-600 mb-2">3,200+</div>
-              <div className="text-gray-600 text-sm">Families Supported</div>
-            </div>
           </div>
         </div>
       </section>

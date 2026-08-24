@@ -2,8 +2,9 @@ import { Outlet, Link, useLocation } from "react-router";
 import { ChevronDown, Facebook, Instagram, Mail, Menu, Phone, Youtube, X } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { adminApiPost } from "../lib/api";
+import { getImageUrl } from "../lib/imageUtils";
 
-const logo = "/images/logo_udai.png";
+const logo = getImageUrl("/images/logo_udai.png");
 
 export function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -103,7 +104,7 @@ export function Layout() {
               className="flex min-w-0 items-center gap-2 transition hover:text-white/80 sm:gap-3"
             >
               <Phone className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
-              <span className="truncate">+91 - 9899681972<span className="hidden sm:inline">, 8377066832</span></span>
+              <span className="truncate">+91 9899681972<span className="hidden sm:inline">, 8377066832</span></span>
             </a>
             <a
               href="mailto:info@udairehab.org"

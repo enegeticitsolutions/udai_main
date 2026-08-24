@@ -2,10 +2,10 @@ import Razorpay from "razorpay";
 import { config } from "../config.js";
 
 export function getRazorpayInstance(): Razorpay {
-  const keyId = config.razorpayKeyId || process.env.RAZORPAY_KEY_ID || "";
-  const keySecret = config.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || "";
+  const keyId = config.razorpayKeyId || process.env.RAZORPAY_KEY_ID || "dummy_key";
+  const keySecret = config.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || "dummy_secret";
 
-  if (!keyId || !keySecret) {
+  if (keyId === "dummy_key" || keySecret === "dummy_secret") {
     console.warn("⚠️ RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is not configured in environment.");
   }
 

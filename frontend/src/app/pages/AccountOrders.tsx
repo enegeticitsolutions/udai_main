@@ -69,7 +69,7 @@ export function AccountOrders() {
                     <div>
                       <h2>UDAI Invoice</h2>
                       <p>Order: {order.orderNumber ?? order.id}</p>
-                      <p>Date: {order.createdAt ? new Date(order.createdAt).toLocaleString() : "-"}</p>
+                      <p>Date: {order.createdAt ? new Date(order.createdAt).toLocaleString() : "N/A"}</p>
                     </div>
                     <div>
                       <strong>{order.customerName}</strong>

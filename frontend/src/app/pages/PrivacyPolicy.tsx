@@ -67,7 +67,7 @@ export function PrivacyPolicy() {
               </li>
               <li className="flex items-start gap-2.5 rounded-xl bg-[#f8f6f2] p-3.5 border border-[#ece4dd]">
                 <CheckCircle2 size={18} className="text-[#ef3c32] shrink-0 mt-0.5" />
-                <span>In-person interactions at our centres (Janakpuri, Ek Prayas Rotary Skill Centre, and Gurugram) in connection with admissions, therapy, or programs.</span>
+                <span>In person interactions at our centres (Janakpuri, Ek Prayas Rotary Skill Centre, and Gurugram) in connection with admissions, therapy, or programs.</span>
               </li>
               <li className="flex items-start gap-2.5 rounded-xl bg-[#f8f6f2] p-3.5 border border-[#ece4dd]">
                 <CheckCircle2 size={18} className="text-[#ef3c32] shrink-0 mt-0.5" />
@@ -75,7 +75,7 @@ export function PrivacyPolicy() {
               </li>
             </ul>
             <p className="mt-4 text-xs sm:text-sm text-[#7a6e67] bg-[#fdfbf9] p-3 rounded-lg border border-[#eee6df]">
-              <em>Note:</em> It does not apply to third-party websites or services we link to, including payment gateways, which have their own privacy policies.
+              <em>Note:</em> It does not apply to third party websites or services we link to, including payment gateways, which have their own privacy policies.
             </p>
           </section>
 
@@ -94,7 +94,7 @@ export function PrivacyPolicy() {
                 </p>
                 <ul className="list-disc pl-5 space-y-1.5">
                   <li>Name, date of birth, gender, and contact details of the beneficiary and their parent/guardian;</li>
-                  <li>Diagnostic, medical, developmental, and disability-related information relevant to admission, therapy planning, and care (a category of sensitive personal data);</li>
+                  <li>Diagnostic, medical, developmental, and disability related information relevant to admission, therapy planning, and care (a category of sensitive personal data);</li>
                   <li>Educational history, therapy records, progress notes, and attendance;</li>
                   <li>Photographs and videos taken during classroom activities, events, and celebrations (e.g., Annual Day, Diwali Stalls, Summer Camp), which may be used for our records or, with consent, for promotional/awareness purposes;</li>
                   <li>Emergency contact and identification details for residential (Assistive Living Program) participants.</li>
@@ -163,7 +163,7 @@ export function PrivacyPolicy() {
               </li>
               <li className="flex items-center gap-2 bg-[#fdfbf9] p-3 rounded-lg border border-[#f0e8e2]">
                 <CheckCircle2 size={16} className="text-[#24396f] shrink-0" />
-                <span>Process donations, issue receipts/tax-exemption certificates (FCRA)</span>
+                <span>Process donations, issue receipts/tax exemption certificates (FCRA)</span>
               </li>
               <li className="flex items-center gap-2 bg-[#fdfbf9] p-3 rounded-lg border border-[#f0e8e2]">
                 <CheckCircle2 size={16} className="text-[#24396f] shrink-0" />
@@ -200,7 +200,7 @@ export function PrivacyPolicy() {
             <div className="space-y-3 text-sm sm:text-base text-[#4a3f39] leading-relaxed">
               <p>Given the nature of our work:</p>
               <ul className="space-y-2 list-disc pl-5">
-                <li>Medical, diagnostic, and disability-related information is accessed only by staff, therapists, and administrators directly involved in a beneficiary&apos;s care, on a need-to-know basis.</li>
+                <li>Medical, diagnostic, and disability related information is accessed only by staff, therapists, and administrators directly involved in a beneficiary&apos;s care, on a need to know basis.</li>
                 <li>Photographs or personal stories of children/beneficiaries used for promotional, fundraising, or social media purposes are used only with the express, informed consent of a parent or legal guardian, which may be withdrawn at any time by contacting us.</li>
                 <li>Parents/guardians may request access to, correction of, or deletion of their child&apos;s records (subject to our obligations to retain certain records for regulatory, medical continuity, or legal reasons).</li>
                 <li>We take reasonable steps to limit collection of children&apos;s data to what is necessary for admission and service delivery.</li>
@@ -215,11 +215,11 @@ export function PrivacyPolicy() {
               Payment Processing
             </h2>
             <p className="text-sm sm:text-base leading-relaxed text-[#4a3f39] mb-3">
-              Donations and Shop purchases made through our website are processed via a third-party payment gateway (e.g., Razorpay). When you make a payment:
+              Donations and Shop purchases made through our website are processed via a third party payment gateway (e.g., Razorpay). When you make a payment:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-sm sm:text-base text-[#4a3f39]">
               <li>You are redirected to or interact with the payment gateway&apos;s own secure interface;</li>
-              <li>Card, UPI, net-banking, or wallet credentials are entered directly into the payment gateway&apos;s systems, not stored by UDAIREHAB;</li>
+              <li>Card, UPI, net banking, or wallet credentials are entered directly into the payment gateway&apos;s systems, not stored by UDAIREHAB;</li>
               <li>The payment gateway&apos;s own privacy policy and security practices govern that transaction data;</li>
               <li>We receive confirmation of payment status and limited transaction details (amount, date, reference ID, and donor/customer information provided) for our records and receipting.</li>
             </ul>
@@ -236,7 +236,7 @@ export function PrivacyPolicy() {
               <li>With staff, therapists, and trustees involved in service delivery or governance;</li>
               <li>With regulatory or government authorities where required by law (e.g., tax authorities, FCRA compliance, child welfare authorities, or in response to a valid legal request);</li>
               <li>With payment gateway providers, shipping/courier partners (for Shop orders), and IT/hosting service providers who process data on our behalf under confidentiality obligations;</li>
-              <li>With partner organizations (e.g., Rotary Club of Delhi Janak Association, corporate/CSR partners, or grant-making bodies) only where necessary for a specific program and, where beneficiary data is involved, only with appropriate consent and anonymization where feasible;</li>
+              <li>With partner organizations (e.g., Rotary Club of Delhi Janak Association, corporate/CSR partners, or grant making bodies) only where necessary for a specific program and, where beneficiary data is involved, only with appropriate consent and anonymization where feasible;</li>
               <li>With auditors or legal advisors as necessary for compliance and governance of the Trust.</li>
             </ul>
             <p className="mt-4 text-xs sm:text-sm font-medium text-[#24396f] bg-[#f0f4fb] p-3 rounded-lg">
@@ -279,9 +279,9 @@ export function PrivacyPolicy() {
             <ul className="grid gap-2.5 text-xs sm:text-sm text-[#4a3f39] sm:grid-cols-2">
               <li className="bg-[#f8f6f2] p-3 rounded-lg border border-[#ece4dd]">Access the personal information we hold about you or your dependent</li>
               <li className="bg-[#f8f6f2] p-3 rounded-lg border border-[#ece4dd]">Request correction of inaccurate or incomplete information</li>
-              <li className="bg-[#f8f6f2] p-3 rounded-lg border border-[#ece4dd]">Request erasure of information, subject to legal &amp; record-keeping obligations</li>
+              <li className="bg-[#f8f6f2] p-3 rounded-lg border border-[#ece4dd]">Request erasure of information, subject to legal &amp; record keeping obligations</li>
               <li className="bg-[#f8f6f2] p-3 rounded-lg border border-[#ece4dd]">Withdraw consent previously given without affecting prior lawful processing</li>
-              <li className="bg-[#f8f6f2] p-3 rounded-lg border border-[#ece4dd]">Opt out of non-essential communications (newsletters, appeals) at any time</li>
+              <li className="bg-[#f8f6f2] p-3 rounded-lg border border-[#ece4dd]">Opt out of non essential communications (newsletters, appeals) at any time</li>
               <li className="bg-[#f8f6f2] p-3 rounded-lg border border-[#ece4dd]">Lodge a grievance with our Grievance Officer or competent regulatory authority</li>
             </ul>
           </section>
@@ -289,9 +289,9 @@ export function PrivacyPolicy() {
           {/* Section 10 & 11 */}
           <div className="grid gap-8 sm:grid-cols-2">
             <section className="rounded-2xl bg-white p-6 sm:p-8 shadow-sm border border-[#e8dfd8]">
-              <h2 className="text-base sm:text-lg font-bold text-[#24396f] mb-3">10. Third-Party Links &amp; Embedded Content</h2>
+              <h2 className="text-base sm:text-lg font-bold text-[#24396f] mb-3">10. Third Party Links &amp; Embedded Content</h2>
               <p className="text-xs sm:text-sm leading-relaxed text-[#4a3f39]">
-                Our website contains links to and embeds from third-party platforms, including WhatsApp, Facebook, Instagram, Twitter/X, YouTube, and Google Maps. These third parties collect information according to their own privacy policies.
+                Our website contains links to and embeds from third party platforms, including WhatsApp, Facebook, Instagram, Twitter/X, YouTube, and Google Maps. These third parties collect information according to their own privacy policies.
               </p>
             </section>
 

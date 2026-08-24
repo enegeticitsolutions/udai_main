@@ -124,7 +124,7 @@ export function Careers() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {selectedCareer?.department} - {selectedCareer?.title}
+              {selectedCareer?.department} • {selectedCareer?.title}
             </DialogTitle>
             <DialogDescription>
               Full details for the open position in {selectedCareer?.location}.

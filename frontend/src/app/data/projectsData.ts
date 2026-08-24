@@ -166,7 +166,7 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
   {
     slug: "intervention-on-wheels",
     title: "Ek Prayas – Intervention on Wheels",
-    tagline: "Delivering Hope Beyond Boundaries",
+    tagline: "Supported by Rotary Club of Delhi-Janāk",
     category: "Mobile Rehabilitation Outreach",
     iconName: "Truck",
     summary: "Mobile therapy, screening, and rehabilitation van taking services directly to underserved communities.",
@@ -187,7 +187,7 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
   {
     slug: "vocational-training",
     title: "Ek Prayas – Vocational Training & Skill Development",
-    tagline: "Creating Pathways Towards Employment and Independence",
+    tagline: "Supported by Rotary Club of Delhi-Janak",
     category: "Ek Prayas Skill Centre",
     iconName: "Briefcase",
     summary: "Vocational skills, product crafting, and digital literacy empowering youth with special needs toward financial self-reliance.",

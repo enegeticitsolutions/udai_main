@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ZoomIn, X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { getImageUrl } from "../lib/imageUtils";
 
 export function RecognitionSection() {
   const [selectedCertIndex, setSelectedCertIndex] = useState<number | null>(null);
@@ -9,14 +10,14 @@ export function RecognitionSection() {
     {
       id: 1,
       title: "Nationwide Awards 2022",
-      subtitle: "Most Prominent Special School of the Year - Business Mint",
+      subtitle: "Most Prominent Special School of the Year, Business Mint",
       image: "/images/certificate1.png",
       accent: "from-amber-500 via-amber-200 to-amber-700",
     },
     {
       id: 2,
       title: "Certificate of Recognition",
-      subtitle: "Nation Wide Awards 2022 - India's Prestigious Awards",
+      subtitle: "Nation Wide Awards 2022, India's Prestigious Awards",
       image: "/images/certificate2.png",
       accent: "from-yellow-400 via-stone-200 to-amber-600",
     },
@@ -58,9 +59,14 @@ export function RecognitionSection() {
             <h2 className="text-3xl font-semibold tracking-tight text-[#2b1b15]">
               Recognition & Awards
             </h2>
-            <p className="mt-4 max-w-sm text-sm leading-7 text-[#7a6f69]">
-              We are humbled to be recognized for our commitment to transparency and impact.
-            </p>
+            <div className="mt-4 space-y-4 text-sm leading-7 text-[#7a6f69]">
+              <p>
+                We are humbled to be recognized for our commitment to transparency, inclusion, and meaningful social impact.
+              </p>
+              <p>
+                For over 15 years, UDAI Working Together Works has been dedicated to empowering children and young adults with special needs through special education, therapy, rehabilitation, vocational training, and independent living programs. Our work is centered on creating opportunities for individuals to build confidence, develop life skills, and lead more independent and meaningful lives.
+              </p>
+            </div>
           </motion.div>
 
           <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">
@@ -78,7 +84,7 @@ export function RecognitionSection() {
                 
                 <div className="relative aspect-[3/4] w-full overflow-hidden bg-stone-100 p-2">
                   <img
-                    src={item.image}
+                    src={getImageUrl(item.image)}
                     alt={item.title}
                     className="h-full w-full rounded-[0.25rem] object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                   />
@@ -136,7 +142,7 @@ export function RecognitionSection() {
                 </div>
                 <div className="flex items-center gap-2">
                   <a
-                    href={certificates[selectedCertIndex].image}
+                    href={getImageUrl(certificates[selectedCertIndex].image)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-800 text-stone-300 transition-colors hover:bg-stone-700 hover:text-white"
@@ -157,7 +163,7 @@ export function RecognitionSection() {
               {/* Modal Image Area */}
               <div className="relative flex max-h-[75vh] items-center justify-center overflow-auto p-4 sm:p-6 bg-stone-950">
                 <img
-                  src={certificates[selectedCertIndex].image}
+                  src={getImageUrl(certificates[selectedCertIndex].image)}
                   alt={certificates[selectedCertIndex].title}
                   className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain shadow-2xl"
                 />

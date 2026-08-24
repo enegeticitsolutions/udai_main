@@ -1,6 +1,7 @@
 import { HeroSection } from "../sections/HeroSection";
 import { AboutSection } from "../sections/AboutSection";
 import { ImpactSection } from "../sections/ImpactSection";
+import { AffiliationsSection } from "../sections/AffiliationsSection";
 import { RecognitionSection } from "../sections/RecognitionSection";
 import { EducationSection } from "../sections/EducationSection";
 import { TherapistsSection } from "../sections/TherapistsSection";
@@ -20,6 +21,7 @@ export function HomePage() {
       <HeroSection />
       <AboutSection />
       <ImpactSection />
+      <AffiliationsSection />
       <RecognitionSection />
       <EducationSection />
       <TherapistsSection />

@@ -4,11 +4,60 @@ import { motion } from "motion/react";
 import { useApiData } from "../hooks/useApiData";
 import type { EducationProgramDetail } from "../types/api";
 
+const defaultPrograms: EducationProgramDetail[] = [
+  {
+    slug: "after-school-tutoring",
+    title: "After-School Tutoring",
+    shortDescription: "Providing personalized academic support to help students master core subjects and build confidence in their abilities.",
+    heroImage: "/images/afterschool.png",
+    gallery: ["/images/afterschool.png", "/images/arteducation.png"],
+    accent: "from-[#2046b6] to-[#5a9ae8]",
+    overview: [],
+    highlights: [],
+    outcomes: [],
+  },
+  {
+    slug: "sponsorship-fund",
+    title: "Sponsored Projects",
+    shortDescription: "Sponsorship donations help support children and young adults with special needs by contributing toward their education, therapy, development, and related support.",
+    heroImage: "/images/fund.png",
+    gallery: ["/images/fund.png", "/images/mobile-unit.png"],
+    accent: "from-[#2b922f] to-[#63b853]",
+    overview: [],
+    highlights: [],
+    outcomes: [],
+  },
+  {
+    slug: "digital-literacy",
+    title: "Digital Literacy",
+    shortDescription: "Equipping children and young adults with special needs with practical technology skills to engage confidently with digital tools.",
+    heroImage: "/images/digital.png",
+    gallery: ["/images/digital.png", "/images/section.png"],
+    accent: "from-[#f2a007] to-[#ffd15d]",
+    overview: [],
+    highlights: [],
+    outcomes: [],
+  },
+  {
+    slug: "special-education",
+    title: "Special Education",
+    shortDescription: "Providing specialized education and developmental support for children and young adults with special needs, focusing on individualized learning, skill building, and independence.",
+    heroImage: "/images/arteducation.png",
+    gallery: ["/images/arteducation.png", "/images/aboutsection.png"],
+    accent: "from-[#8b20b6] to-[#b85ae8]",
+    overview: [],
+    highlights: [],
+    outcomes: [],
+  },
+];
+
 export function EducationSection() {
-  const { data: programs, isLoading, error } = useApiData<EducationProgramDetail[]>(
+  const { data: apiPrograms, isLoading, error } = useApiData<EducationProgramDetail[]>(
     "/content/education-programs",
-    [],
+    defaultPrograms,
+    defaultPrograms,
   );
+  const programs = apiPrograms && apiPrograms.length > 0 ? apiPrograms : defaultPrograms;
 
   return (
     <section className="bg-[#f7f9ff] py-16 sm:py-20">
@@ -31,16 +80,12 @@ export function EducationSection() {
           </p>
         </motion.div>
 
-        {isLoading ? (
+        {isLoading && !programs.length ? (
           <div className="rounded-[1.2rem] border border-dashed border-[#d7cfc8] bg-white/70 p-10 text-center text-sm text-[#776a66]">
             Loading programs...
           </div>
-        ) : error ? (
-          <div className="rounded-[1.2rem] border border-[#f1c8bc] bg-[#fff4f1] p-6 text-center text-sm text-[#b04d2f]">
-            {error}
-          </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {programs.map((program, index) => (
             <motion.div
               key={program.slug}

@@ -102,7 +102,7 @@ export function TermsOfService() {
               <li>A separate admission/enrolment process, assessment, and documentation, governed by internal policies;</li>
               <li>Availability of seats/capacity at the relevant centre;</li>
               <li>Submission of accurate medical, developmental, and identification information by parent/guardian;</li>
-              <li>Applicable fees, subsidies, or fee-waiver arrangements as communicated separately;</li>
+              <li>Applicable fees, subsidies, or fee waiver arrangements as communicated separately;</li>
               <li>Our right to determine program suitability for a prospective beneficiary based on professional assessment.</li>
             </ul>
             <p className="mt-4 text-xs sm:text-sm text-[#7a6e67] bg-[#f8f6f2] p-3 rounded-lg border border-[#ece4dd]">
@@ -117,10 +117,10 @@ export function TermsOfService() {
               4. Donations
             </h2>
             <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[#4a3f39] leading-relaxed">
-              <li>Donations made through our website are voluntary contributions to support our charitable programs and are, in general, non-refundable except where required by law or at our sole discretion in cases of demonstrable error.</li>
-              <li>Tax-exemption receipts (under Section 80G of the Income Tax Act, where applicable) are issued based on details provided (including PAN). Please ensure accuracy as we are not responsible for errors arising from incorrect input.</li>
+              <li>Donations made through our website are voluntary contributions to support our charitable programs and are, in general, non refundable except where required by law or at our sole discretion in cases of demonstrable error.</li>
+              <li>Tax exemption receipts (under Section 80G of the Income Tax Act, where applicable) are issued based on details provided (including PAN). Please ensure accuracy as we are not responsible for errors arising from incorrect input.</li>
               <li>Foreign contributions accepted are subject to compliance with the Foreign Contribution (Regulation) Act (FCRA) and related regulations.</li>
-              <li>Donation payments are processed through a third-party payment gateway (e.g., Razorpay). We are not responsible for payment gateway or bank processing failures.</li>
+              <li>Donation payments are processed through a third party payment gateway (e.g., Razorpay). We are not responsible for payment gateway or bank processing failures.</li>
               <li>Donated funds are used toward general charitable objectives unless expressly earmarked for a specific program by mutual written agreement.</li>
             </ul>
           </section>
@@ -135,9 +135,9 @@ export function TermsOfService() {
             <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[#4a3f39]">
               <li>Product descriptions, images, and prices are provided in good faith but may be subject to change without notice;</li>
               <li>Orders are subject to acceptance and availability; we reserve the right to cancel or refuse any order at our discretion with a full refund;</li>
-              <li>Payment is processed via third-party gateway; accurate billing &amp; shipping details are required;</li>
+              <li>Payment is processed via third party gateway; accurate billing &amp; shipping details are required;</li>
               <li>Shipping timelines are estimates only;</li>
-              <li>Returns, exchanges, or refund requests for physical products should be raised within a reasonable time of delivery and will be assessed on a case-by-case basis;</li>
+              <li>Returns, exchanges, or refund requests for physical products should be raised within a reasonable time of delivery and will be assessed on a case by case basis;</li>
               <li>Proceeds from Shop sales directly support our charitable programs.</li>
             </ul>
           </section>
@@ -150,7 +150,7 @@ export function TermsOfService() {
             </h2>
             <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-[#4a3f39] leading-relaxed">
               <li>Submitting an internship or volunteer application does not guarantee placement; all applications are subject to review and discretion.</li>
-              <li>Volunteers and interns engaging directly with beneficiaries may be required to undergo background checks, orientation, and comply with child-safeguarding and code-of-conduct policies.</li>
+              <li>Volunteers and interns engaging directly with beneficiaries may be required to undergo background checks, orientation, and comply with child safeguarding and code of conduct policies.</li>
               <li>Any stipend, certificate, or reference provided is subject to satisfactory completion of the term as determined by us.</li>
             </ul>
           </section>
@@ -172,9 +172,9 @@ export function TermsOfService() {
           {/* Section 8 & 9 Grid */}
           <div className="grid gap-8 sm:grid-cols-2">
             <section className="rounded-2xl bg-white p-6 sm:p-8 shadow-sm border border-[#e8dfd8]">
-              <h2 className="text-lg sm:text-xl font-bold text-[#24396f] mb-3">8. Third-Party Links and Content</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-[#24396f] mb-3">8. Third Party Links and Content</h2>
               <p className="text-xs sm:text-sm leading-relaxed text-[#4a3f39]">
-                Our website contains links to third-party platforms (WhatsApp, Facebook, Instagram, Twitter/X, YouTube, Google Maps, payment gateways). We do not control and are not responsible for third-party content or privacy practices.
+                Our website contains links to third party platforms (WhatsApp, Facebook, Instagram, Twitter/X, YouTube, Google Maps, payment gateways). We do not control and are not responsible for third party content or privacy practices.
               </p>
             </section>
 

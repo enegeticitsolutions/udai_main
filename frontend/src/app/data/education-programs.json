@@ -25,29 +25,27 @@
     ]
   },
   {
-    "slug": "scholarship-fund",
-    "title": "Scholarship Fund",
-    "shortDescription": "Helping children and young adults with special needs overcome financial barriers to access education and therapeutic services.",
+    "slug": "sponsorship-fund",
+    "title": "Sponsored Projects",
+    "shortDescription": "Sponsorship donations help support children and young adults with special needs by contributing toward their education, therapy, development, and related support.",
     "heroImage": "/images/fund.png",
     "gallery": ["/images/fund.png", "/images/mobile-unit.png"],
     "accent": "from-[#2b922f] to-[#63b853]",
     "overview": [
-      "At UDAI, we believe financial circumstances should never prevent a child from accessing education and the support they need to thrive. Our Scholarship Fund helps children and young adults with special needs overcome financial barriers by providing assistance for education and therapeutic services.",
-      "Scholarships are awarded to eligible families based on need and may cover tuition fees, educational materials, uniforms, transportation, and other essential learning resources. By reducing financial strain, the fund helps ensure uninterrupted learning, continued skill development, and equal opportunities for every child."
+      "Sponsorship donations directly empower children and young adults with special needs to access tailored education, comprehensive therapy, and skill development programs.",
+      "By becoming a sponsor or donor, you help cover tuition, therapy sessions, learning materials, and specialized care, ensuring every individual receives the opportunity to live an independent and fulfilling life."
     ],
     "highlights": [
-      "Tuition and programme fees",
-      "Books, uniforms, and learning materials",
-      "Transportation support",
-      "Essential educational resources",
-      "Additional support based on individual needs"
+      "Direct support for special education and therapy sessions",
+      "Provision of learning materials and assistive tools",
+      "Contribution toward rehabilitation and skill-building programs",
+      "Regular updates on student progress and impact"
     ],
     "outcomes": [
-      "Improved access to education and support services",
-      "Reduced risk of interrupted learning or school dropout",
-      "Greater continuity in education and participation",
-      "Increased confidence and stability for children and their families",
-      "More equitable learning opportunities"
+      "Enhanced access to specialized therapies and learning resources",
+      "Reduced financial burden on families with special needs",
+      "Sustained development and long-term empowerment for students",
+      "Direct and measurable community impact"
     ]
   },
   {
@@ -73,6 +71,31 @@
       "Improved readiness for education and future employment",
       "Increased independence in digital communication and everyday tasks",
       "Stronger participation in learning and skill development"
+    ]
+  },
+  {
+    "slug": "special-education",
+    "title": "Special Education",
+    "shortDescription": "Providing specialized education and developmental support for children and young adults with special needs, focusing on individualized learning, skill building, and independence.",
+    "heroImage": "/images/arteducation.png",
+    "gallery": ["/images/arteducation.png", "/images/aboutsection.png"],
+    "accent": "from-[#8b20b6] to-[#b85ae8]",
+    "overview": [
+      "Our Special Education program is dedicated to nurturing the unique abilities of children and young adults with special needs. We offer individualized education plans (IEPs) designed to meet cognitive, social, emotional, and physical development goals.",
+      "Through a combination of structured classroom learning, creative arts, therapeutic interventions, and practical life skills training, our experienced educators foster a safe, inclusive, and empowering environment where every student can achieve their full potential."
+    ],
+    "highlights": [
+      "Individualized Education Plans (IEPs) for every learner",
+      "Holistic curriculum covering academic, emotional, and life skills",
+      "Creative arts, sensory activities, and interactive learning",
+      "Certified special educators and supportive staff",
+      "Parent consultation and continuous progress tracking"
+    ],
+    "outcomes": [
+      "Improved cognitive, social, and functional life skills",
+      "Greater self-reliance, confidence, and classroom engagement",
+      "Tailored progress aligned with individual developmental milestones",
+      "Strong foundation for vocational training and independent living"
     ]
   }
 ]

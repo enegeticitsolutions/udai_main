@@ -1,4 +1,4 @@
-import { Users, Calendar, HandCoins, HeartHandshake } from "lucide-react";
+import { HeartPulse, BookOpen, Palette, PartyPopper, Users, Building2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 
@@ -31,29 +31,40 @@ function CountUp({ end, duration = 2000 }: { end: number; duration?: number }) {
 export function ImpactSection() {
   const stats = [
     {
-      icon: Users,
-      value: 15000,
+      icon: HeartPulse,
+      value: 100,
       suffix: "+",
-      label: "Lives Impacted",
+      label: "Children Benefited Through Health Initiatives",
     },
     {
-      icon: Calendar,
-      value: 12,
-      suffix: "",
-      label: "Year of Service",
+      icon: BookOpen,
+      value: 200,
+      suffix: "+",
+      label: "Life Skills Sessions Conducted",
     },
     {
-      icon: HandCoins,
-      value: 250,
-      prefix: "",
-      suffix: "k",
-      label: "Funds Raised",
+      icon: Palette,
+      value: 150,
+      suffix: "+",
+      label: "Creative & Recreational Sessions",
     },
     {
-      icon: HeartHandshake,
+      icon: PartyPopper,
+      value: 20,
+      suffix: "+",
+      label: "Social Events & Celebrations",
+    },
+    {
+      icon: Users,
       value: 500,
       suffix: "+",
-      label: "Generous donor",
+      label: "Participation Instances",
+    },
+    {
+      icon: Building2,
+      value: 100,
+      suffix: "+",
+      label: "Partner Organizations",
     },
   ];
 
@@ -79,7 +90,7 @@ export function ImpactSection() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (

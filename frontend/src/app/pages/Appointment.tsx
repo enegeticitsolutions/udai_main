@@ -85,7 +85,7 @@ function isWithinNext5Days(dateStr: string) {
 }
 
 function formatDisplayDate(value: string) {
-  if (!value) return "-";
+  if (!value) return "N/A";
 
   const [year, month, day] = value.split("-");
   if (!year || !month || !day) return value;
@@ -491,7 +491,7 @@ export function Appointment() {
               <div className="mt-3 space-y-2 text-sm text-[#4b4744]">
                 <div className="flex justify-between">
                   <span>Department</span>
-                  <span>{form.department || "-"}</span>
+                  <span>{form.department || "Not selected"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Preferred date</span>
@@ -499,10 +499,10 @@ export function Appointment() {
                 </div>
                 <div className="flex justify-between">
                   <span>Preferred time</span>
-                  <span>{selectedSlot?.label || form.appointmentTime || "-"}</span>
+                  <span>{selectedSlot?.label || form.appointmentTime || "Not selected"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Booking fee (non-refundable)</span>
+                  <span>Booking fee (non refundable)</span>
                   <span>₹{bookingAmount}</span>
                 </div>
                 <div className="flex justify-between">

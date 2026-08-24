@@ -382,7 +382,7 @@ export function AuthPage() {
                   {useOtp ? (
                     otpSent ? (
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-[#2b1b15]">One-Time Password</label>
+                        <label className="mb-2 block text-sm font-medium text-[#2b1b15]">One Time Password</label>
                         <Input
                           required
                           inputMode="numeric"

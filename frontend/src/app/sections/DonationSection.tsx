@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { apiGet, apiPost } from "../lib/api";
+import { getImageUrl } from "../lib/imageUtils";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
@@ -113,8 +114,6 @@ function getInitialPaymentForm() {
 
 function DonationPanel({
   category,
-  title,
-  description,
   options,
   defaultAmount,
   allowMonthly = false,
@@ -122,8 +121,6 @@ function DonationPanel({
   selectedClass,
 }: {
   category: DonationCategory;
-  title: string;
-  description: string;
   options: AmountOption[];
   defaultAmount: number;
   allowMonthly?: boolean;
@@ -147,7 +144,6 @@ function DonationPanel({
   const effectiveAmount = selectedAmount ?? Number(customAmount);
   const amountLabel = effectiveAmount > 0 ? `₹${effectiveAmount}` : "";
   const donationLabel = `${amountLabel}${donationType === "monthly" ? " Monthly" : ""}`;
-  const selectedMeals = options.find((option) => option.amount === selectedAmount)?.meals;
   const purpose =
     category === "meal"
       ? "Mid-Day Meal Initiative"
@@ -226,7 +222,6 @@ function DonationPanel({
         throw new Error(res?.message || "Failed to create Razorpay Payment Link.");
       }
 
-      // Redirect user to Razorpay Hosted Payment Link page (supports UPI, QR, Cards, NetBanking, Wallets)
       window.location.href = linkUrl;
     } catch (err) {
       setIsSubmitting(false);
@@ -234,30 +229,28 @@ function DonationPanel({
     }
   }
 
-
   return (
-    <div className="w-full">
-      <h4 className="text-[#17120f] font-semibold text-lg">{title}</h4>
-      <p className="text-[#645750] text-xs mt-0.5">{description}</p>
-
-      {allowMonthly ? (
-        <div className="mt-3 flex rounded-full bg-white/70 p-1 text-xs font-semibold text-[#54463e] border border-[#e4d7c5]">
-          <button
-            type="button"
-            onClick={() => selectDonationType("one-time")}
-            className={`flex-1 rounded-full py-1.5 transition ${donationType === "one-time" ? "bg-[#54463e] text-white shadow-sm" : ""}`}
-          >
-            One-time
-          </button>
-          <button
-            type="button"
-            onClick={() => selectDonationType("monthly")}
-            className={`flex-1 rounded-full py-1.5 transition ${donationType === "monthly" ? "bg-[#54463e] text-white shadow-sm" : ""}`}
-          >
-            Monthly
-          </button>
-        </div>
-      ) : null}
+    <div className="w-full flex flex-col justify-between">
+      <div>
+        {allowMonthly ? (
+          <div className="flex rounded-full bg-white/70 p-1 text-xs font-semibold text-[#54463e] border border-[#e4d7c5]">
+            <button
+              type="button"
+              onClick={() => selectDonationType("one-time")}
+              className={`flex-1 rounded-full py-1.5 transition ${donationType === "one-time" ? "bg-[#54463e] text-white shadow-sm" : ""}`}
+            >
+              One-time
+            </button>
+            <button
+              type="button"
+              onClick={() => selectDonationType("monthly")}
+              className={`flex-1 rounded-full py-1.5 transition ${donationType === "monthly" ? "bg-[#54463e] text-white shadow-sm" : ""}`}
+            >
+              Monthly
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       {stage === "amount" ? (
         <div className="mt-3">
@@ -347,7 +340,7 @@ function DonationPanel({
 
       <div className="mt-4 flex flex-col items-center gap-2 text-center text-[11px] text-[#2f4350]">
         <div className="flex items-center gap-2"><ShieldCheck className="h-3 w-3 text-[#2f6c3e]" /><span>80G Tax Benefits Available</span></div>
-        <p className="leading-4">For assistance, contact us at:<br /><strong>+91 - 9899681972</strong> | <strong>info@udairehab.org</strong></p>
+        <p className="leading-4">For assistance, contact us at:<br /><strong>+91 9899681972</strong> | <strong>info@udairehab.org</strong></p>
       </div>
     </div>
   );
@@ -355,31 +348,55 @@ function DonationPanel({
 
 export function DonationSection() {
   return (
-    <section id="donate" className="scroll-mt-40 bg-white py-10 sm:py-12">
+    <section id="donate" className="scroll-mt-32 bg-white pt-24 pb-10 sm:pt-28 sm:pb-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-6 text-center text-3xl font-semibold tracking-tight text-[#17120f] sm:text-4xl">Choose Your Impact</h2>
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="grid gap-6 lg:grid-cols-2">
-          <article className="overflow-hidden rounded-2xl bg-[#fff4df] p-3 shadow-[0_18px_34px_rgba(72,49,25,0.12)] sm:p-5">
-            <div className="grid gap-5 md:grid-cols-[0.95fr_1fr] lg:grid-cols-1 xl:grid-cols-[0.95fr_1fr]">
-              <div>
-                <img src="/images/afterschool.png" alt="Children supported by UDAI programs" className="h-40 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(45,31,20,0.14)] sm:h-48" />
-                <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl">Nourish a Mind: The Mid-Day Meal Initiative</h3>
-                <p className="mt-3 text-sm leading-6 text-[#3f332c] sm:text-base sm:leading-7">A warm, balanced meal ensures children stay focused and healthy.</p>
-              </div>
-              <div className="border-[#ead9be] md:border-l md:pl-5 lg:border-l-0 lg:pl-0 xl:border-l xl:pl-5">
-                <DonationPanel category="meal" title="Mid-Day Meal Initiative" description="Support balanced meals for children in need." options={mealAmountOptions} defaultAmount={1000} accentClass="bg-[#c95b38] hover:bg-[#b94e30]" selectedClass="border-[#c95b38] bg-white text-[#c95b38] shadow-sm" />
-              </div>
+        <h2 className="mb-8 text-center text-3xl font-semibold tracking-tight text-[#17120f] sm:text-4xl">Choose Your Impact</h2>
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+          {/* COLUMN 1 */}
+          <article className="flex flex-col justify-between overflow-hidden rounded-2xl bg-[#fff4df] p-4 shadow-[0_18px_34px_rgba(72,49,25,0.12)] sm:p-5">
+            <div>
+              <img src={getImageUrl("/images/afterschool.png")} alt="Children supported by UDAI programs" className="h-44 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(45,31,20,0.14)]" />
+              <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl min-h-[56px] flex items-center">Nourish a Mind: The Mid Day Meal Initiative</h3>
+              <p className="mt-3 text-sm leading-6 text-[#3f332c] sm:text-base sm:leading-7">A warm, balanced meal ensures children stay focused and healthy.</p>
+            </div>
+            <div className="mt-5 border-t border-[#ead9be] pt-5">
+              <DonationPanel category="meal" options={mealAmountOptions} defaultAmount={1000} accentClass="bg-[#c95b38] hover:bg-[#b94e30]" selectedClass="border-[#c95b38] bg-white text-[#c95b38] shadow-sm" />
             </div>
           </article>
 
-          <article className="overflow-hidden rounded-2xl bg-[#dceffd] p-3 shadow-[0_18px_34px_rgba(28,69,100,0.12)] sm:p-5">
-            <div className="grid gap-5 md:grid-cols-[0.95fr_1fr] lg:grid-cols-1 xl:grid-cols-[0.95fr_1fr]">
-              <div>
-                <img src="/images/involved.png" alt="Children learning together" className="h-40 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(28,69,100,0.14)] sm:h-48" />
-                <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-3xl">Empower a Child: Invest in Their Future</h3>
-                <p className="mt-3 text-sm leading-6 text-[#252525] sm:text-base sm:leading-7">Your donation provides immediate relief and long-term support for children in need.</p>
-              </div>
-              <DonationPanel category="future" title="Invest in Their Future" description="Every rupee counts toward long-term support for children in need." options={futureAmountOptions} defaultAmount={1000} allowMonthly accentClass="bg-[#df4d4d] hover:bg-[#cf4141]" selectedClass="border-[#d2a885] bg-[#fff1df] text-[#8b4d34] shadow-sm" />
+          {/* COLUMN 2 */}
+          <article className="flex flex-col justify-between overflow-hidden rounded-2xl bg-[#dceffd] p-4 shadow-[0_18px_34px_rgba(28,69,100,0.12)] sm:p-5">
+            <div>
+              <img src={getImageUrl("/images/involved.png")} alt="Children learning together" className="h-44 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(28,69,100,0.14)]" />
+              <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl min-h-[56px] flex items-center">Empower a Child: Invest in Their Future</h3>
+              <p className="mt-3 text-sm leading-6 text-[#252525] sm:text-base sm:leading-7">Your donation provides immediate relief and long term support for children in need.</p>
+            </div>
+            <div className="mt-5 border-t border-[#b6d8f2] pt-5">
+              <DonationPanel category="future" options={futureAmountOptions} defaultAmount={1000} allowMonthly accentClass="bg-[#df4d4d] hover:bg-[#cf4141]" selectedClass="border-[#d2a885] bg-[#fff1df] text-[#8b4d34] shadow-sm" />
+            </div>
+          </article>
+
+          {/* COLUMN 3 */}
+          <article className="flex flex-col justify-between overflow-hidden rounded-2xl bg-[#e6f4ea] p-4 shadow-[0_18px_34px_rgba(30,75,45,0.12)] sm:p-5">
+            <div>
+              <img src={getImageUrl("/images/healthcare.png")} alt="Healthcare and therapy support" className="h-44 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(30,75,45,0.14)]" />
+              <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl min-h-[56px] flex items-center">Heal & Care: Therapy & Healthcare</h3>
+              <p className="mt-3 text-sm leading-6 text-[#253f2c] sm:text-base sm:leading-7">Fund specialized therapy, rehabilitation, and long-term medical care for children.</p>
+            </div>
+            <div className="mt-5 border-t border-[#c2e2cc] pt-5">
+              <DonationPanel category="future" options={futureAmountOptions} defaultAmount={1000} allowMonthly accentClass="bg-[#2e7d32] hover:bg-[#1b5e20]" selectedClass="border-[#2e7d32] bg-white text-[#2e7d32] shadow-sm" />
+            </div>
+          </article>
+
+          {/* COLUMN 4 */}
+          <article className="flex flex-col justify-between overflow-hidden rounded-2xl bg-[#f3e5f5] p-4 shadow-[0_18px_34px_rgba(75,30,90,0.12)] sm:p-5">
+            <div>
+              <img src={getImageUrl("/images/digital.png")} alt="Digital literacy and skill building" className="h-44 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(75,30,90,0.14)]" />
+              <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl min-h-[56px] flex items-center">Build Skills: Digital & Special Education</h3>
+              <p className="mt-3 text-sm leading-6 text-[#3b2545] sm:text-base sm:leading-7">Empower students with practical technology skills, tools, and vocational training.</p>
+            </div>
+            <div className="mt-5 border-t border-[#e1bee7] pt-5">
+              <DonationPanel category="future" options={futureAmountOptions} defaultAmount={1000} allowMonthly accentClass="bg-[#7b1fa2] hover:bg-[#4a148c]" selectedClass="border-[#7b1fa2] bg-white text-[#7b1fa2] shadow-sm" />
             </div>
           </article>
         </motion.div>

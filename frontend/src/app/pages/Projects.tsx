@@ -44,7 +44,7 @@ export function Projects() {
             <div className="grid sm:grid-cols-3 gap-4 pt-6 border-t border-white/15 text-xs sm:text-sm text-white/80">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={18} className="text-[#ef3c32]" />
-                <span>Evidence-based Care</span>
+                <span>Evidence based Care</span>
               </div>
               <div className="flex items-center gap-2">
                 <Users size={18} className="text-[#ef3c32]" />
