@@ -51,6 +51,4 @@ export const router = createBrowserRouter([
       { path: "terms", Component: TermsOfService },
     ],
   },
-], {
-  basename: import.meta.env.BASE_URL,
-});
+]);
