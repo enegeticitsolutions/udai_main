@@ -1,5 +1,6 @@
 import { Heart, Eye, Target, Award } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { AffiliationsSection } from "../sections/AffiliationsSection";
 
 export function About() {
   const values = [
@@ -242,6 +243,9 @@ export function About() {
           </div>
         </div>
       </section>
+
+      {/* Registrations & Affiliations Section */}
+      <AffiliationsSection />
 
       {/* Team Section */}
       <section className="py-16 sm:py-24 bg-gray-50">

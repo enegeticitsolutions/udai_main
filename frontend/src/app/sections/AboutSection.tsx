@@ -23,9 +23,9 @@ export function AboutSection() {
               />
             </div>
 
-            <div className="relative mx-auto -mt-6 w-[82%] rounded-[1rem] bg-white px-4 py-3 shadow-[0_20px_40px_rgba(55,35,21,0.14)] sm:-mt-10 sm:ml-auto sm:mr-0 sm:w-[42%] sm:rounded-[1.1rem] sm:px-5 sm:py-4">
+            <div className="mt-4 sm:mt-6 mx-auto w-[82%] text-center rounded-[1rem] bg-white px-4 py-3 shadow-[0_20px_40px_rgba(55,35,21,0.14)] sm:w-[42%] sm:rounded-[1.1rem] sm:px-5 sm:py-4">
               <p className="text-sm leading-5 text-[#d67852] sm:text-lg sm:leading-7">
-                "Every child deserves a chance to dream."
+                &quot;Every child deserves a chance to dream.&quot;
               </p>
             </div>
           </motion.div>

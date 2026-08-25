@@ -1,463 +1,82 @@
 [
   {
-    "id": "6cd47c290000000000000000",
-    "__v": 0,
-    "active": true,
-    "createdAt": "2026-07-15T12:35:28.785Z",
+    "id": "sakshi-01",
+    "name": "Ms. Sakshi",
+    "role": "Speech Therapist",
     "department": "Speech Therapy",
-    "experience": "8+",
-    "image": "/uploads/image-1786347573891-705483301.jpeg",
-    "name": "Sakshi",
-    "role": "Speech Therapist",
-    "summary": "",
-    "updatedAt": "2026-08-10T07:39:33.941Z",
-    "weeklySchedule": [
-      {
-        "day": 1,
-        "startTime": "10:00",
-        "endTime": "13:00",
-        "lunchStart": "00:00",
-        "lunchEnd": "00:00"
-      },
-      {
-        "day": 2,
-        "startTime": "10:00",
-        "endTime": "13:00",
-        "lunchStart": "00:00",
-        "lunchEnd": "00:00"
-      },
-      {
-        "day": 3,
-        "startTime": "10:00",
-        "endTime": "13:00",
-        "lunchStart": "00:00",
-        "lunchEnd": "00:00"
-      },
-      {
-        "day": 5,
-        "startTime": "10:00",
-        "endTime": "13:00",
-        "lunchStart": "00:00",
-        "lunchEnd": "00:00"
-      }
-    ]
+    "image": "/images/sakshi.jpg",
+    "active": true
   },
   {
-    "id": "d04bd45a0000000000000000",
-    "__v": 0,
-    "active": true,
-    "createdAt": "2026-07-15T12:35:28.663Z",
-    "department": "OT",
-    "experience": "",
-    "image": "/uploads/image-1786347610015-595166003.jpeg",
-    "name": "Anamika",
-    "role": "Occupational Therapist",
-    "summary": "",
-    "updatedAt": "2026-08-10T07:40:10.071Z",
-    "weeklySchedule": [
-      {
-        "day": 1,
-        "startTime": "10:00",
-        "endTime": "18:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 2,
-        "startTime": "10:00",
-        "endTime": "18:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 3,
-        "startTime": "10:00",
-        "endTime": "18:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 4,
-        "startTime": "10:00",
-        "endTime": "18:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 5,
-        "startTime": "10:00",
-        "endTime": "18:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 6,
-        "startTime": "10:00",
-        "endTime": "15:00",
-        "lunchStart": "00:00",
-        "lunchEnd": "00:00"
-      }
-    ]
-  },
-  {
-    "id": "47c834e00000000000000000",
-    "__v": 0,
-    "active": true,
-    "createdAt": "2026-07-15T12:35:28.620Z",
-    "department": "OT",
-    "experience": "",
-    "image": "/uploads/image-1786347725247-700380999.jpeg",
-    "name": "Nikki",
-    "role": "Occupational Therapist",
-    "summary": "",
-    "updatedAt": "2026-08-10T07:42:05.316Z",
-    "weeklySchedule": [
-      {
-        "day": 1,
-        "startTime": "10:00",
-        "endTime": "17:15",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 2,
-        "startTime": "10:00",
-        "endTime": "17:15",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 3,
-        "startTime": "10:00",
-        "endTime": "17:15",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 4,
-        "startTime": "10:00",
-        "endTime": "17:15",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 5,
-        "startTime": "10:00",
-        "endTime": "17:15",
-        "lunchStart": "13:00",
-        "lunchEnd": "13:30"
-      },
-      {
-        "day": 6,
-        "startTime": "10:00",
-        "endTime": "15:00",
-        "lunchStart": "00:00",
-        "lunchEnd": "00:00"
-      }
-    ]
-  },
-  {
-    "id": "1684fd3a1000000000000000",
-    "__v": 0,
-    "active": true,
-    "createdAt": "2026-07-15T12:35:28.347Z",
-    "department": "OT",
-    "experience": "",
-    "image": "/uploads/image-1786347742467-221658114.jpeg",
-    "name": "Harsimran",
-    "role": "Occupational Therapist",
-    "summary": "",
-    "updatedAt": "2026-08-10T07:42:22.523Z",
-    "weeklySchedule": [
-      {
-        "day": 2,
-        "startTime": "13:00",
-        "endTime": "16:30",
-        "lunchStart": "00:00",
-        "lunchEnd": "00:00"
-      },
-      {
-        "day": 4,
-        "startTime": "13:00",
-        "endTime": "16:30",
-        "lunchStart": "00:00",
-        "lunchEnd": "00:00"
-      },
-      {
-        "day": 6,
-        "startTime": "11:30",
-        "endTime": "15:30",
-        "lunchStart": "00:00",
-        "lunchEnd": "00:00"
-      }
-    ]
-  },
-  {
-    "id": "THE-1783939259439",
-    "createdAt": "2026-07-13T10:40:59.439Z",
+    "id": "atal-01",
     "name": "Mr. Atal",
-    "department": "Speech Therapist",
     "role": "Speech Therapist",
-    "experience": "15 Years",
-    "image": "/uploads/image-1786347759882-925385046.jpeg",
-    "active": false,
-    "updatedAt": "2026-08-10T07:42:39.929Z",
-    "weeklySchedule": [
-      {
-        "day": 1,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 2,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 3,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 4,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 5,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 6,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      }
-    ]
+    "department": "Speech Therapy",
+    "image": "/images/harish.png",
+    "active": true
   },
   {
-    "id": "THE-1783937035007",
-    "createdAt": "2026-07-13T10:03:55.007Z",
-    "name": "Ms Tanu Rajput",
-    "department": "Founder Trustee",
-    "role": "Founder Trustee",
-    "experience": "22 Years",
-    "image": "/uploads/image-1786347775784-105647780.jpeg",
-    "active": false,
-    "updatedAt": "2026-08-10T07:42:55.840Z",
-    "weeklySchedule": [
-      {
-        "day": 1,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 2,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 3,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 4,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 5,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      }
-    ]
+    "id": "harsimran-01",
+    "name": "Ms. Harsimran Kaur",
+    "role": "Occupational Therapist",
+    "department": "OT",
+    "image": "/images/harsimran.jpeg",
+    "active": true
   },
   {
-    "id": "THE-1783936934746",
-    "createdAt": "2026-07-13T10:02:14.746Z",
-    "name": "Ranjana Goswami",
-    "department": "Special Educator",
+    "id": "nikki-01",
+    "name": "Ms. Nikki",
+    "role": "Occupational Therapist",
+    "department": "OT",
+    "image": "/images/kanchan.png",
+    "active": true
+  },
+  {
+    "id": "divya-01",
+    "name": "Ms. Divya",
+    "role": "Physiotherapist",
+    "department": "Physiotherapy",
+    "image": "/images/divya.jpg",
+    "active": true
+  },
+  {
+    "id": "sonia-01",
+    "name": "Ms. Sonia",
     "role": "Special Educator",
-    "experience": "7 Years",
-    "image": "/uploads/image-1786347788816-576307820.jpeg",
-    "active": false,
-    "updatedAt": "2026-08-10T07:43:08.866Z",
-    "weeklySchedule": [
-      {
-        "day": 1,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 2,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 3,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 4,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 5,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 6,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      }
-    ]
+    "department": "Special Education",
+    "image": "/images/sonia.jpg",
+    "active": true
   },
   {
-    "id": "THE-1783935712310",
-    "createdAt": "2026-07-13T09:41:52.310Z",
-    "name": "Soniya Taneja",
-    "department": "Nios Instructor",
-    "role": "Nios Instructor",
-    "experience": "23 years",
-    "image": "/uploads/image-1786347853096-389966442.jpeg",
-    "active": false,
-    "updatedAt": "2026-08-10T07:44:13.154Z",
-    "weeklySchedule": [
-      {
-        "day": 1,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 2,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 3,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 4,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 5,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 6,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      }
-    ]
-  },
-  {
-    "id": "THE-1783933200709",
-    "createdAt": "2026-07-13T09:00:00.709Z",
-    "name": "Shobha Almiya",
-    "department": "Special Educator",
+    "id": "shobha-01",
+    "name": "Ms. Shobha",
     "role": "Special Educator",
-    "experience": "16 years",
-    "image": "/uploads/image-1786347865563-926735030.jpeg",
-    "active": false,
-    "updatedAt": "2026-08-10T07:44:25.613Z",
-    "weeklySchedule": [
-      {
-        "day": 1,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 2,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 3,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 4,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 5,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      },
-      {
-        "day": 6,
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "lunchStart": "13:00",
-        "lunchEnd": "14:00"
-      }
-    ]
+    "department": "Special Education",
+    "image": "/images/shobha.jpg",
+    "active": true
+  },
+  {
+    "id": "ranjana-01",
+    "name": "Ms. Ranjana",
+    "role": "Special Educator",
+    "department": "Special Education",
+    "image": "/images/savita.png",
+    "active": true
+  },
+  {
+    "id": "durgesh-01",
+    "name": "Mr. Durgesh",
+    "role": "Physical Therapist",
+    "department": "Physical Therapy",
+    "image": "/images/durgesh.jpg",
+    "active": true
+  },
+  {
+    "id": "tanu-01",
+    "name": "Ms. Tanu Rajput",
+    "role": "Counselling / Home Programme",
+    "department": "Counselling / Home Programme",
+    "image": "/images/tanu.jpeg",
+    "active": true
   }
 ]
