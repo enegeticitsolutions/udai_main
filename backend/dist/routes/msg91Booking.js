@@ -45,8 +45,21 @@ const handleSlots = async (req, res, next) => {
             data.date ?? data.appointment_date ?? data.selected_date ?? data.date_of_appointment ?? "").trim();
         const date = normalizeAppointmentDate(rawDate);
         const slots = await getAvailableSlots(department || "OT", date);
-        const limitedSlots = slots.filter((s) => s.isAvailable !== false).slice(0, 10);
-        res.status(200).json({ success: true, status: "success", data: limitedSlots });
+        const formattedSlots = slots
+            .filter((s) => s.isAvailable !== false)
+            .slice(0, 10)
+            .map((slot) => ({
+            title: slot.label || slot.time,
+            value: slot.time,
+            id: slot.time,
+            label: slot.label || slot.time,
+            time: slot.time,
+            isAvailable: slot.isAvailable,
+            availableCount: slot.availableCount,
+            bookedCount: slot.bookedCount,
+            totalTherapists: slot.totalTherapists,
+        }));
+        res.status(200).json({ success: true, status: "success", data: formattedSlots });
     }
     catch (error) {
         next(error);

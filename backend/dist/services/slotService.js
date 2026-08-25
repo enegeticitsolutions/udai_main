@@ -150,10 +150,13 @@ export async function getAvailableSlotsForDate(appointmentDateInput, therapistId
     const availableSlots = slotsFromDb
         .filter((s) => !bookedTimes.has(s.time))
         .slice(0, 10);
-    const formattedSlots = availableSlots.map((s, idx) => ({
-        id: `slot_${idx + 1}`,
+    const formattedSlots = availableSlots.map((s) => ({
         title: s.time,
         value: s.time,
+        id: s.time,
+        label: s.time,
+        time: s.time,
+        isAvailable: s.status === "available",
     }));
     return {
         success: true,
