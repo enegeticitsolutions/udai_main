@@ -55,7 +55,9 @@ const handleSlots = async (req: any, res: any, next: any) => {
     ).trim() || new Date().toISOString().slice(0, 10);
 
     const slots = await getAvailableSlots(department || "OT", date);
-    res.status(200).json({ success: true, status: "success", data: slots });
+    const limitedSlots = slots.filter((s: any) => s.isAvailable !== false).slice(0, 10);
+
+    res.status(200).json({ success: true, status: "success", data: limitedSlots });
   } catch (error) {
     next(error);
   }
