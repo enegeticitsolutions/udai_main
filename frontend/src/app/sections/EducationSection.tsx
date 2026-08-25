@@ -32,7 +32,7 @@ const defaultPrograms: EducationProgramDetail[] = [
     title: "Digital Literacy",
     shortDescription: "Equipping children and young adults with special needs with practical technology skills to engage confidently with digital tools.",
     heroImage: "/images/digital.png",
-    gallery: ["/images/digital.png", "/images/section.png"],
+    gallery: ["/images/digital.png", "/images/digital.png"],
     accent: "from-[#f2a007] to-[#ffd15d]",
     overview: [],
     highlights: [],

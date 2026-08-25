@@ -10,8 +10,8 @@ export function HeroSection() {
       <div className="absolute inset-0 z-0">
         <div className="h-full w-full">
           <ImageWithFallback
-            src="/images/section.png"
-            alt="Children learning together"
+            src="/images/hero-independence.jpg"
+            alt="UDAI children celebrating at Skill Centre"
             className="h-full w-full object-cover object-center"
           />
         </div>

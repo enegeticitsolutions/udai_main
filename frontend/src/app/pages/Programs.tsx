@@ -60,7 +60,7 @@ export function Programs() {
       title: "Women & Youth Empowerment",
       description:
         "We empower women and youth by providing them with opportunities, skills, and confidence to lead independent and impactful lives.",
-      image: "/images/youth.png",
+      image: "/images/youth.jpg",
       services: [
         "Skill development and employment programs",
         "Leadership and confidence-building initiatives",
