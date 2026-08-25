@@ -22,19 +22,20 @@ const bookingStatusSchema = z.enum(["pending", "confirmed", "completed", "cancel
 
 const msg91AppointmentSchema = z.object({
   bookingId: z.string().trim().min(2).max(180).optional(),
-  patientName: z.string().trim().min(1).max(160),
-  parentName: z.string().trim().max(160).optional().default("Not specified"),
-  phoneNumber: z.string().trim().regex(/^\+?\d{10,15}$/, "Phone number must contain 10 to 15 digits"),
-  age: z.coerce.number().int().min(0).max(120),
-  gender: z.string().trim().optional().default("Not specified"),
-  city: z.string().trim().optional().default("Not specified"),
+  patientName: z.string().trim().max(160).default(""),
+  parentName: z.string().trim().max(160).optional().default(""),
+  phoneNumber: z.string().trim().default(""),
+  age: z.coerce.number().int().min(0).max(120).optional().default(0),
+  firstSession: z.string().trim().optional().default(""),
+  gender: z.string().trim().optional().default(""),
+  city: z.string().trim().optional().default(""),
   preferredLanguage: z.string().trim().optional().default("English"),
   therapistId: z.string().trim().max(160).optional().nullable(),
-  therapistName: z.string().trim().min(1).max(160),
+  therapistName: z.string().trim().max(160).default("OT"),
   appointmentDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Appointment date must use YYYY-MM-DD"),
   appointmentTime: z.string().trim().optional().default(""),
   appointmentType: appointmentTypeSchema.optional().default("in-person"),
-  mainConcern: z.string().trim().max(500).optional().default("General Consultation"),
+  mainConcern: z.string().trim().max(500).optional().default(""),
   concernDescription: z.string().trim().max(3000).optional().default(""),
   additionalNotes: z.string().trim().max(3000).optional().default(""),
   paymentStatus: paymentStatusSchema.optional().default("pending"),
@@ -77,17 +78,7 @@ function pick(body: Record<string, unknown>, ...keys: string[]): string {
 }
 
 function normalizePhone(value: unknown): string {
-  const digits = String(value ?? "").replace(/[^\d]/g, "");
-  if (digits.length >= 10 && digits.length <= 15) {
-    return digits;
-  }
-  if (digits.length > 15) {
-    return digits.slice(-10);
-  }
-  if (digits.length > 0) {
-    return digits.padStart(10, "9");
-  }
-  return "919999999999";
+  return String(value ?? "").replace(/[^\d]/g, "");
 }
 
 function normalizeAppointmentType(value: unknown): string {
@@ -199,61 +190,32 @@ export function normalizeAppointmentTime(timeInput: unknown): string {
 export function parseMsg91AppointmentPayload(payload: unknown) {
   const data = payloadData(payload);
 
-  const rawTime = pick(
-    data,
-    "appointment_time", "appointmentTime", "time", "selected_time", "slot", "appointment_slot", "slot_time"
-  );
-  const rawGender = pick(data, "gender");
-  const rawCity = pick(data, "city");
-  const rawLang = pick(data, "preferred_language", "preferredLanguage", "language");
-
-  // Child / Patient Name
-  const rawPatientName = pick(
-    data,
-    "name_of_child", "nameOfChild", "child_name", "childName", "child",
-    "patient_name", "patientName", "name", "full_name", "customerName", "userName"
-  );
-
-  // Parent Name
-  const rawParentName = pick(
-    data,
-    "parent_name", "parentName", "parent", "guardian_name", "guardianName"
-  );
-
-  // Therapist / Department / Service
-  const rawTherapistName = pick(
-    data,
-    "therapist_name", "therapistName", "doctor", "doctor_name", "department",
-    "service", "service_name", "selected_service"
-  );
-
-  // Appointment Date
-  const rawDate = pick(
-    data,
-    "appointment_date", "appointmentDate", "date", "selected_date", "date_of_appointment"
-  );
-  const hasDate = Boolean(rawDate && String(rawDate).trim());
-
-  // Phone Number
+  // Phone: Extract from payload.phoneNumber || payload.phone || payload.sender || payload.from || payload.mobile || payload.wa_id || ""
   const rawPhone = pick(
     data,
-    "phone_number", "phoneNumber", "mobile", "phone", "wa_id", "customerNumber",
-    "customer_number", "mobileNumber", "mobile_number", "user_phone", "from", "sender",
-    "caller", "msisdn", "number", "whatsapp_number", "wa_number", "user_id", "receiver"
+    "phoneNumber", "phone_number", "phone", "sender", "from", "mobile", "mobileNumber", "mobile_number",
+    "wa_id", "wa_number", "whatsapp_number", "customerNumber", "customer_number", "caller", "msisdn", "number", "user_phone", "user_id", "receiver"
+  );
+  const cleanPhone = normalizePhone(rawPhone);
+
+  // Child Name: Extract from payload.childName || payload.child_name || payload.name_of_child || payload.patientName || payload.name || ""
+  const rawChildName = pick(
+    data,
+    "childName", "child_name", "name_of_child", "nameOfChild", "child",
+    "patientName", "patient_name", "name", "full_name", "customerName", "userName"
   );
 
-  // Age
+  // Parent Name: Extract from payload.parentName || payload.parent_name || payload.guardianName || ""
+  const rawParentName = pick(
+    data,
+    "parentName", "parent_name", "parent", "guardianName", "guardian_name"
+  );
+
+  // Age: Extract from payload.age || payload.child_age || ""
   const rawAge = pick(
     data,
-    "age_of_child", "ageOfChild", "child_age", "childAge", "age", "patient_age", "patientAge"
+    "age", "child_age", "childAge", "age_of_child", "ageOfChild", "patient_age", "patientAge"
   );
-
-  // Concern
-  const rawConcern = pick(
-    data,
-    "concern_of_child", "concernOfChild", "child_concern", "main_concern", "mainConcern", "concern"
-  );
-
   let parsedAge = 0;
   if (rawAge !== undefined && rawAge !== null && rawAge !== "") {
     const digitsOnly = String(rawAge).replace(/[^\d]/g, "");
@@ -262,21 +224,57 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
     }
   }
 
+  // First Session: Extract from payload.firstSession || payload.first_session || payload.is_first_session || ""
+  const rawFirstSession = pick(
+    data,
+    "firstSession", "first_session", "is_first_session", "isFirstSession", "first_session_attended", "firstSessionAttended"
+  );
+
+  // Appointment Date: Preserve existing normalizeAppointmentDate call
+  const rawDate = pick(
+    data,
+    "appointmentDate", "appointment_date", "date", "selected_date", "date_of_appointment"
+  );
+  const hasDate = Boolean(rawDate && String(rawDate).trim());
+
+  // Appointment Time: Extract from payload.appointment_time || payload.time || payload.selected_time || payload.slot || ""
+  const rawTime = pick(
+    data,
+    "appointment_time", "appointmentTime", "time", "selected_time", "slot", "appointment_slot", "slot_time"
+  );
+
+  // Department: Extract from payload.department || payload.service || payload.selected_service || payload.service_name || "OT"
+  const rawDepartment = pick(
+    data,
+    "department", "service", "selected_service", "service_name", "therapist_name", "therapistName", "doctor", "doctor_name"
+  );
+
+  // Concern
+  const rawConcern = pick(
+    data,
+    "concern", "main_concern", "mainConcern", "concern_of_child", "concernOfChild", "child_concern", "problem", "message"
+  );
+
+  const rawGender = pick(data, "gender");
+  const rawCity = pick(data, "city");
+  const rawLang = pick(data, "preferred_language", "preferredLanguage", "language");
+
   const parsedInput = msg91AppointmentSchema.parse({
     bookingId: pick(data, "booking_id", "bookingId", "id") || undefined,
-    patientName: rawPatientName || "Child",
-    parentName: rawParentName || "Parent",
-    phoneNumber: normalizePhone(rawPhone),
+    patientName: rawChildName,
+    parentName: rawParentName,
+    phoneNumber: cleanPhone,
     age: parsedAge,
+    firstSession: rawFirstSession,
     gender: rawGender || undefined,
     city: rawCity || undefined,
     preferredLanguage: rawLang || undefined,
     therapistId: pick(data, "therapist_id", "therapistId", "doctor_id", "doctorId") || null,
-    therapistName: normalizeDepartment(rawTherapistName || "General Consultation"),
+    therapistName: normalizeDepartment(rawDepartment || "OT"),
     appointmentDate: normalizeAppointmentDate(rawDate),
     appointmentTime: normalizeAppointmentTime(rawTime) || undefined,
     appointmentType: normalizeAppointmentType(pick(data, "appointment_type", "appointmentType", "visit_type") || "in-person"),
-    mainConcern: rawConcern || "General Consultation",
+    mainConcern: rawConcern,
     concernDescription: pick(data, "concern_description", "concernDescription", "description") || "",
     additionalNotes: pick(data, "additional_notes", "additionalNotes", "notes") || "",
     paymentStatus: normalizeStatus(pick(data, "payment_status", "paymentStatus") || "pending"),
