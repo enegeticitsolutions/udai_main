@@ -29,18 +29,26 @@ function getStableObjectId(name: string): string {
 
 // ── Therapist seed data with normalized department names ─────────────────────
 
+const standardSchedule = [
+  ...[1, 2, 3, 4, 5].map((day) => ({
+    day,
+    startTime: "10:00",
+    endTime: "18:00",
+    lunchStart: "13:00",
+    lunchEnd: "13:30",
+  })),
+  { day: 6, startTime: "10:00", endTime: "15:00", lunchStart: "00:00", lunchEnd: "00:00" }, // Sat
+];
+
 const THERAPISTS = [
+  // 1. OT
   {
     _id: getStableObjectId("Harsimran"),
     name: "Harsimran",
     department: "OT",
     role: "Occupational Therapist",
     active: true,
-    weeklySchedule: [
-      { day: 2, startTime: "13:00", endTime: "16:30", lunchStart: "00:00", lunchEnd: "00:00" }, // Tue
-      { day: 4, startTime: "13:00", endTime: "16:30", lunchStart: "00:00", lunchEnd: "00:00" }, // Thu
-      { day: 6, startTime: "11:30", endTime: "15:30", lunchStart: "00:00", lunchEnd: "00:00" }, // Sat
-    ],
+    weeklySchedule: standardSchedule,
   },
   {
     _id: getStableObjectId("Nikki"),
@@ -48,16 +56,7 @@ const THERAPISTS = [
     department: "OT",
     role: "Occupational Therapist",
     active: true,
-    weeklySchedule: [
-      ...[1, 2, 3, 4, 5].map((day) => ({
-        day,
-        startTime: "10:00",
-        endTime: "17:15",
-        lunchStart: "13:00",
-        lunchEnd: "13:30",
-      })),
-      { day: 6, startTime: "10:00", endTime: "15:00", lunchStart: "00:00", lunchEnd: "00:00" }, // Sat
-    ],
+    weeklySchedule: standardSchedule,
   },
   {
     _id: getStableObjectId("Anamika"),
@@ -65,16 +64,7 @@ const THERAPISTS = [
     department: "OT",
     role: "Occupational Therapist",
     active: true,
-    weeklySchedule: [
-      ...[1, 2, 3, 4, 5].map((day) => ({
-        day,
-        startTime: "10:00",
-        endTime: "18:00",
-        lunchStart: "13:00",
-        lunchEnd: "13:30",
-      })),
-      { day: 6, startTime: "10:00", endTime: "15:00", lunchStart: "00:00", lunchEnd: "00:00" }, // Sat
-    ],
+    weeklySchedule: standardSchedule,
   },
   {
     _id: getStableObjectId("Divya"),
@@ -82,47 +72,92 @@ const THERAPISTS = [
     department: "OT",
     role: "Occupational Therapist",
     active: true,
-    weeklySchedule: [
-      ...[1, 2, 3, 4, 5].map((day) => ({
-        day,
-        startTime: "10:00",
-        endTime: "18:00",
-        lunchStart: "13:00",
-        lunchEnd: "13:30",
-      })),
-      { day: 6, startTime: "10:00", endTime: "15:00", lunchStart: "00:00", lunchEnd: "00:00" }, // Sat
-    ],
+    weeklySchedule: standardSchedule,
   },
+  // 2. Special Educator
   {
     _id: getStableObjectId("Veshali"),
     name: "Veshali",
     department: "Special Educator",
     role: "Special Educator",
     active: true,
-    weeklySchedule: [
-      ...[1, 2, 3, 4, 5].map((day) => ({
-        day,
-        startTime: "10:00",
-        endTime: "18:00",
-        lunchStart: "13:00",
-        lunchEnd: "13:30",
-      })),
-      { day: 6, startTime: "10:00", endTime: "15:00", lunchStart: "00:00", lunchEnd: "00:00" }, // Sat
-    ],
+    weeklySchedule: standardSchedule,
   },
+  {
+    _id: getStableObjectId("Poonam"),
+    name: "Poonam",
+    department: "Special Educator",
+    role: "Special Educator",
+    active: true,
+    weeklySchedule: standardSchedule,
+  },
+  // 3. Speech Therapy
   {
     _id: getStableObjectId("Sakshi"),
     name: "Sakshi",
     department: "Speech Therapy",
     role: "Speech Therapist",
     active: true,
-    weeklySchedule: [1, 2, 3, 5].map((day) => ({
-      day,
-      startTime: "10:00",
-      endTime: "13:00",
-      lunchStart: "00:00",
-      lunchEnd: "00:00",
-    })),
+    weeklySchedule: standardSchedule,
+  },
+  {
+    _id: getStableObjectId("Tanu"),
+    name: "Tanu",
+    department: "Speech Therapy",
+    role: "Speech & Language Pathologist",
+    active: true,
+    weeklySchedule: standardSchedule,
+  },
+  // 4. Physical Therapy
+  {
+    _id: getStableObjectId("RajeshVerma"),
+    name: "Dr. Rajesh Verma",
+    department: "Physical Therapy",
+    role: "Pediatric Physiotherapist",
+    active: true,
+    weeklySchedule: standardSchedule,
+  },
+  {
+    _id: getStableObjectId("NehaSharma"),
+    name: "Dr. Neha Sharma",
+    department: "Physical Therapy",
+    role: "Physical Therapist",
+    active: true,
+    weeklySchedule: standardSchedule,
+  },
+  // 5. Academic Support
+  {
+    _id: getStableObjectId("MeenakshiSundaram"),
+    name: "Meenakshi Sundaram",
+    department: "Academic Support",
+    role: "NIOS & Academic Instructor",
+    active: true,
+    weeklySchedule: standardSchedule,
+  },
+  {
+    _id: getStableObjectId("RituSaxena"),
+    name: "Ritu Saxena",
+    department: "Academic Support",
+    role: "Academic Support Specialist",
+    active: true,
+    weeklySchedule: standardSchedule,
+  },
+  // 6. Counselling
+  {
+    _id: getStableObjectId("ShaliniGupta"),
+    name: "Dr. Shalini Gupta",
+    department: "Counselling",
+    role: "Child & Family Psychologist",
+    active: true,
+    weeklySchedule: standardSchedule,
+  },
+  {
+    _id: getStableObjectId("AmitKapoor"),
+    name: "Dr. Amit Kapoor",
+    department: "Counselling",
+    role: "Counselor & Behavioral Therapist",
+    active: true,
+    weeklySchedule: standardSchedule,
   },
 ];
 

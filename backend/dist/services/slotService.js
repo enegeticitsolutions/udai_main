@@ -5,6 +5,7 @@ import { connectMongoDb, isMongoConnected } from "../lib/mongodb.js";
 import { TherapistModel } from "../models/Therapist.js";
 import { TherapistSlotModel } from "../models/TherapistSlot.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
+import { normalizeAppointmentDate } from "./msg91AppointmentService.js";
 export const DEFAULT_10_SLOTS = [
     "09:00 AM",
     "10:00 AM",
@@ -100,7 +101,9 @@ export async function seedTherapistSlots() {
 }
 export async function getAvailableSlotsForDate(appointmentDateInput, therapistIdInput) {
     const next5Dates = getNext5Dates();
-    const targetDate = String(appointmentDateInput ?? "").trim() || next5Dates[0];
+    const targetDate = appointmentDateInput && appointmentDateInput.trim() !== ""
+        ? normalizeAppointmentDate(appointmentDateInput)
+        : next5Dates[0];
     const therapistId = String(therapistIdInput ?? "").trim();
     await connectMongoDb();
     let slotsFromDb = [];

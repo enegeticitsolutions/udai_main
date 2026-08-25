@@ -86,7 +86,7 @@ function payloadData(payload) {
     const body = (payload ?? {});
     return (body.data ?? body.payload ?? body.variables ?? body);
 }
-function normalizeAppointmentDate(dateInput) {
+export function normalizeAppointmentDate(dateInput) {
     const str = String(dateInput ?? "").trim();
     if (!str)
         return new Date().toISOString().slice(0, 10);
@@ -114,14 +114,14 @@ function normalizeAppointmentDate(dateInput) {
         const day = String(ymdMatch[3]).padStart(2, "0");
         return `${year}-${month}-${day}`;
     }
-    // 5. Try text match like "27 Jul" or "Mon, 27 Jul"
-    const textMatch = str.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+    // 5. Try text match like "26 Aug", "Wed, 26 Aug", "26 August", "26-Aug"
+    const textMatch = str.match(/(\d{1,2})[\s\-]+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)/i);
     if (textMatch) {
         const dayNumber = Number(textMatch[1]);
-        const monthStr = textMatch[2].toLowerCase();
+        const monthStr = textMatch[2].slice(0, 3).toLowerCase();
         const monthMap = {
             jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-            jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+            jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
         };
         const monthNumber = monthMap[monthStr];
         if (monthNumber) {

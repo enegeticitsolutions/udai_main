@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import { normalizeAppointmentDate, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
 import { getAvailableDates, getAvailableSlots, getDepartments } from "../services/bookingService.js";
 const msg91BookingRouter = Router();
 /**
@@ -40,9 +40,10 @@ const handleSlots = async (req, res, next) => {
     try {
         const data = (req.body?.data ?? req.body?.payload ?? req.body?.variables ?? req.body ?? {});
         const department = String(req.query.department ?? req.query.service ?? req.query.selected_service ??
-            data.department ?? data.service ?? data.selected_service ?? "").trim();
-        const date = String(req.query.date ?? req.query.appointment_date ??
-            data.date ?? data.appointment_date ?? data.selected_date ?? "").trim() || new Date().toISOString().slice(0, 10);
+            data.department ?? data.service ?? data.selected_service ?? data.service_name ?? "").trim();
+        const rawDate = String(req.query.date ?? req.query.appointment_date ?? req.query.selected_date ??
+            data.date ?? data.appointment_date ?? data.selected_date ?? data.date_of_appointment ?? "").trim();
+        const date = normalizeAppointmentDate(rawDate);
         const slots = await getAvailableSlots(department || "OT", date);
         const limitedSlots = slots.filter((s) => s.isAvailable !== false).slice(0, 10);
         res.status(200).json({ success: true, status: "success", data: limitedSlots });
