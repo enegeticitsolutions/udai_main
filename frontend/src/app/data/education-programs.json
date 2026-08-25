@@ -53,7 +53,7 @@
     "title": "Digital Literacy",
     "shortDescription": "Equipping children and young adults with special needs with practical technology skills to engage confidently with digital tools.",
     "heroImage": "/images/digital.png",
-    "gallery": ["/images/digital.png", "/images/section.png"],
+    "gallery": ["/images/digital.png", "/images/digital.png"],
     "accent": "from-[#f2a007] to-[#ffd15d]",
     "overview": [
       "Digital skills are essential for learning, communication, independence, and participation in today's world. UDAI's Digital Literacy Program equips children and young adults with special needs with practical technology skills that enable them to engage confidently with digital tools in everyday life.",
