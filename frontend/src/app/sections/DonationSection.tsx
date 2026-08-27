@@ -68,6 +68,7 @@ const mealAmountOptions: AmountOption[] = [
   { amount: null },
 ];
 
+/*
 const futureAmountOptions: AmountOption[] = [
   { amount: 1000 },
   { amount: 2000 },
@@ -76,6 +77,8 @@ const futureAmountOptions: AmountOption[] = [
   { amount: 5000 },
   { amount: null },
 ];
+*/
+const futureAmountOptions: AmountOption[] = [];
 
 function loadRazorpayScript() {
   return new Promise<boolean>((resolve) => {
@@ -129,8 +132,9 @@ function DonationPanel({
 }) {
   const [donationType, setDonationType] = useState<DonationType>(allowMonthly ? "monthly" : "one-time");
   const [stage, setStage] = useState<DonationStage>("amount");
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(defaultAmount);
-  const [customAmount, setCustomAmount] = useState("");
+  const hasOptions = options && options.length > 0;
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(hasOptions ? defaultAmount : null);
+  const [customAmount, setCustomAmount] = useState(!hasOptions && defaultAmount ? String(defaultAmount) : "");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -161,8 +165,10 @@ function DonationPanel({
 
   function selectDonationType(nextType: DonationType) {
     setDonationType(nextType);
-    setSelectedAmount(defaultAmount);
-    setCustomAmount("");
+    if (hasOptions) {
+      setSelectedAmount(defaultAmount);
+      setCustomAmount("");
+    }
     setFormData((current) => ({ ...current, purpose: nextType === "monthly" ? "Monthly support" : "One-time donation" }));
     setFeedback(null);
   }
@@ -254,37 +260,42 @@ function DonationPanel({
 
       {stage === "amount" ? (
         <div className="mt-3">
-          <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
-            {options.map((option) => {
-              const label = option.amount === null ? "Custom" : `₹${option.amount}`;
-              const isSelected = option.amount === null ? selectedAmount === null : selectedAmount === option.amount;
+          {hasOptions ? (
+            <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
+              {options.map((option) => {
+                const label = option.amount === null ? "Custom" : `₹${option.amount}`;
+                const isSelected = option.amount === null ? selectedAmount === null : selectedAmount === option.amount;
 
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => {
-                    setSelectedAmount(option.amount);
-                    if (option.amount !== null) setCustomAmount("");
-                    setFeedback(null);
-                  }}
-                  className={`min-h-11 rounded-xl border px-2 py-2 text-xs font-semibold transition ${
-                    isSelected ? selectedClass : "border-transparent bg-white text-[#20242a] shadow-sm hover:bg-[#fff8f0]"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => {
+                      setSelectedAmount(option.amount);
+                      if (option.amount !== null) setCustomAmount("");
+                      setFeedback(null);
+                    }}
+                    className={`min-h-11 rounded-xl border px-2 py-2 text-xs font-semibold transition ${
+                      isSelected ? selectedClass : "border-transparent bg-white text-[#20242a] shadow-sm hover:bg-[#fff8f0]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
 
-          {selectedAmount === null ? (
+          {!hasOptions || selectedAmount === null ? (
             <Input
               type="number"
               min="1"
               step="1"
               value={customAmount}
-              onChange={(event) => setCustomAmount(event.target.value)}
+              onChange={(event) => {
+                setCustomAmount(event.target.value);
+                if (hasOptions) setSelectedAmount(null);
+              }}
               placeholder="Enter custom donation amount"
               className="mt-3 border-transparent bg-white"
             />
