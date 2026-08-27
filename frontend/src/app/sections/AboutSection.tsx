@@ -15,11 +15,11 @@ export function AboutSection() {
             className="relative"
           >
             <div className="absolute -left-6 -top-6 hidden h-28 w-28 rounded-full bg-amber-200/60 blur-[1px] sm:block" />
-            <div className="relative overflow-hidden rounded-[1.2rem] shadow-[0_24px_50px_rgba(41,29,22,0.16)] sm:rounded-[2rem]">
+            <div className="relative overflow-hidden rounded-[1.2rem] shadow-[0_24px_50px_rgba(41,29,22,0.16)] sm:rounded-[2rem] bg-white">
               <ImageWithFallback
                 src="/images/about.png"
                 alt="About UDAI"
-                className="h-[250px] w-full object-cover object-center sm:h-[520px]"
+                className="h-[250px] w-full object-contain object-center sm:h-[520px]"
               />
             </div>
 

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { 
   PROJECTS_DATA, 
@@ -8,6 +8,7 @@ import {
   ArrowLeft, 
   CheckCircle2, 
   ChevronRight, 
+  ChevronLeft,
   Sparkles, 
   Calendar, 
   Phone, 
@@ -15,13 +16,18 @@ import {
   Heart, 
   Users, 
   Building, 
-  ShieldCheck 
+  ShieldCheck,
+  ZoomIn,
+  X
 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 
 export function ProjectDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+
+  // Interactive Lightbox State
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -31,6 +37,26 @@ export function ProjectDetail() {
   const project = PROJECTS_DATA.find(
     (p) => p.slug === slug || slug?.includes(p.slug)
   );
+
+  // Determine gallery list
+  const galleryList = project?.galleryImages && project.galleryImages.length > 0
+    ? project.galleryImages
+    : project ? [project.image] : [];
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (activeImageIndex === null) return;
+      if (e.key === "Escape") setActiveImageIndex(null);
+      if (e.key === "ArrowLeft") {
+        setActiveImageIndex((prev) => (prev !== null ? (prev === 0 ? galleryList.length - 1 : prev - 1) : null));
+      }
+      if (e.key === "ArrowRight") {
+        setActiveImageIndex((prev) => (prev !== null ? (prev === galleryList.length - 1 ? 0 : prev + 1) : null));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeImageIndex, galleryList.length]);
 
   if (!project) {
     return (
@@ -102,14 +128,26 @@ export function ProjectDetail() {
           {/* Left Column: Project Details (2 cols) */}
           <main className="lg:col-span-2 space-y-8">
             
-            {/* Hero Image Card */}
-            <div className="rounded-3xl bg-white p-3 shadow-md border border-[#e8dfd8] overflow-hidden">
-              <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden">
+            {/* Hero Main Image & Gallery Card */}
+            <div className="rounded-3xl bg-white p-3 sm:p-4 shadow-md border border-[#e8dfd8]">
+              <div 
+                onClick={() => setActiveImageIndex(0)}
+                className="group relative h-64 sm:h-[580px] rounded-2xl overflow-hidden bg-white cursor-pointer border border-[#ece4dd]"
+              >
                 <ImageWithFallback
                   src={project.image}
                   alt={project.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-white group-hover:scale-[1.01] transition-transform duration-500 ease-out"
                 />
+                {/* Hover Badge Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4 sm:p-6">
+                  <span className="text-xs font-semibold text-white drop-shadow-md">
+                    {project.title} &bull; Click to Enlarge
+                  </span>
+                  <div className="bg-white/95 text-[#24396f] backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                    <ZoomIn size={14} className="text-[#ef3c32]" /> Click to Expand
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -305,6 +343,69 @@ export function ProjectDetail() {
         </div>
 
       </div>
+
+      {/* Full-screen Lightbox Modal */}
+      {activeImageIndex !== null && galleryList.length > 0 && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/92 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 transition-opacity duration-300"
+          onClick={() => setActiveImageIndex(null)}
+        >
+          {/* Lightbox Header / Controls */}
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between text-white z-20">
+            <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full text-xs font-semibold tracking-wide border border-white/10 shadow-lg">
+              {project.title} &bull; Image {activeImageIndex + 1} of {galleryList.length}
+            </div>
+
+            <button
+              onClick={() => setActiveImageIndex(null)}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition border border-white/15 shadow-md"
+              aria-label="Close Lightbox"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Previous Button (if multiple images) */}
+          {galleryList.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveImageIndex((prev) => (prev !== null ? (prev === 0 ? galleryList.length - 1 : prev - 1) : null));
+              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white transition border border-white/15 z-20 shadow-lg"
+              aria-label="Previous Image"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+
+          {/* Main Full-Res Image */}
+          <div 
+            className="relative max-w-5xl max-h-[85vh] overflow-hidden rounded-2xl p-2 bg-black/40 border border-white/10 shadow-2xl" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={galleryList[activeImageIndex]}
+              alt={`${project.title} - Full View ${activeImageIndex + 1}`}
+              className="max-w-full max-h-[82vh] object-contain rounded-xl shadow-2xl mx-auto"
+            />
+          </div>
+
+          {/* Next Button (if multiple images) */}
+          {galleryList.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveImageIndex((prev) => (prev !== null ? (prev === galleryList.length - 1 ? 0 : prev + 1) : null));
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white transition border border-white/15 z-20 shadow-lg"
+              aria-label="Next Image"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

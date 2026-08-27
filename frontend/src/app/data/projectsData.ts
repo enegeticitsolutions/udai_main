@@ -31,6 +31,7 @@ export interface ProjectDetailData {
   impact?: string;
   outcomes?: string[];
   image: string;
+  galleryImages?: string[];
 }
 
 export const PROJECTS_DATA: ProjectDetailData[] = [

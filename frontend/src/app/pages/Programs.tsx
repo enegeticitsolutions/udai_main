@@ -34,7 +34,7 @@ export function Programs() {
       title: "Community Development",
       description:
         "We work closely with communities to create sustainable growth, social inclusion, and equal opportunities for all. Our initiatives aim to strengthen communities by addressing their real needs and challenges.",
-      image: "https://images.unsplash.com/photo-1761039808159-f02b58f07032?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjBkZXZlbG9wbWVudCUyMGFmcmljYXxlbnwxfHx8fDE3NzM2NzcyOTF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+      image: "/images/community.png",
       services: [
         "Community awareness and engagement programs",
         "Support for underprivileged and marginalized groups",
@@ -121,11 +121,11 @@ export function Programs() {
                       ))}
                     </div>
                   </div>
-                  <div className={`relative h-96 rounded-lg overflow-hidden shadow-lg ${!isEven ? 'md:col-start-1 md:row-start-1' : ''}`}>
+                  <div className={`relative h-96 rounded-lg overflow-hidden shadow-lg bg-white ${!isEven ? 'md:col-start-1 md:row-start-1' : ''}`}>
                     <ImageWithFallback
                       src={program.image}
                       alt={program.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain bg-white"
                     />
                   </div>
                 </div>

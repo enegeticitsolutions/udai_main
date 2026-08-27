@@ -152,8 +152,8 @@ function DonationPanel({
         : "One-time donation";
   const actionLabel =
     category === "meal"
-      ? `Donate ${amountLabel || "Custom Amount"} for Meals`
-      : `Donate ${donationLabel || "Custom Amount"}`;
+      ? "Donate for Meals"
+      : "Donate Now";
 
   function isValidAmount(amount: number) {
     return Number.isFinite(amount) && amount > 0;
@@ -168,11 +168,6 @@ function DonationPanel({
   }
 
   function continueDonation() {
-    if (!isValidAmount(effectiveAmount)) {
-      setFeedback("Please enter a valid donation amount.");
-      return;
-    }
-
     setFeedback(null);
     setStage("details");
   }
@@ -194,10 +189,6 @@ function DonationPanel({
 
   async function handleDonateClick() {
     try {
-      if (!isValidAmount(effectiveAmount)) {
-        setFeedback("Please enter a valid donation amount.");
-        return;
-      }
       if (!validateDetails()) {
         return;
       }
@@ -207,7 +198,7 @@ function DonationPanel({
 
       const cleanPhone = formData.phone ? formData.phone.replace(/\D/g, "").slice(-10) : "";
       const res = await apiPost<any>("/payments/razorpay/create-payment-link", {
-        amount: effectiveAmount,
+        amount: effectiveAmount || defaultAmount,
         customerName: formData.name.trim(),
         customerEmail: formData.email.trim(),
         customerPhone: cleanPhone,
@@ -231,6 +222,7 @@ function DonationPanel({
 
   return (
     <div className="w-full flex flex-col justify-between">
+      {/* HIDE ONE-TIME / MONTHLY TOGGLE TEMPORARILY
       <div>
         {allowMonthly ? (
           <div className="flex rounded-full bg-white/70 p-1 text-xs font-semibold text-[#54463e] border border-[#e4d7c5]">
@@ -250,10 +242,11 @@ function DonationPanel({
             </button>
           </div>
         ) : null}
-      </div>
+      </div> */}
 
       {stage === "amount" ? (
         <div className="mt-3">
+          {/* HIDE DONATION AMOUNT SELECTION BUTTONS & CUSTOM INPUT TEMPORARILY
           <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
             {options.map((option) => {
               const label = option.amount === null ? "Custom" : `₹${option.amount}`;
@@ -288,12 +281,12 @@ function DonationPanel({
               placeholder="Enter custom donation amount"
               className="mt-3 border-transparent bg-white"
             />
-          ) : null}
+          ) : null} */}
 
           <button
             type="button"
             onClick={continueDonation}
-            className={`mt-4 w-full rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_20px_rgba(201,91,56,0.22)] transition ${accentClass}`}
+            className={`w-full rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_20px_rgba(201,91,56,0.22)] transition ${accentClass}`}
           >
             {actionLabel}
           </button>
