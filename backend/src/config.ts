@@ -7,8 +7,18 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
+const defaultAllowedOrigins = [
+  "https://pms.datamoshtechnologies.com",
+  "https://udai.datamoshtechnologies.com",
+  "https://udaiapi.datamoshtechnologies.com",
+  "https://admin.udairehab.org",
+  "https://udairehab.org",
+  "https://udai-main.onrender.com",
+];
+
 const allowedOrigins = new Set(
   [
+    ...defaultAllowedOrigins,
     process.env.CORS_ORIGIN,
     process.env.FRONTEND_ORIGIN,
     process.env.ADMIN_ORIGIN,
