@@ -126,8 +126,18 @@ async function readRecords(entity) {
     }
 
     const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
-    if (docs.length > 0 || entity === "careers") {
+    if (docs.length > 0) {
       return docs.map((doc) => normalizeMongoDocument(doc));
+    }
+
+    if ((entity === "careers" || entity === "therapists") && docs.length === 0) {
+      const seedRecords = entity === "careers" ? await readCareerSeedRecords() : await readStorageRecords("therapists");
+      if (seedRecords.length > 0) {
+        const now = new Date().toISOString();
+        await collection.insertMany(seedRecords.map((item) => ({ ...item, createdAt: item.createdAt ?? now, updatedAt: item.updatedAt ?? now })));
+        const seededDocs = await collection.find({}).sort({ createdAt: -1 }).toArray();
+        return seededDocs.map((doc) => normalizeMongoDocument(doc));
+      }
     }
   }
 

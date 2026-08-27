@@ -80,19 +80,38 @@ async function readStoredTherapists({ includeInactive = false } = {}) {
         try {
             const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
             console.log(`--> readStoredTherapists: Successfully fetched ${docs.length} documents from MongoDB.`);
-            const processed = filterTherapists(docs.map((doc) => normalizeTherapistDocument(doc)));
-            console.log(`--> readStoredTherapists: Returning ${processed.length} active therapists from MongoDB after filtering.`);
-            return processed;
+            if (docs.length > 0) {
+                const processed = filterTherapists(docs.map((doc) => normalizeTherapistDocument(doc)));
+                console.log(`--> readStoredTherapists: Returning ${processed.length} active therapists from MongoDB after filtering.`);
+                return processed;
+            }
+            // If MongoDB collection is empty, seed from local therapists.json
+            const jsonPath = storedTherapistsPath();
+            try {
+                const storedTherapists = await readJsonFile(jsonPath);
+                if (storedTherapists.length > 0) {
+                    console.log(`--> readStoredTherapists: Seeding ${storedTherapists.length} therapists from JSON into MongoDB.`);
+                    const now = new Date().toISOString();
+                    await collection.insertMany(storedTherapists.map((item) => ({
+                        ...item,
+                        createdAt: item.createdAt ?? now,
+                        updatedAt: item.updatedAt ?? now,
+                    })));
+                    const processed = filterTherapists(storedTherapists.map((therapist) => normalizeTherapistDocument(therapist)));
+                    return processed;
+                }
+            }
+            catch (jsonErr) {
+                console.warn("--> readStoredTherapists: Could not read fallback json file:", jsonErr?.message);
+            }
         }
         catch (dbError) {
             console.error("--> readStoredTherapists: Error querying 'therapists' collection in MongoDB:", dbError.message);
-            throw dbError;
         }
     }
-    // MongoDB not reachable — fallback to local storage JSON (only for offline/dev use)
-    console.log("--> readStoredTherapists: WARNING - MongoDB NOT connected! Falling back to local JSON file.");
+    // Fallback to local storage JSON
     const jsonPath = storedTherapistsPath();
-    console.log(`--> readStoredTherapists: Local JSON path is: ${jsonPath}`);
+    console.log(`--> readStoredTherapists: Falling back to local JSON file: ${jsonPath}`);
     try {
         const storedTherapists = await readJsonFile(jsonPath);
         console.log(`--> readStoredTherapists: Loaded ${storedTherapists.length} therapists from JSON file.`);
@@ -106,8 +125,6 @@ async function readStoredTherapists({ includeInactive = false } = {}) {
         if (err.code !== "ENOENT") {
             throw error;
         }
-        // No local file either — return empty list (don't show seed/mock data)
-        console.log("--> readStoredTherapists: No local therapists.json found. Returning empty list.");
         return [];
     }
 }

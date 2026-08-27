@@ -63,6 +63,10 @@ export function resolveImageUrl(url) {
   if (val.startsWith("/uploads/")) {
     return `${PUBLIC_UPLOAD_BASE}${val}`;
   }
+  if (val.startsWith("/images/")) {
+    const siteUrl = import.meta.env.VITE_SITE_URL ?? "http://localhost:5173";
+    return `${siteUrl.replace(/\/$/, "")}${val}`;
+  }
   return val;
 }
 
