@@ -60,7 +60,6 @@ type RazorpayCreateResponse = {
   };
 };
 
-/*
 const mealAmountOptions: AmountOption[] = [
   { amount: 1000, meals: 5 },
   { amount: 1500, meals: 12 },
@@ -68,10 +67,7 @@ const mealAmountOptions: AmountOption[] = [
   { amount: 5000, meals: 50 },
   { amount: null },
 ];
-*/
-const mealAmountOptions: AmountOption[] = [];
 
-/*
 const futureAmountOptions: AmountOption[] = [
   { amount: 1000 },
   { amount: 2000 },
@@ -80,8 +76,6 @@ const futureAmountOptions: AmountOption[] = [
   { amount: 5000 },
   { amount: null },
 ];
-*/
-const futureAmountOptions: AmountOption[] = [];
 
 function loadRazorpayScript() {
   return new Promise<boolean>((resolve) => {
