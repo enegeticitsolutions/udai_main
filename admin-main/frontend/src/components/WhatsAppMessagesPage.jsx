@@ -4,7 +4,16 @@ const getBackendBase = () => {
   if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
     return "http://localhost:4000";
   }
-  return (import.meta.env.VITE_BASE_URL ?? import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ?? "https://udai-main.onrender.com").replace(/\/$/, "");
+  const envUrl =
+    import.meta.env.VITE_PUBLIC_API_BASE_URL ??
+    import.meta.env.VITE_BASE_URL ??
+    import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL;
+
+  if (envUrl && !envUrl.includes("onrender.com")) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  return "https://udaiapi.datamoshtechnologies.com";
 };
 const BACKEND_BASE = getBackendBase();
 

@@ -6,7 +6,7 @@ const getApiBaseUrl = () => {
   if (envBase) return `${envBase}/api`;
 
   if (typeof window === "undefined") {
-    return "https://udai-main.onrender.com/api";
+    return "https://udaiapi.datamoshtechnologies.com/api";
   }
 
   const { hostname } = window.location;
@@ -25,7 +25,7 @@ const getAdminApiBaseUrl = () => {
   if (envBase) return `${envBase}/api/admin`;
 
   if (typeof window === "undefined") {
-    return "https://udai-main.onrender.com/api/admin";
+    return "https://udaiapi.datamoshtechnologies.com/api/admin";
   }
 
   const { hostname } = window.location;
