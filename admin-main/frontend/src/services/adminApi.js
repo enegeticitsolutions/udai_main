@@ -16,7 +16,7 @@ const getAdminApiBase = () => {
     return envUrl.replace(/\/$/, "");
   }
 
-  return "/api/admin";
+  return "https://udaiapi.datamoshtechnologies.com/api/admin";
 };
 
 const getPublicUploadBase = () => {
