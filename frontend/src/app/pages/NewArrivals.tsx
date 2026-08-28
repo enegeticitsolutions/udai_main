@@ -197,7 +197,7 @@ export function NewArrivals() {
         <div className="mx-auto flex min-h-[17rem] max-w-7xl items-center px-4 py-7 sm:min-h-[22rem] sm:px-8 sm:py-10">
           <div className="max-w-2xl">
             <h1 className="font-serif text-2xl font-black uppercase leading-tight tracking-tight text-black min-[390px]:text-3xl sm:text-5xl lg:text-6xl">
-              Premium Handcrafted Gifting Solutions
+              Handcrafted Gifting Solutions
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-black sm:mt-5 sm:text-lg sm:leading-7">
               Sustainable, handcrafted gift packs for your clients and partners with care by the UDAI team.
