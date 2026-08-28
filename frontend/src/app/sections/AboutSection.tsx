@@ -19,12 +19,12 @@ export function AboutSection() {
               <ImageWithFallback
                 src="/images/about.png"
                 alt="About UDAI"
-                className="h-[250px] w-full object-cover object-center sm:h-[520px]"
+                className="w-full h-auto block"
               />
             </div>
 
-            <div className="mt-4 sm:mt-6 mx-auto w-[82%] text-center rounded-[1rem] bg-white px-4 py-3 shadow-[0_20px_40px_rgba(55,35,21,0.14)] sm:w-[42%] sm:rounded-[1.1rem] sm:px-5 sm:py-4">
-              <p className="text-sm leading-5 text-[#d67852] sm:text-lg sm:leading-7">
+            <div className="absolute -bottom-3 right-2 z-10 max-w-[210px] text-center rounded-[1rem] bg-white/95 backdrop-blur-md px-3.5 py-2.5 shadow-[0_16px_36px_rgba(55,35,21,0.18)] border border-white/80 sm:-bottom-5 sm:right-4 sm:max-w-[260px] sm:rounded-[1.2rem] sm:px-4 sm:py-3">
+              <p className="text-xs font-semibold italic leading-snug text-[#d67852] sm:text-sm sm:leading-snug">
                 &quot;Every child deserves a chance to dream.&quot;
               </p>
             </div>

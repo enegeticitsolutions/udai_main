@@ -266,7 +266,7 @@ export function Layout() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 pt-[86px] sm:pt-[126px]">
+      <main className="flex-1 pt-[90px] sm:pt-[132px] lg:pt-[136px]">
         <Outlet />
       </main>
 

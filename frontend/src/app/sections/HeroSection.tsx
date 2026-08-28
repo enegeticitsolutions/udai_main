@@ -6,21 +6,21 @@ import { ArrowRight } from "lucide-react";
 
 export function HeroSection() {
   return (
-    <section className="relative isolate overflow-hidden sm:-mt-4">
+    <section className="relative isolate overflow-hidden">
       <div className="absolute inset-0 z-0">
         <div className="h-full w-full">
           <ImageWithFallback
             src="/images/hero-independence.jpg"
             alt="UDAI children celebrating at Skill Centre"
-            className="h-full w-full object-cover object-center"
+            className="h-full w-full object-cover object-top sm:object-[center_15%]"
           />
         </div>
-        <div className="absolute inset-0 bg-black/14" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/14" />
+        <div className="absolute inset-0 bg-black/25" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-slate-950/35" />
       </div>
 
-      <div className="relative h-[360px] w-full min-[390px]:h-[390px] sm:h-auto sm:aspect-[1530/547]">
-        <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl items-center justify-center px-4 py-4 text-center sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+      <div className="relative min-h-[380px] w-full min-[390px]:min-h-[420px] sm:h-auto sm:min-h-[480px] lg:min-h-[540px] sm:aspect-[1530/547] flex items-center">
+        <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl items-center justify-center px-4 py-8 text-center sm:px-6 sm:py-12 lg:px-8 lg:py-16">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}

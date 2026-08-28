@@ -50,6 +50,9 @@ export function AffiliationsSection() {
     },
   ];
 
+  const topAffiliations = affiliations.slice(0, 5);
+  const bottomAffiliations = affiliations.slice(5);
+
   return (
     <section className="bg-[#fcfaf7] border-b border-[#eee5dc] py-16 sm:py-20" id="affiliations">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -74,32 +77,62 @@ export function AffiliationsSection() {
           </p>
         </motion.div>
 
-        {/* Logos Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6 lg:gap-6 justify-center"
-        >
-          {affiliations.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.05 }}
-              className="group flex h-28 sm:h-32 w-full items-center justify-center rounded-2xl border border-[#e2d9d0] bg-white p-3.5 shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
-            >
-              <img
-                src={getImageUrl(item.image)}
-                alt={item.title}
-                title={item.title}
-                className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
-              />
-            </motion.div>
-          ))}
-        </motion.div>
+        {/* Logos Grid: 5 Top, 4 Bottom Center-Aligned */}
+        <div className="space-y-4 lg:space-y-6">
+          {/* Top Row: 5 items */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="grid grid-cols-2 min-[480px]:grid-cols-3 md:grid-cols-5 gap-4 lg:gap-6 justify-center"
+          >
+            {topAffiliations.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+                className="group flex h-28 sm:h-32 w-full items-center justify-center rounded-2xl border border-[#e2d9d0] bg-white p-3.5 shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
+              >
+                <img
+                  src={getImageUrl(item.image)}
+                  alt={item.title}
+                  title={item.title}
+                  className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Bottom Row: 4 items Center-Aligned */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="flex flex-wrap justify-center gap-4 lg:gap-6"
+          >
+            {bottomAffiliations.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: (index + 5) * 0.05 }}
+                className="group flex h-28 sm:h-32 w-[calc(50%-8px)] min-[480px]:w-[calc(33.333%-11px)] md:w-[calc(20%-19.2px)] items-center justify-center rounded-2xl border border-[#e2d9d0] bg-white p-3.5 shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
+              >
+                <img
+                  src={getImageUrl(item.image)}
+                  alt={item.title}
+                  title={item.title}
+                  className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
 
       </div>
     </section>

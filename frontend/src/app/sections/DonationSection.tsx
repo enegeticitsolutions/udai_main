@@ -115,34 +115,38 @@ function getInitialPaymentForm() {
 function DonationPanel({
   category,
   options,
-  defaultAmount,
+  buttonLabel,
   allowMonthly = false,
   accentClass,
   selectedClass,
 }: {
   category: DonationCategory;
-  options: AmountOption[];
-  defaultAmount: number;
+  options?: AmountOption[];
+  buttonLabel?: string;
+  defaultAmount?: number;
   allowMonthly?: boolean;
   accentClass: string;
   selectedClass: string;
 }) {
   const [donationType, setDonationType] = useState<DonationType>(allowMonthly ? "monthly" : "one-time");
   const [stage, setStage] = useState<DonationStage>("amount");
-  const hasOptions = options && options.length > 0;
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(hasOptions ? defaultAmount : null);
-  const [customAmount, setCustomAmount] = useState(!hasOptions && defaultAmount ? String(defaultAmount) : "");
+  const [customAmount, setCustomAmount] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    purpose: category === "meal" ? "Mid-Day Meal Initiative" : "Monthly support",
+    purpose:
+      category === "meal"
+        ? "Mid-Day Meal Initiative"
+        : buttonLabel
+          ? buttonLabel.replace("Donate for ", "") + " Support"
+          : "Donation support",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const effectiveAmount = selectedAmount ?? Number(customAmount);
+  const effectiveAmount = Number(customAmount);
   const amountLabel = effectiveAmount > 0 ? `₹${effectiveAmount}` : "";
   const donationLabel = `${amountLabel}${donationType === "monthly" ? " Monthly" : ""}`;
   const purpose =
@@ -151,10 +155,6 @@ function DonationPanel({
       : donationType === "monthly"
         ? "Monthly support"
         : "One-time donation";
-  const actionLabel =
-    category === "meal"
-      ? `Donate ${amountLabel || "Custom Amount"} for Meals`
-      : `Donate ${donationLabel || "Custom Amount"}`;
 
   function isValidAmount(amount: number) {
     return Number.isFinite(amount) && amount > 0;
@@ -162,22 +162,8 @@ function DonationPanel({
 
   function selectDonationType(nextType: DonationType) {
     setDonationType(nextType);
-    if (hasOptions) {
-      setSelectedAmount(defaultAmount);
-      setCustomAmount("");
-    }
     setFormData((current) => ({ ...current, purpose: nextType === "monthly" ? "Monthly support" : "One-time donation" }));
     setFeedback(null);
-  }
-
-  function continueDonation() {
-    if (!isValidAmount(effectiveAmount)) {
-      setFeedback("Please enter a valid donation amount.");
-      return;
-    }
-
-    setFeedback(null);
-    setStage("details");
   }
 
   function validateDetails() {
@@ -234,56 +220,27 @@ function DonationPanel({
 
   return (
     <div className="w-full flex flex-col justify-between">
-      <div>
-        {allowMonthly ? (
-          <div className="flex rounded-full bg-white/70 p-1 text-xs font-semibold text-[#54463e] border border-[#e4d7c5]">
-            <button
-              type="button"
-              onClick={() => selectDonationType("one-time")}
-              className={`flex-1 rounded-full py-1.5 transition ${donationType === "one-time" ? "bg-[#54463e] text-white shadow-sm" : ""}`}
-            >
-              One-time
-            </button>
-            <button
-              type="button"
-              onClick={() => selectDonationType("monthly")}
-              className={`flex-1 rounded-full py-1.5 transition ${donationType === "monthly" ? "bg-[#54463e] text-white shadow-sm" : ""}`}
-            >
-              Monthly
-            </button>
-          </div>
-        ) : null}
-      </div>
-
       {stage === "amount" ? (
-        <div className="mt-3">
-          {hasOptions ? (
-            <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
-              {options.map((option) => {
-                const label = option.amount === null ? "Custom" : `₹${option.amount}`;
-                const isSelected = option.amount === null ? selectedAmount === null : selectedAmount === option.amount;
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => {
+              setFeedback(null);
+              setStage("details");
+            }}
+            className={`w-full rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_20px_rgba(201,91,56,0.22)] transition ${accentClass}`}
+          >
+            {buttonLabel || (category === "meal" ? "Donate for Meals" : "Donate Now")}
+          </button>
+        </div>
+      ) : null}
 
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAmount(option.amount);
-                      if (option.amount !== null) setCustomAmount("");
-                      setFeedback(null);
-                    }}
-                    className={`min-h-11 rounded-xl border px-2 py-2 text-xs font-semibold transition ${
-                      isSelected ? selectedClass : "border-transparent bg-white text-[#20242a] shadow-sm hover:bg-[#fff8f0]"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-
-          {!hasOptions || selectedAmount === null ? (
+      {stage === "details" ? (
+        <div className="mt-3 space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-[#5e5048] mb-1">
+              Amount to donate (₹)
+            </label>
             <Input
               type="number"
               min="1"
@@ -291,28 +248,13 @@ function DonationPanel({
               value={customAmount}
               onChange={(event) => {
                 setCustomAmount(event.target.value);
-                if (hasOptions) setSelectedAmount(null);
+                setFeedback(null);
               }}
-              placeholder="Enter custom donation amount"
-              className="mt-3 border-transparent bg-white"
+              placeholder="Enter amount (₹)"
+              className="border-transparent bg-white"
             />
-          ) : null}
-
-          <button
-            type="button"
-            onClick={continueDonation}
-            className={`mt-4 w-full rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_20px_rgba(201,91,56,0.22)] transition ${accentClass}`}
-          >
-            {actionLabel}
-          </button>
-        </div>
-      ) : null}
-
-      {stage === "details" ? (
-        <div className="mt-3 space-y-3">
-          <div className="rounded-2xl bg-[#fff6f1] px-4 py-2.5 text-xs text-[#5e5048]">
-            Selected donation: <span className="font-semibold text-[#2b1b15]">{actionLabel.replace("Donate ", "")}</span>
           </div>
+
           <Input value={formData.name} onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))} placeholder="Full name" />
           <Input type="email" value={formData.email} onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))} placeholder="Email address" />
           <Input type="tel" value={formData.phone} onChange={(event) => setFormData((current) => ({ ...current, phone: event.target.value }))} placeholder="Mobile number (optional)" />
@@ -368,7 +310,7 @@ export function DonationSection() {
               <p className="mt-3 text-sm leading-6 text-[#3f332c] sm:text-base sm:leading-7">A warm, balanced meal ensures children stay focused and healthy.</p>
             </div>
             <div className="mt-5 border-t border-[#ead9be] pt-5">
-              <DonationPanel category="meal" options={mealAmountOptions} defaultAmount={1000} accentClass="bg-[#c95b38] hover:bg-[#b94e30]" selectedClass="border-[#c95b38] bg-white text-[#c95b38] shadow-sm" />
+              <DonationPanel category="meal" buttonLabel="Donate for Meals" accentClass="bg-[#c95b38] hover:bg-[#b94e30]" selectedClass="border-[#c95b38] bg-white text-[#c95b38] shadow-sm" />
             </div>
           </article>
 
@@ -380,7 +322,7 @@ export function DonationSection() {
               <p className="mt-3 text-sm leading-6 text-[#252525] sm:text-base sm:leading-7">Your donation provides immediate relief and long term support for children in need.</p>
             </div>
             <div className="mt-5 border-t border-[#b6d8f2] pt-5">
-              <DonationPanel category="future" options={futureAmountOptions} defaultAmount={1000} allowMonthly accentClass="bg-[#df4d4d] hover:bg-[#cf4141]" selectedClass="border-[#d2a885] bg-[#fff1df] text-[#8b4d34] shadow-sm" />
+              <DonationPanel category="future" buttonLabel="Donate for Future" allowMonthly accentClass="bg-[#df4d4d] hover:bg-[#cf4141]" selectedClass="border-[#d2a885] bg-[#fff1df] text-[#8b4d34] shadow-sm" />
             </div>
           </article>
 
@@ -392,7 +334,7 @@ export function DonationSection() {
               <p className="mt-3 text-sm leading-6 text-[#253f2c] sm:text-base sm:leading-7">Fund specialized therapy, rehabilitation, and long-term medical care for children.</p>
             </div>
             <div className="mt-5 border-t border-[#c2e2cc] pt-5">
-              <DonationPanel category="future" options={futureAmountOptions} defaultAmount={1000} allowMonthly accentClass="bg-[#2e7d32] hover:bg-[#1b5e20]" selectedClass="border-[#2e7d32] bg-white text-[#2e7d32] shadow-sm" />
+              <DonationPanel category="future" buttonLabel="Donate for Healthcare" allowMonthly accentClass="bg-[#2e7d32] hover:bg-[#1b5e20]" selectedClass="border-[#2e7d32] bg-white text-[#2e7d32] shadow-sm" />
             </div>
           </article>
 
@@ -404,7 +346,7 @@ export function DonationSection() {
               <p className="mt-3 text-sm leading-6 text-[#3b2545] sm:text-base sm:leading-7">Empower students with practical technology skills, tools, and vocational training.</p>
             </div>
             <div className="mt-5 border-t border-[#e1bee7] pt-5">
-              <DonationPanel category="future" options={futureAmountOptions} defaultAmount={1000} allowMonthly accentClass="bg-[#7b1fa2] hover:bg-[#4a148c]" selectedClass="border-[#7b1fa2] bg-white text-[#7b1fa2] shadow-sm" />
+              <DonationPanel category="future" buttonLabel="Donate for Education" allowMonthly accentClass="bg-[#7b1fa2] hover:bg-[#4a148c]" selectedClass="border-[#7b1fa2] bg-white text-[#7b1fa2] shadow-sm" />
             </div>
           </article>
         </motion.div>
