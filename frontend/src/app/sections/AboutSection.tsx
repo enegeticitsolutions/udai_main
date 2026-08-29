@@ -6,24 +6,24 @@ export function AboutSection() {
   return (
     <section className="bg-[#fcf8f3] py-10 sm:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid items-start gap-7 sm:gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="grid items-center gap-8 sm:gap-12 lg:grid-cols-2 lg:gap-16">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="relative"
+            className="relative mx-auto w-full max-w-lg lg:max-w-none"
           >
-            <div className="absolute -left-6 -top-6 hidden h-28 w-28 rounded-full bg-amber-200/60 blur-[1px] sm:block" />
-            <div className="relative overflow-hidden rounded-[1.2rem] shadow-[0_24px_50px_rgba(41,29,22,0.16)] sm:rounded-[2rem]">
+            <div className="absolute -left-4 -top-4 hidden h-28 w-28 rounded-full bg-amber-200/60 blur-[1px] sm:block" />
+            <div className="relative overflow-hidden rounded-[1.2rem] border border-[#f0e4d8] bg-white shadow-[0_24px_50px_rgba(41,29,22,0.14)] sm:rounded-[2rem]">
               <ImageWithFallback
                 src="/images/about.png"
-                alt="About UDAI"
-                className="w-full h-auto block"
+                alt="About UDAI - Moments of Joy and Learning"
+                className="w-full h-auto block object-contain"
               />
             </div>
 
-            <div className="absolute -bottom-3 right-2 z-10 max-w-[210px] text-center rounded-[1rem] bg-white/95 backdrop-blur-md px-3.5 py-2.5 shadow-[0_16px_36px_rgba(55,35,21,0.18)] border border-white/80 sm:-bottom-5 sm:right-4 sm:max-w-[260px] sm:rounded-[1.2rem] sm:px-4 sm:py-3">
+            <div className="absolute -bottom-4 -right-3 z-10 max-w-[220px] rounded-[1rem] border border-[#eedfd4] bg-white/95 px-4 py-2.5 text-center shadow-[0_16px_36px_rgba(55,35,21,0.15)] backdrop-blur-md sm:-bottom-6 sm:-right-8 lg:-right-10 sm:max-w-[270px] sm:rounded-[1.2rem] sm:px-5 sm:py-3.5">
               <p className="text-xs font-semibold italic leading-snug text-[#d67852] sm:text-sm sm:leading-snug">
                 &quot;Every child deserves a chance to dream.&quot;
               </p>

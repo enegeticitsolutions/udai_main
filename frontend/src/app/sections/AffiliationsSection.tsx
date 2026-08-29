@@ -94,13 +94,13 @@ export function AffiliationsSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                className="group flex h-28 sm:h-32 w-full items-center justify-center rounded-2xl border border-[#e2d9d0] bg-white p-3.5 shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
+                className="group relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl border border-[#e2d9d0] bg-white shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
               >
                 <img
                   src={getImageUrl(item.image)}
                   alt={item.title}
                   title={item.title}
-                  className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               </motion.div>
             ))}
@@ -121,13 +121,13 @@ export function AffiliationsSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: (index + 5) * 0.05 }}
-                className="group flex h-28 sm:h-32 w-[calc(50%-8px)] min-[480px]:w-[calc(33.333%-11px)] md:w-[calc(20%-19.2px)] items-center justify-center rounded-2xl border border-[#e2d9d0] bg-white p-3.5 shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
+                className="group relative flex aspect-[4/3] w-[calc(50%-8px)] min-[480px]:w-[calc(33.333%-11px)] md:w-[calc((100%-4*1rem)/5)] lg:w-[calc((100%-4*1.5rem)/5)] items-center justify-center overflow-hidden rounded-2xl border border-[#e2d9d0] bg-white shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
               >
                 <img
                   src={getImageUrl(item.image)}
                   alt={item.title}
                   title={item.title}
-                  className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               </motion.div>
             ))}

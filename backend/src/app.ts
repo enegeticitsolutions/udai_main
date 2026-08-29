@@ -259,6 +259,73 @@ export function createApp() {
     }
   });
 
+  // ── PATCH: update status, appointment date/time, or details ───────
+  app.patch("/webhook/messages/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, appointmentDate, appointmentTime, assignedTherapist, concern, childName, parentName, age } = req.body;
+      const updateData: any = {};
+      if (status !== undefined) updateData.status = status;
+      if (appointmentDate !== undefined) updateData.appointmentDate = appointmentDate;
+      if (appointmentTime !== undefined) updateData.appointmentTime = appointmentTime;
+      if (assignedTherapist !== undefined) updateData.assignedTherapist = assignedTherapist;
+      if (concern !== undefined) updateData.concern = concern;
+      if (childName !== undefined) updateData.childName = childName;
+      if (parentName !== undefined) updateData.parentName = parentName;
+      if (age !== undefined) updateData.age = String(age);
+
+      const updated = await WebhookMessage.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+      if (!updated) {
+        return res.status(404).json({ success: false, message: "Record not found" });
+      }
+
+      // Also sync status and details to chatbotsubmissions if phone exists
+      if (updated.phone) {
+        try {
+          const db = mongoose.connection.db;
+          if (db) {
+            await db.collection("chatbotsubmissions").updateMany(
+              { phone: updated.phone },
+              {
+                $set: {
+                  status: updated.status,
+                  "userDetails.appointmentDate": updated.appointmentDate,
+                  "userDetails.appointmentTime": updated.appointmentTime,
+                  "userDetails.name": updated.childName,
+                  "userDetails.parentName": updated.parentName,
+                  assignedTherapist: updated.assignedTherapist,
+                  updatedAt: new Date(),
+                },
+              }
+            );
+          }
+        } catch (syncErr: any) {
+          console.warn("Could not sync to chatbotsubmissions:", syncErr.message);
+        }
+      }
+
+      res.json({ success: true, data: updated });
+    } catch (error: any) {
+      console.error("❌ Update Webhook Message Error:", error);
+      res.status(500).json({ success: false, message: error.message || "Failed to update record" });
+    }
+  });
+
+  // ── DELETE: remove a webhook message record ───────────────────────
+  app.delete("/webhook/messages/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await WebhookMessage.findByIdAndDelete(id);
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: "Record not found" });
+      }
+      res.json({ success: true, message: "Record deleted successfully" });
+    } catch (error: any) {
+      console.error("❌ Delete Webhook Message Error:", error);
+      res.status(500).json({ success: false, message: error.message || "Failed to delete record" });
+    }
+  });
+
   app.use(notFoundHandler);
   app.use(errorHandler);
 
