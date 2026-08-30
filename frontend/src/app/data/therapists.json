@@ -1,78 +1,78 @@
 [
   {
-    "id": "sakshi-01",
-    "name": "Ms. Sakshi",
-    "role": "Speech Therapist",
-    "department": "Speech Therapy",
-    "image": "/images/sakshi.jpg",
-    "active": true
-  },
-  {
-    "id": "atal-01",
-    "name": "Mr. Atal",
-    "role": "Speech Therapist",
-    "department": "Speech Therapy",
-    "image": "/images/harish.png",
-    "active": true
-  },
-  {
-    "id": "harsimran-01",
+    "id": "team-01",
     "name": "Ms. Harsimran Kaur",
-    "role": "Occupational Therapist",
-    "department": "OT",
+    "role": "Occupational Therapist (OT), Counselling / Home Programme",
+    "department": "Occupational Therapist (OT), Counselling / Home Programme",
     "image": "/images/harsimran.jpeg",
     "active": true
   },
   {
-    "id": "nikki-01",
+    "id": "team-02",
     "name": "Ms. Nikki",
-    "role": "Occupational Therapist",
-    "department": "OT",
+    "role": "Occupational Therapist (OT)",
+    "department": "Occupational Therapist (OT)",
     "image": "/images/kanchan.png",
     "active": true
   },
   {
-    "id": "divya-01",
+    "id": "team-03",
     "name": "Ms. Divya",
     "role": "Physiotherapist",
-    "department": "Physiotherapy",
+    "department": "Physiotherapist",
     "image": "/images/divya.jpg",
     "active": true
   },
   {
-    "id": "sonia-01",
+    "id": "team-04",
     "name": "Ms. Sonia",
-    "role": "Special Educator",
-    "department": "Special Education",
+    "role": "Special Educator, Remedial and Academics Support",
+    "department": "Special Educator, Remedial and Academics Support",
     "image": "/images/sonia.jpg",
     "active": true
   },
   {
-    "id": "shobha-01",
+    "id": "team-05",
     "name": "Ms. Shobha",
-    "role": "Special Educator",
-    "department": "Special Education",
+    "role": "Special Educator, Remedial and Academics Support",
+    "department": "Special Educator, Remedial and Academics Support",
     "image": "/images/shobha.jpg",
     "active": true
   },
   {
-    "id": "ranjana-01",
+    "id": "team-06",
     "name": "Ms. Ranjana",
     "role": "Special Educator",
-    "department": "Special Education",
+    "department": "Special Educator",
     "image": "/images/savita.png",
     "active": true
   },
   {
-    "id": "durgesh-01",
+    "id": "team-07",
+    "name": "Ms. Sakshi",
+    "role": "Speech Therapist",
+    "department": "Speech Therapist",
+    "image": "/images/sakshi.jpg",
+    "active": true
+  },
+  {
+    "id": "team-08",
+    "name": "Mr. Atal",
+    "role": "Speech Therapist",
+    "department": "Speech Therapist",
+    "image": "/images/harish.png",
+    "active": true
+  },
+  {
+    "id": "team-09",
     "name": "Mr. Durgesh",
     "role": "Physical Therapist",
-    "department": "Physical Therapy",
+    "department": "Physical Therapist",
     "image": "/images/durgesh.jpg",
     "active": true
   },
   {
-    "id": "tanu-01",
+    "id": "team-10",
     "name": "Ms. Tanu Rajput",
     "role": "Counselling / Home Programme",
     "department": "Counselling / Home Programme",

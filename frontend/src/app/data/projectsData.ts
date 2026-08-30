@@ -75,7 +75,12 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       "High-Risk Newborns"
     ],
     impact: "Early intervention helps children achieve developmental milestones faster, improves communication and social interaction, strengthens motor skills, enhances school readiness, reduces long-term dependency, and empowers families to actively support their child's growth.",
-    image: "/images/project1.png"
+    image: "/images/early_intervention1.png",
+    gallery: [
+      "/images/early_intervention1.png",
+      "/images/early_intervention2.png",
+      "/images/early_intervention3.png"
+    ]
   },
   {
     slug: "school-readiness",
@@ -128,8 +133,16 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       "Active parent involvement & home programmes",
       "Regular progress monitoring and multidisciplinary reviews"
     ],
-    impact: "Children demonstrate improved communication, mobility, confidence, emotional regulation, independence, and active participation in daily life.",
-    image: "/images/project3.png"
+    impact: "Through consistent therapy, children experience improved mobility, enhanced speech clarity, reduced sensory distress, better emotional self-regulation, increased independence in daily activities, and overall improved quality of life.",
+    image: "/images/therapy1.png",
+    gallery: [
+      "/images/therapy1.png",
+      "/images/therapy2.png",
+      "/images/therapy3.png",
+      "/images/therapy4.png",
+      "/images/therapy5.png",
+      "/images/therapy6.png"
+    ]
   },
   {
     slug: "special-education",
@@ -213,7 +226,12 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       "Micro-entrepreneurship & customer service"
     ],
     impact: "Participants gain vocational competencies, improve self-confidence, achieve financial independence, and successfully transition into employment or self-employment opportunities.",
-    image: "/images/project6.png"
+    image: "/images/vocation1.png",
+    gallery: [
+      "/images/vocation1.png",
+      "/images/vocation2.png",
+      "/images/vocation3.png"
+    ]
   },
   {
     slug: "assistive-living",
@@ -244,7 +262,13 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       "Decision-making & social communication"
     ],
     impact: "Enables every resident to live with confidence, dignity, independence, and a genuine sense of belonging.",
-    image: "/images/project7.png"
+    image: "/images/hostel1.png",
+    gallery: [
+      "/images/hostel1.png",
+      "/images/hostel2.png",
+      "/images/hostel3.png",
+      "/images/hostel4.png"
+    ]
   },
   {
     slug: "community-outreach",
@@ -282,6 +306,14 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       { title: "Home-Based Therapy Guidance", desc: "Empowering parents to continue speech and motor exercises effectively at home." }
     ],
     impact: "Builds a sustainable ecosystem of trained educators and empowered parents who can support children with confidence.",
-    image: "/images/project9.png"
+    image: "/images/teachers1.png",
+    gallery: [
+      "/images/teachers1.png",
+      "/images/teachers2.png",
+      "/images/teachers3.png",
+      "/images/teachers4.png",
+      "/images/teachers5.png",
+      "/images/teachers6.png"
+    ]
   }
 ];

@@ -116,11 +116,11 @@ export function About() {
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-[1.8rem] shadow-[0_16px_34px_rgba(39,63,107,0.12)]">
+            <div className="relative overflow-hidden rounded-[1.8rem] border border-[#ece4dd] bg-white shadow-[0_16px_34px_rgba(39,63,107,0.12)] p-2">
               <ImageWithFallback
                 src="/images/mobile-unit.png"
-                alt="UDAI Working Together Works Mobile Unit"
-                className="w-full h-auto block"
+                alt="UDAI Working Together Works Stage Ceremony"
+                className="w-full h-auto object-contain bg-white rounded-[1.2rem] block"
               />
             </div>
           </div>

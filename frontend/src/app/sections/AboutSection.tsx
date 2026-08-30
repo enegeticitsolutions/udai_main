@@ -23,7 +23,7 @@ export function AboutSection() {
               />
             </div>
 
-            <div className="absolute -bottom-4 -right-3 z-10 max-w-[220px] rounded-[1rem] border border-[#eedfd4] bg-white/95 px-4 py-2.5 text-center shadow-[0_16px_36px_rgba(55,35,21,0.15)] backdrop-blur-md sm:-bottom-6 sm:-right-8 lg:-right-10 sm:max-w-[270px] sm:rounded-[1.2rem] sm:px-5 sm:py-3.5">
+            <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-[270px] rounded-[1rem] border border-[#eedfd4] bg-white/95 px-4 py-2.5 text-center shadow-[0_16px_36px_rgba(55,35,21,0.15)] backdrop-blur-md sm:-bottom-6 sm:max-w-[340px] sm:rounded-[1.2rem] sm:px-5 sm:py-3.5">
               <p className="text-xs font-semibold italic leading-snug text-[#d67852] sm:text-sm sm:leading-snug">
                 &quot;Every child deserves a chance to dream.&quot;
               </p>

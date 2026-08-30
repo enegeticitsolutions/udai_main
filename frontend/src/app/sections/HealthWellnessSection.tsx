@@ -77,33 +77,63 @@ export function HealthWellnessSection() {
             transition={{ duration: 0.6 }}
             className="flex flex-col gap-3 sm:gap-5"
           >
-            {/* First row: 2 images side-by-side with equal size */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-5">
-              <div className="overflow-hidden rounded-[1.15rem] shadow-[0_16px_28px_rgba(40,28,19,0.14)] transition-transform duration-300 hover:-translate-y-1">
-                <ImageWithFallback
-                  src="/images/item1.png"
-                  alt="Sports & Recreation"
-                  className="h-[140px] w-full object-cover sm:h-[220px] md:h-[240px]"
-                />
-              </div>
-              <div className="overflow-hidden rounded-[1.15rem] shadow-[0_16px_28px_rgba(40,28,19,0.14)] transition-transform duration-300 hover:-translate-y-1">
-                <ImageWithFallback
-                  src="/images/healthcare.png"
-                  alt="Medical Camps"
-                  className="h-[140px] w-full object-cover sm:h-[220px] md:h-[240px]"
-                />
+            {/* 1. Sports & Recreation Category Group Frame */}
+            <div className="rounded-[1.4rem] bg-[#faf5f0] border border-[#eee1d5] p-2 sm:p-2.5 shadow-[0_4px_16px_rgba(40,28,19,0.05)]">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+                <div className="overflow-hidden rounded-[1.15rem] bg-white border border-[#f1e7dd] shadow-[0_12px_24px_rgba(40,28,19,0.1)] transition-transform duration-300 hover:-translate-y-1 p-1">
+                  <ImageWithFallback
+                    src="/images/item1.png"
+                    alt="Sports & Recreation - Photo 1"
+                    className="h-[140px] w-full object-contain bg-white rounded-lg sm:h-[220px] md:h-[240px]"
+                  />
+                </div>
+                <div className="overflow-hidden rounded-[1.15rem] bg-white border border-[#f1e7dd] shadow-[0_12px_24px_rgba(40,28,19,0.1)] transition-transform duration-300 hover:-translate-y-1 p-1">
+                  <ImageWithFallback
+                    src="/images/item2.png"
+                    alt="Sports & Recreation - Photo 3"
+                    className="h-[140px] w-full object-contain bg-white rounded-lg sm:h-[220px] md:h-[240px]"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Second row: 1 image centered directly below the two images */}
-            <div className="flex justify-center">
-              <div className="w-[calc(50%-0.375rem)] sm:w-[calc(50%-0.625rem)] overflow-hidden rounded-[1.15rem] shadow-[0_16px_28px_rgba(40,28,19,0.14)] transition-transform duration-300 hover:-translate-y-1">
-                <ImageWithFallback
-                  src="/images/item2.png"
-                  alt="Nutrition Program"
-                  className="h-[140px] w-full object-cover sm:h-[220px] md:h-[240px]"
-                  style={{ objectPosition: "center top" }}
-                />
+            {/* 2. Medical Camps Category Group Frame */}
+            <div className="rounded-[1.4rem] bg-[#faf5f0] border border-[#eee1d5] p-2 sm:p-2.5 shadow-[0_4px_16px_rgba(40,28,19,0.05)]">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+                <div className="overflow-hidden rounded-[1.15rem] bg-white border border-[#f1e7dd] shadow-[0_12px_24px_rgba(40,28,19,0.1)] transition-transform duration-300 hover:-translate-y-1 p-1">
+                  <ImageWithFallback
+                    src="/images/healthcare.png"
+                    alt="Medical Camps - Dental & Health Checkup Selfie"
+                    className="h-[140px] w-full object-contain bg-white rounded-lg sm:h-[220px] md:h-[240px]"
+                  />
+                </div>
+                <div className="overflow-hidden rounded-[1.15rem] bg-white border border-[#f1e7dd] shadow-[0_12px_24px_rgba(40,28,19,0.1)] transition-transform duration-300 hover:-translate-y-1 p-1">
+                  <ImageWithFallback
+                    src="/images/healthcare_exam.png"
+                    alt="Medical Camps - Throat & Oral Examination"
+                    className="h-[140px] w-full object-contain bg-white rounded-lg sm:h-[220px] md:h-[240px]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Nutrition Program Category Group Frame */}
+            <div className="rounded-[1.4rem] bg-[#faf5f0] border border-[#eee1d5] p-2 sm:p-2.5 shadow-[0_4px_16px_rgba(40,28,19,0.05)]">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+                <div className="overflow-hidden rounded-[1.15rem] bg-white border border-[#f1e7dd] shadow-[0_12px_24px_rgba(40,28,19,0.1)] transition-transform duration-300 hover:-translate-y-1 p-1">
+                  <ImageWithFallback
+                    src="/images/nutrition2.png"
+                    alt="Nutrition Program - Children Eating Healthy Meals"
+                    className="h-[140px] w-full object-contain bg-white rounded-lg sm:h-[220px] md:h-[240px]"
+                  />
+                </div>
+                <div className="overflow-hidden rounded-[1.15rem] bg-white border border-[#f1e7dd] shadow-[0_12px_24px_rgba(40,28,19,0.1)] transition-transform duration-300 hover:-translate-y-1 p-1">
+                  <ImageWithFallback
+                    src="/images/nutrition1.png"
+                    alt="Nutrition Program - Children Enjoying Food in Mobile Unit"
+                    className="h-[140px] w-full object-contain bg-white rounded-lg sm:h-[220px] md:h-[240px]"
+                  />
+                </div>
               </div>
             </div>
           </motion.div>

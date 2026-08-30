@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { 
   PROJECTS_DATA, 
@@ -14,14 +14,14 @@ import {
   Target, 
   Heart, 
   Users, 
-  Building, 
-  ShieldCheck 
+  X
 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 
 export function ProjectDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -49,69 +49,100 @@ export function ProjectDetail() {
     );
   }
 
-  // Find index for next/prev project navigation
+  // Get index for Prev/Next navigation
   const currentIndex = PROJECTS_DATA.findIndex((p) => p.slug === project.slug);
   const prevProject = currentIndex > 0 ? PROJECTS_DATA[currentIndex - 1] : null;
   const nextProject = currentIndex < PROJECTS_DATA.length - 1 ? PROJECTS_DATA[currentIndex + 1] : null;
 
   return (
-    <div className="bg-[#f7f4ef] text-[#2c221e] min-h-screen py-10 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <div className="bg-[#f7f4ef] min-h-screen py-8 sm:py-12">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
         
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-2 text-xs font-medium text-[#7a6e67]">
-          <Link to="/" className="hover:text-[#24396f]">Home</Link>
+        {/* Navigation Breadcrumb */}
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#7a6e67]">
+          <Link to="/" className="hover:text-[#24396f] transition">Home</Link>
           <ChevronRight size={12} />
-          <Link to="/projects" className="hover:text-[#24396f]">Projects</Link>
+          <Link to="/projects" className="hover:text-[#24396f] transition">Projects</Link>
           <ChevronRight size={12} />
-          <span className="text-[#24396f] font-bold truncate max-w-[200px] sm:max-w-none">{project.title}</span>
-        </nav>
+          <span className="text-[#24396f] font-bold">{project.title}</span>
+        </div>
 
-        {/* Top Header Banner */}
-        <header className="rounded-3xl bg-[#24396f] p-8 sm:p-12 text-white shadow-xl relative overflow-hidden">
-          <div className="absolute -right-16 -bottom-16 opacity-10 pointer-events-none">
-            <Heart size={350} />
-          </div>
-
-          <div className="relative z-10 max-w-4xl space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                to="/projects"
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1 text-xs font-semibold text-white hover:bg-white/20 transition border border-white/15"
-              >
-                <ArrowLeft size={13} /> Back to Projects
+        {/* Header Hero Banner */}
+        <div className="rounded-3xl bg-[#24396f] p-6 sm:p-10 text-white shadow-lg relative overflow-hidden">
+          <div className="relative z-10 space-y-3 max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#ef3c32] px-3.5 py-1 text-xs font-bold text-white uppercase tracking-wider shadow-sm">
+              <Link to="/projects" className="hover:underline flex items-center gap-1">
+                <ArrowLeft size={12} /> Back to Projects
               </Link>
-              <span className="rounded-full bg-[#ef3c32] px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white">
-                {project.category}
-              </span>
+              <span>•</span>
+              <span>{project.category}</span>
             </div>
 
-            <h1 className="text-3xl font-bold tracking-tight sm:text-5xl text-white leading-tight">
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
               {project.title}
             </h1>
 
-            <p className="text-base sm:text-xl text-[#ef3c32] font-medium leading-relaxed">
+            <p className="text-sm sm:text-lg text-white/90 font-medium leading-relaxed">
               {project.tagline}
             </p>
           </div>
-        </header>
 
-        {/* Main Content Grid: Left Main Details, Right Sidebar */}
+          <div className="absolute right-[-40px] bottom-[-40px] opacity-10 text-white pointer-events-none">
+            <Heart size={260} />
+          </div>
+        </div>
+
+        {/* Grid Content Layout */}
         <div className="grid gap-8 lg:grid-cols-3">
           
           {/* Left Column: Project Details (2 cols) */}
           <main className="lg:col-span-2 space-y-8">
             
-            {/* Hero Image Card */}
-            <div className="rounded-3xl bg-white p-3 shadow-md border border-[#e8dfd8] overflow-hidden">
-              <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden">
-                <ImageWithFallback
-                  src={project.image}
-                  alt={project.title}
-                  className="w-full h-full object-cover"
+            {/* Hero Image / Gallery Card */}
+            <div className="rounded-3xl bg-white p-2 sm:p-2.5 shadow-md border border-[#e8dfd8] overflow-hidden">
+              {project.gallery && project.gallery.length > 0 ? (
+                <div className={`grid grid-cols-2 ${project.gallery.length === 6 ? 'sm:grid-cols-3 lg:grid-cols-3' : project.gallery.length === 4 ? 'sm:grid-cols-4 lg:grid-cols-4' : project.gallery.length === 5 ? 'sm:grid-cols-4 lg:grid-cols-5' : 'sm:grid-cols-3'} gap-2 sm:gap-2.5`}>
+                  {project.gallery.map((imgSrc, index) => (
+                    <div
+                      key={index}
+                      onClick={() => setSelectedImage(imgSrc)}
+                      className="cursor-pointer overflow-hidden rounded-xl bg-white border border-[#f1e7dd] shadow-sm hover:shadow-md transition-transform duration-300 hover:-translate-y-1 p-0.5 group"
+                    >
+                      <ImageWithFallback
+                        src={imgSrc}
+                        alt={`${project.title} Photo ${index + 1}`}
+                        className={`${project.gallery?.length === 6 ? 'h-44 sm:h-52 md:h-56' : project.gallery?.length === 4 ? 'h-32 sm:h-36 md:h-40 lg:h-44' : project.gallery?.length === 5 ? 'h-36 sm:h-44 md:h-48 lg:h-52' : 'h-52 sm:h-64'} w-full object-contain bg-white rounded-lg transition-transform duration-300 group-hover:scale-[1.02]`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden p-1 bg-white">
+                  <ImageWithFallback
+                    src={project.image}
+                    alt={project.title}
+                    className="w-full h-full object-contain bg-white rounded-xl"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Lightbox Modal */}
+            {selectedImage && (
+              <div 
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                onClick={() => setSelectedImage(null)}
+              >
+                <button className="absolute top-6 right-6 text-white p-2 bg-white/10 rounded-full hover:bg-white/20">
+                  <X size={24} />
+                </button>
+                <img 
+                  src={selectedImage} 
+                  alt="Full view" 
+                  className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl"
                 />
               </div>
-            </div>
+            )}
 
             {/* Description Card */}
             <section className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-[#e8dfd8] space-y-4">
