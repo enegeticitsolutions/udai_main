@@ -121,18 +121,40 @@ export default function WhatsAppMessagesPage() {
   }, []);
 
   const fetchMessages = useCallback(async () => {
-    try {
-      const res = await fetch(`${BACKEND_BASE}/webhook/messages`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setMessages(json.data || []);
-      setError(null);
-      setLastRefresh(new Date());
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    const urls = [
+      `${BACKEND_BASE}/webhook/messages`,
+      `${BACKEND_BASE}/api/webhook/messages`,
+      `${BACKEND_BASE}/api/admin/webhook/messages`,
+      "/api/admin/webhook/messages",
+      "/api/webhook/messages",
+      "/webhook/messages",
+    ];
+
+    let lastErr = null;
+    let fetched = false;
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && (json.success !== false || Array.isArray(json.data))) {
+            setMessages(json.data || []);
+            setError(null);
+            setLastRefresh(new Date());
+            fetched = true;
+            break;
+          }
+        }
+      } catch (err) {
+        lastErr = err;
+      }
     }
+
+    if (!fetched && lastErr) {
+      setError(lastErr.message);
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -160,23 +182,39 @@ export default function WhatsAppMessagesPage() {
 
     try {
       setIsUpdating(true);
-      const res = await fetch(`${BACKEND_BASE}/webhook/messages/${rescheduleItem._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "rescheduled",
-          appointmentDate: rescheduleDate,
-          appointmentTime: rescheduleTime,
-          assignedTherapist: rescheduleTherapist,
-        }),
-      });
+      const targetId = rescheduleItem._id || rescheduleItem.id;
+      const patchUrls = [
+        `${BACKEND_BASE}/webhook/messages/${targetId}`,
+        `${BACKEND_BASE}/api/webhook/messages/${targetId}`,
+        `${BACKEND_BASE}/api/admin/webhook/messages/${targetId}`,
+      ];
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      let success = false;
+      for (const url of patchUrls) {
+        try {
+          const res = await fetch(url, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              status: "rescheduled",
+              appointmentDate: rescheduleDate,
+              appointmentTime: rescheduleTime,
+              assignedTherapist: rescheduleTherapist,
+            }),
+          });
+          if (res.ok) {
+            success = true;
+            break;
+          }
+        } catch {}
+      }
+
+      if (!success) throw new Error("Failed to reach backend endpoint");
 
       // Update local state optimistically
       setMessages((prev) =>
         prev.map((m) =>
-          m._id === rescheduleItem._id
+          (m._id === targetId || m.id === targetId)
             ? {
                 ...m,
                 status: "rescheduled",
@@ -202,26 +240,41 @@ export default function WhatsAppMessagesPage() {
 
     try {
       setIsUpdating(true);
-      const res = await fetch(`${BACKEND_BASE}/webhook/messages/${cancelItem._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "cancelled" }),
-      });
+      const targetId = cancelItem._id || cancelItem.id;
+      const patchUrls = [
+        `${BACKEND_BASE}/webhook/messages/${targetId}`,
+        `${BACKEND_BASE}/api/webhook/messages/${targetId}`,
+        `${BACKEND_BASE}/api/admin/webhook/messages/${targetId}`,
+      ];
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      let success = false;
+      for (const url of patchUrls) {
+        try {
+          const res = await fetch(url, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "cancelled" }),
+          });
+          if (res.ok) {
+            success = true;
+            break;
+          }
+        } catch {}
+      }
 
+      if (!success) throw new Error("Failed to reach backend endpoint");
+
+      // Update local state optimistically
       setMessages((prev) =>
         prev.map((m) =>
-          m._id === cancelItem._id
-            ? { ...m, status: "cancelled" }
-            : m
+          (m._id === targetId || m.id === targetId) ? { ...m, status: "cancelled" } : m
         )
       );
 
       showToast("Appointment cancelled successfully.");
       setCancelItem(null);
     } catch (err) {
-      alert("Failed to cancel appointment: " + err.message);
+      alert("Failed to cancel: " + err.message);
     } finally {
       setIsUpdating(false);
     }

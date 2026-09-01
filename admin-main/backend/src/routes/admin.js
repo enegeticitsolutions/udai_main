@@ -437,3 +437,67 @@ adminRouter.delete("/careers/:id", async (req, res, next) => {
     next(error);
   }
 });
+
+// ── Webhook Messages (WhatsApp Bot Records) ───────────────────────
+adminRouter.get("/webhook/messages", async (_req, res, next) => {
+  try {
+    await connectMongoDb();
+    if (isMongoConnected()) {
+      const db = getMongoDb();
+      const docs = await db.collection("webhookmessages").find({}).sort({ receivedAt: -1 }).toArray();
+      const mapped = docs.map((doc) => ({
+        ...doc,
+        id: doc._id ? doc._id.toString() : String(doc.id ?? ""),
+      }));
+      return res.json({ success: true, count: mapped.length, data: mapped });
+    }
+    res.json({ success: true, count: 0, data: [] });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch("/webhook/messages/:id", async (req, res, next) => {
+  try {
+    await connectMongoDb();
+    if (!isMongoConnected()) {
+      return res.status(500).json({ success: false, message: "Database not connected" });
+    }
+    const db = getMongoDb();
+    const id = req.params.id;
+    const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };
+    const { status, appointmentDate, appointmentTime, assignedTherapist, concern, childName, parentName, age } = req.body;
+    const updateData = {};
+    if (status !== undefined) updateData.status = status;
+    if (appointmentDate !== undefined) updateData.appointmentDate = appointmentDate;
+    if (appointmentTime !== undefined) updateData.appointmentTime = appointmentTime;
+    if (assignedTherapist !== undefined) updateData.assignedTherapist = assignedTherapist;
+    if (concern !== undefined) updateData.concern = concern;
+    if (childName !== undefined) updateData.childName = childName;
+    if (parentName !== undefined) updateData.parentName = parentName;
+    if (age !== undefined) updateData.age = String(age);
+    updateData.updatedAt = new Date();
+
+    const result = await db.collection("webhookmessages").findOneAndUpdate(filter, { $set: updateData }, { returnDocument: "after" });
+    res.json({ success: true, data: result.value || result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/webhook/messages/:id", async (req, res, next) => {
+  try {
+    await connectMongoDb();
+    if (!isMongoConnected()) {
+      return res.status(500).json({ success: false, message: "Database not connected" });
+    }
+    const db = getMongoDb();
+    const id = req.params.id;
+    const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };
+    await db.collection("webhookmessages").deleteOne(filter);
+    res.json({ success: true, message: "Record deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+

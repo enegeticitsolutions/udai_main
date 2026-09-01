@@ -42,6 +42,8 @@ export function createApp() {
   });
 
   app.use("/api/admin", adminRouter);
+  app.use("/api", adminRouter);
+  app.use("/", adminRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ success: false, message: "Route not found" });
