@@ -1,356 +1,574 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useState } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
-  CreditCard,
   Heart,
-  Landmark,
-  QrCode,
   ShieldCheck,
-  Smartphone,
+  X,
+  Sparkles,
+  Phone,
+  Mail,
 } from "lucide-react";
-import { motion } from "motion/react";
-import { apiGet, apiPost } from "../lib/api";
+import { motion, AnimatePresence } from "motion/react";
+import { apiPost } from "../lib/api";
 import { getImageUrl } from "../lib/imageUtils";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 
-declare global {
-  interface Window {
-    Razorpay?: new (options: any) => {
-      open: () => void;
-      on?: (event: string, callback: (response: any) => void) => void;
-    };
-  }
+type CauseKey = "meal" | "future" | "healthcare" | "education" | "general";
+
+interface CauseOption {
+  key: CauseKey;
+  title: string;
+  shortTitle: string;
+  defaultPurpose: string;
+  description: string;
+  image: string;
+  badge: string;
+  color: string;
+  bgColor: string;
+  accentBg: string;
+  borderColor: string;
+  tagColor: string;
 }
 
-type DonationType = "one-time" | "monthly";
-type DonationStage = "amount" | "details" | "payment";
-type PaymentMethod = "qr" | "upi" | "netbanking" | "card";
-type DonationCategory = "meal" | "future";
-type AmountOption = { amount: number | null; meals?: number };
-
-type DynamicQrCodeData = {
-  id: string;
-  status: string;
-  imageUrl: string;
-  imageContent?: string;
-  amount: number;
-  currency: string;
-  localOrderId: string;
-  orderNumber: string;
-  isFallback?: boolean;
-};
-
-type RazorpayCreateResponse = {
-  order: any;
-  razorpay: {
-    keyId: string;
-    orderId: string;
-    amount: number;
-    currency: string;
-    name: string;
-    description: string;
-    prefill: {
-      name: string;
-      email: string;
-      contact: string;
-    };
-  };
-};
-
-const mealAmountOptions: AmountOption[] = [
-  { amount: 1000, meals: 5 },
-  { amount: 1500, meals: 12 },
-  { amount: 2000, meals: 25 },
-  { amount: 5000, meals: 50 },
-  { amount: null },
+const CAUSES: CauseOption[] = [
+  {
+    key: "meal",
+    title: "Nourish a Mind: The Mid Day Meal Initiative",
+    shortTitle: "Mid Day Meals",
+    defaultPurpose: "Mid-Day Meal Initiative",
+    description: "A warm, balanced meal ensures children stay focused and healthy.",
+    image: "/images/afterschool.png",
+    badge: "Nutrition & Care",
+    color: "#c95b38",
+    bgColor: "bg-[#fff4df]",
+    accentBg: "bg-[#c95b38] hover:bg-[#b94e30]",
+    borderColor: "border-[#ead9be]",
+    tagColor: "bg-[#f5e3cc] text-[#8c3f25]",
+  },
+  {
+    key: "future",
+    title: "Empower a Child: Invest in Their Future",
+    shortTitle: "Empower a Child",
+    defaultPurpose: "Empower a Child: Future Support",
+    description: "Your donation provides immediate relief and long term support for children in need.",
+    image: "/images/involved.png",
+    badge: "Holistic Development",
+    color: "#df4d4d",
+    bgColor: "bg-[#dceffd]",
+    accentBg: "bg-[#df4d4d] hover:bg-[#cf4141]",
+    borderColor: "border-[#b6d8f2]",
+    tagColor: "bg-[#cce6fa] text-[#1b5e8c]",
+  },
+  {
+    key: "healthcare",
+    title: "Heal & Care: Therapy & Healthcare",
+    shortTitle: "Therapy & Health",
+    defaultPurpose: "Therapy & Healthcare Support",
+    description: "Fund specialized therapy, rehabilitation, and long-term medical care for children.",
+    image: "/images/healthcare.png",
+    badge: "Rehabilitation",
+    color: "#2e7d32",
+    bgColor: "bg-[#e6f4ea]",
+    accentBg: "bg-[#2e7d32] hover:bg-[#1b5e20]",
+    borderColor: "border-[#c2e2cc]",
+    tagColor: "bg-[#d0eed8] text-[#1e6124]",
+  },
+  {
+    key: "education",
+    title: "Build Skills: Digital & Special Education",
+    shortTitle: "Special Education",
+    defaultPurpose: "Digital & Special Education Support",
+    description: "Empower students with practical technology skills, tools, and vocational training.",
+    image: "/images/digital.png",
+    badge: "Vocational Skills",
+    color: "#7b1fa2",
+    bgColor: "bg-[#f3e5f5]",
+    accentBg: "bg-[#7b1fa2] hover:bg-[#4a148c]",
+    borderColor: "border-[#e1bee7]",
+    tagColor: "bg-[#e6cef0] text-[#581575]",
+  },
 ];
 
-const futureAmountOptions: AmountOption[] = [
-  { amount: 1000 },
-  { amount: 2000 },
-  { amount: 3000 },
-  { amount: 4000 },
-  { amount: 5000 },
-  { amount: null },
-];
+const PRESET_AMOUNTS = [500, 1000, 2000, 5000, 10000];
 
-function loadRazorpayScript() {
-  return new Promise<boolean>((resolve) => {
-    if (typeof window !== "undefined" && typeof (window as any).Razorpay !== "undefined") {
-      resolve(true);
-      return;
-    }
-
-    const existingScript = document.getElementById("razorpay-checkout-script");
-    if (existingScript) {
-      existingScript.addEventListener("load", () => resolve(true), { once: true });
-      existingScript.addEventListener("error", () => resolve(false), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "razorpay-checkout-script";
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
-
-function getInitialPaymentForm() {
-  return {
-    upiId: "",
-    bank: "",
-    cardName: "",
-    cardNumber: "",
-    cardExpiry: "",
-    cardCvv: "",
-  };
-}
-
-function DonationPanel({
-  category,
-  options,
-  buttonLabel,
-  allowMonthly = false,
-  accentClass,
-  selectedClass,
-}: {
-  category: DonationCategory;
-  options?: AmountOption[];
-  buttonLabel?: string;
-  defaultAmount?: number;
-  allowMonthly?: boolean;
-  accentClass: string;
-  selectedClass: string;
-}) {
-  const [donationType, setDonationType] = useState<DonationType>(allowMonthly ? "monthly" : "one-time");
-  const [stage, setStage] = useState<DonationStage>("amount");
-  const [customAmount, setCustomAmount] = useState("");
+export function DonationSection() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCause, setSelectedCause] = useState<CauseKey>("meal");
+  const [amount, setAmount] = useState<number | "custom">(1000);
+  const [customAmount, setCustomAmount] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    purpose:
-      category === "meal"
-        ? "Mid-Day Meal Initiative"
-        : buttonLabel
-          ? buttonLabel.replace("Donate for ", "") + " Support"
-          : "Donation support",
+    pan: "",
+    purpose: "Mid-Day Meal Initiative",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const effectiveAmount = Number(customAmount);
-  const amountLabel = effectiveAmount > 0 ? `₹${effectiveAmount}` : "";
-  const donationLabel = `${amountLabel}${donationType === "monthly" ? " Monthly" : ""}`;
-  const purpose =
-    category === "meal"
-      ? "Mid-Day Meal Initiative"
-      : donationType === "monthly"
-        ? "Monthly support"
-        : "One-time donation";
+  const activeCause = CAUSES.find((c) => c.key === selectedCause) || CAUSES[0];
 
-  function isValidAmount(amount: number) {
-    return Number.isFinite(amount) && amount > 0;
-  }
+  const effectiveAmount =
+    amount === "custom" ? Number(customAmount) : Number(amount);
 
-  function selectDonationType(nextType: DonationType) {
-    setDonationType(nextType);
-    setFormData((current) => ({ ...current, purpose: nextType === "monthly" ? "Monthly support" : "One-time donation" }));
+  const openDonationModal = (causeKey?: CauseKey) => {
+    const targetKey = causeKey || "meal";
+    const causeObj = CAUSES.find((c) => c.key === targetKey) || CAUSES[0];
+    setSelectedCause(targetKey);
+    setFormData((prev) => ({
+      ...prev,
+      purpose: causeObj.defaultPurpose,
+    }));
     setFeedback(null);
-  }
+    setIsModalOpen(true);
+  };
 
-  function validateDetails() {
+  const handleSelectCause = (key: CauseKey) => {
+    setSelectedCause(key);
+    const causeObj = CAUSES.find((c) => c.key === key);
+    if (causeObj) {
+      setFormData((prev) => ({
+        ...prev,
+        purpose: causeObj.defaultPurpose,
+      }));
+    }
+  };
+
+  const handleDonateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!Number.isFinite(effectiveAmount) || effectiveAmount <= 0) {
+      setFeedback("Please enter a valid donation amount.");
+      return;
+    }
+
     if (!formData.name.trim() || formData.name.trim().length < 2) {
-      setFeedback("Please enter your full name (at least 2 characters).");
-      return false;
+      setFeedback("Please enter your full name.");
+      return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim() || !emailRegex.test(formData.email.trim())) {
       setFeedback("Please enter a valid email address.");
-      return false;
+      return;
     }
 
-    return true;
-  }
-
-  async function handleDonateClick() {
     try {
-      if (!isValidAmount(effectiveAmount)) {
-        setFeedback("Please enter a valid donation amount.");
-        return;
-      }
-      if (!validateDetails()) {
-        return;
-      }
-
       setIsSubmitting(true);
       setFeedback(null);
 
-      const cleanPhone = formData.phone ? formData.phone.replace(/\D/g, "").slice(-10) : "";
+      const cleanPhone = formData.phone
+        ? formData.phone.replace(/\D/g, "").slice(-10)
+        : "";
+
       const res = await apiPost<any>("/payments/razorpay/create-payment-link", {
         amount: effectiveAmount,
         customerName: formData.name.trim(),
         customerEmail: formData.email.trim(),
         customerPhone: cleanPhone,
-        purpose: formData.purpose.trim() || purpose,
-        donationCategory: category,
+        purpose: formData.purpose.trim() || activeCause.defaultPurpose,
+        donationCategory: selectedCause,
         callbackUrl: `${window.location.origin}/donation-success`,
+        pan: formData.pan.trim(),
       });
 
-      const linkUrl = res?.short_url || res?.paymentLinkUrl || res?.data?.short_url;
+      const linkUrl =
+        res?.short_url || res?.paymentLinkUrl || res?.data?.short_url;
 
       if (!linkUrl) {
-        throw new Error(res?.message || "Failed to create Razorpay Payment Link.");
+        throw new Error(
+          res?.message || "Failed to create Razorpay Payment Link."
+        );
       }
 
       window.location.href = linkUrl;
     } catch (err) {
       setIsSubmitting(false);
-      setFeedback(err instanceof Error ? err.message : "Unable to initiate payment link.");
+      setFeedback(
+        err instanceof Error
+          ? err.message
+          : "Unable to initiate payment. Please try again."
+      );
     }
-  }
+  };
 
   return (
-    <div className="w-full flex flex-col justify-between">
-      {stage === "amount" ? (
-        <div className="mt-2">
-          <button
-            type="button"
-            onClick={() => {
-              setFeedback(null);
-              setStage("details");
-            }}
-            className={`w-full rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_20px_rgba(201,91,56,0.22)] transition ${accentClass}`}
-          >
-            {buttonLabel || (category === "meal" ? "Donate for Meals" : "Donate Now")}
-          </button>
-        </div>
-      ) : null}
-
-      {stage === "details" ? (
-        <div className="mt-3 space-y-3">
-          <div>
-            <label className="block text-xs font-semibold text-[#5e5048] mb-1">
-              Amount to donate (₹)
-            </label>
-            <Input
-              type="number"
-              min="1"
-              step="1"
-              value={customAmount}
-              onChange={(event) => {
-                setCustomAmount(event.target.value);
-                setFeedback(null);
-              }}
-              placeholder="Enter amount (₹)"
-              className="border-transparent bg-white"
-            />
+    <section
+      id="donate"
+      className="scroll-mt-32 bg-white pt-20 pb-16 sm:pt-24 sm:pb-20"
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Section Header with Single Donate Now Button in Right Corner */}
+        <div className="mb-10 flex flex-col items-center justify-between gap-4 border-b border-[#ebdcd0] pb-6 sm:flex-row sm:items-end">
+          <div className="text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#fdf2ea] px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#c95b38]">
+              <Sparkles className="h-3.5 w-3.5" />
+              Make A Difference Today
+            </div>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#17120f] sm:text-4xl">
+              Choose Your Impact
+            </h2>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[#665e57] sm:text-base">
+              Every contribution helps provide therapeutic care, nutritious meals,
+              education, and vocational training for special children.
+            </p>
           </div>
 
-          <Input value={formData.name} onChange={(event) => setFormData((current) => ({ ...current, name: event.target.value }))} placeholder="Full name" />
-          <Input type="email" value={formData.email} onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))} placeholder="Email address" />
-          <Input type="tel" value={formData.phone} onChange={(event) => setFormData((current) => ({ ...current, phone: event.target.value }))} placeholder="Mobile number (optional)" />
-          <Input value={formData.purpose} onChange={(event) => setFormData((current) => ({ ...current, purpose: event.target.value }))} placeholder="Purpose" />
-          <Textarea value={formData.message} onChange={(event) => setFormData((current) => ({ ...current, message: event.target.value }))} placeholder="Message (optional)" rows={2} />
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={() => setStage("amount")} className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#bdd8ed] bg-white/50 px-4 py-2.5 text-xs font-semibold text-[#334a5c] transition hover:bg-white">
-              <ArrowLeft className="h-3.5 w-3.5" /> Back
-            </button>
+          {/* Unified Donate Now Button (Right Corner) */}
+          <div className="flex-shrink-0">
             <button
               type="button"
-              onClick={handleDonateClick}
-              disabled={isSubmitting}
-              className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold text-white transition disabled:opacity-70 ${accentClass}`}
+              onClick={() => openDonationModal()}
+              className="inline-flex items-center justify-center gap-2.5 rounded-full bg-[#c95b38] px-7 py-3.5 text-base font-semibold text-white shadow-[0_12px_24px_rgba(201,91,56,0.28)] transition hover:bg-[#b94e30] hover:scale-105 active:scale-95 cursor-pointer"
             >
-              {isSubmitting ? "Redirecting to Razorpay..." : "Donate Now"} <ArrowRight className="h-3.5 w-3.5" />
+              <Heart className="h-5 w-5 fill-white text-white" />
+              <span>Donate Now</span>
             </button>
           </div>
         </div>
-      ) : null}
 
-      {feedback ? (
-        <div
-          className={`mt-3 rounded-xl border px-3 py-2 text-xs font-medium ${
-            feedback.toLowerCase().includes("thank you") || feedback.toLowerCase().includes("completed") || feedback.toLowerCase().includes("recorded")
-              ? "border-[#bddcc3] bg-[#edf8ef] text-[#2f6c3e]"
-              : "border-[#f5c2c7] bg-[#f8d7da] text-[#842029]"
-          }`}
+        {/* 4 Cards Grid - Clean, without individual buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 items-stretch"
         >
-          {feedback}
-        </div>
-      ) : null}
+          {CAUSES.map((cause) => (
+            <article
+              key={cause.key}
+              onClick={() => openDonationModal(cause.key)}
+              className={`group flex flex-col justify-between overflow-hidden rounded-2xl ${cause.bgColor} p-4 sm:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.06)] border ${cause.borderColor} transition hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 cursor-pointer`}
+            >
+              <div>
+                <div className="relative overflow-hidden rounded-xl">
+                  <img
+                    src={getImageUrl(cause.image)}
+                    alt={cause.title}
+                    className="h-44 w-full object-cover transition duration-500 group-hover:scale-105 shadow-sm"
+                  />
+                  <span
+                    className={`absolute top-2.5 right-2.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${cause.tagColor} shadow-sm backdrop-blur-md`}
+                  >
+                    {cause.badge}
+                  </span>
+                </div>
 
-      <div className="mt-4 flex flex-col items-center gap-2 text-center text-[11px] text-[#2f4350]">
-        <div className="flex items-center gap-2"><ShieldCheck className="h-3 w-3 text-[#2f6c3e]" /><span>80G Tax Benefits Available</span></div>
-        <p className="leading-4">For assistance, contact us at:<br /><strong>+91 9899681972</strong> | <strong>info@udairehab.org</strong></p>
-      </div>
-    </div>
-  );
-}
+                <h3 className="mt-4 text-xl font-bold leading-snug text-[#17120f] sm:text-2xl min-h-[56px] flex items-center">
+                  {cause.title}
+                </h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-[#3f332c] sm:text-base">
+                  {cause.description}
+                </p>
+              </div>
 
-export function DonationSection() {
-  return (
-    <section id="donate" className="scroll-mt-32 bg-white pt-24 pb-10 sm:pt-28 sm:pb-12">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-3xl font-semibold tracking-tight text-[#17120f] sm:text-4xl">Choose Your Impact</h2>
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
-          {/* COLUMN 1 */}
-          <article className="flex flex-col justify-between overflow-hidden rounded-2xl bg-[#fff4df] p-4 shadow-[0_18px_34px_rgba(72,49,25,0.12)] sm:p-5">
-            <div>
-              <img src={getImageUrl("/images/afterschool.png")} alt="Children supported by UDAI programs" className="h-44 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(45,31,20,0.14)]" />
-              <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl min-h-[56px] flex items-center">Nourish a Mind: The Mid Day Meal Initiative</h3>
-              <p className="mt-3 text-sm leading-6 text-[#3f332c] sm:text-base sm:leading-7">A warm, balanced meal ensures children stay focused and healthy.</p>
-            </div>
-            <div className="mt-5 border-t border-[#ead9be] pt-5">
-              <DonationPanel category="meal" buttonLabel="Donate for Meals" accentClass="bg-[#c95b38] hover:bg-[#b94e30]" selectedClass="border-[#c95b38] bg-white text-[#c95b38] shadow-sm" />
-            </div>
-          </article>
-
-          {/* COLUMN 2 */}
-          <article className="flex flex-col justify-between overflow-hidden rounded-2xl bg-[#dceffd] p-4 shadow-[0_18px_34px_rgba(28,69,100,0.12)] sm:p-5">
-            <div>
-              <img src={getImageUrl("/images/involved.png")} alt="Children learning together" className="h-44 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(28,69,100,0.14)]" />
-              <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl min-h-[56px] flex items-center">Empower a Child: Invest in Their Future</h3>
-              <p className="mt-3 text-sm leading-6 text-[#252525] sm:text-base sm:leading-7">Your donation provides immediate relief and long term support for children in need.</p>
-            </div>
-            <div className="mt-5 border-t border-[#b6d8f2] pt-5">
-              <DonationPanel category="future" buttonLabel="Donate for Future" allowMonthly accentClass="bg-[#df4d4d] hover:bg-[#cf4141]" selectedClass="border-[#d2a885] bg-[#fff1df] text-[#8b4d34] shadow-sm" />
-            </div>
-          </article>
-
-          {/* COLUMN 3 */}
-          <article className="flex flex-col justify-between overflow-hidden rounded-2xl bg-[#e6f4ea] p-4 shadow-[0_18px_34px_rgba(30,75,45,0.12)] sm:p-5">
-            <div>
-              <img src={getImageUrl("/images/healthcare.png")} alt="Healthcare and therapy support" className="h-44 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(30,75,45,0.14)]" />
-              <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl min-h-[56px] flex items-center">Heal & Care: Therapy & Healthcare</h3>
-              <p className="mt-3 text-sm leading-6 text-[#253f2c] sm:text-base sm:leading-7">Fund specialized therapy, rehabilitation, and long-term medical care for children.</p>
-            </div>
-            <div className="mt-5 border-t border-[#c2e2cc] pt-5">
-              <DonationPanel category="future" buttonLabel="Donate for Healthcare" allowMonthly accentClass="bg-[#2e7d32] hover:bg-[#1b5e20]" selectedClass="border-[#2e7d32] bg-white text-[#2e7d32] shadow-sm" />
-            </div>
-          </article>
-
-          {/* COLUMN 4 */}
-          <article className="flex flex-col justify-between overflow-hidden rounded-2xl bg-[#f3e5f5] p-4 shadow-[0_18px_34px_rgba(75,30,90,0.12)] sm:p-5">
-            <div>
-              <img src={getImageUrl("/images/digital.png")} alt="Digital literacy and skill building" className="h-44 w-full rounded-xl object-cover shadow-[0_10px_22px_rgba(75,30,90,0.14)]" />
-              <h3 className="mt-4 text-xl font-semibold leading-tight text-[#17120f] sm:mt-5 sm:text-2xl min-h-[56px] flex items-center">Build Skills: Digital & Special Education</h3>
-              <p className="mt-3 text-sm leading-6 text-[#3b2545] sm:text-base sm:leading-7">Empower students with practical technology skills, tools, and vocational training.</p>
-            </div>
-            <div className="mt-5 border-t border-[#e1bee7] pt-5">
-              <DonationPanel category="future" buttonLabel="Donate for Education" allowMonthly accentClass="bg-[#7b1fa2] hover:bg-[#4a148c]" selectedClass="border-[#7b1fa2] bg-white text-[#7b1fa2] shadow-sm" />
-            </div>
-          </article>
+              {/* Bottom Info on each card */}
+              <div className={`mt-5 border-t ${cause.borderColor} pt-4 flex flex-col items-center gap-1.5 text-center text-[11px] text-[#2f4350]`}>
+                <div className="flex items-center gap-1.5 font-medium text-[#2f6c3e]">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span>80G Tax Benefits Available</span>
+                </div>
+                <p className="text-[11px] text-[#5c524c]">
+                  Click card to support this cause
+                </p>
+              </div>
+            </article>
+          ))}
         </motion.div>
+
+        {/* Global Assistance and Tax Benefits Footer */}
+        <div className="mt-10 rounded-2xl border border-[#eadcd2] bg-[#faf6f2] p-5 text-center sm:flex sm:items-center sm:justify-between sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e6f4ea] text-[#2e7d32]">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[#17120f]">
+                All Donations are Eligible for 50% Tax Deduction under Section 80G
+              </p>
+              <p className="text-xs text-[#6e635c]">
+                Instant 80G receipts will be delivered directly to your email address.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-[#4a3e38] sm:mt-0">
+            <a
+              href="tel:+919899681972"
+              className="inline-flex items-center gap-1.5 hover:text-[#c95b38] transition"
+            >
+              <Phone className="h-3.5 w-3.5 text-[#c95b38]" />
+              <span>+91 9899681972</span>
+            </a>
+            <span className="text-[#d0c2b7]">|</span>
+            <a
+              href="mailto:info@udairehab.org"
+              className="inline-flex items-center gap-1.5 hover:text-[#c95b38] transition"
+            >
+              <Mail className="h-3.5 w-3.5 text-[#c95b38]" />
+              <span>info@udairehab.org</span>
+            </a>
+          </div>
+        </div>
       </div>
+
+      {/* Unified Donation Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isSubmitting && setIsModalOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.25 }}
+              className="relative z-10 w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl border border-[#ebdcd0] max-h-[92vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-[#f0e4db] px-6 py-4 bg-[#faf6f2]">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fdf2ea] text-[#c95b38]">
+                    <Heart className="h-5 w-5 fill-[#c95b38]" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-[#17120f]">
+                      Make a Contribution
+                    </h3>
+                    <p className="text-xs text-[#70645c]">
+                      Empowering differently-abled children & youth
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSubmitting}
+                  className="rounded-full p-1.5 text-[#736861] hover:bg-[#ebdcd0] hover:text-[#17120f] transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form
+                onSubmit={handleDonateSubmit}
+                className="overflow-y-auto p-6 space-y-5 flex-1"
+              >
+                {/* Cause Selector */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#665a52] mb-2">
+                    Select Cause / Program
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {CAUSES.map((cause) => {
+                      const isSelected = selectedCause === cause.key;
+                      return (
+                        <button
+                          key={cause.key}
+                          type="button"
+                          onClick={() => handleSelectCause(cause.key)}
+                          className={`flex flex-col items-center justify-center rounded-xl p-2.5 text-center text-xs font-semibold transition border ${
+                            isSelected
+                              ? `border-[#c95b38] bg-[#fff5f0] text-[#c95b38] ring-2 ring-[#c95b38]/20 shadow-sm`
+                              : "border-[#e6d8ce] bg-white text-[#4a3e38] hover:bg-[#faf6f2]"
+                          }`}
+                        >
+                          <span>{cause.shortTitle}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Amount Selector */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#665a52] mb-2">
+                    Choose Donation Amount (₹)
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                    {PRESET_AMOUNTS.map((amt) => {
+                      const isSelected = amount === amt;
+                      return (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => {
+                            setAmount(amt);
+                            setCustomAmount("");
+                            setFeedback(null);
+                          }}
+                          className={`rounded-xl py-2.5 text-center text-sm font-bold transition border ${
+                            isSelected
+                              ? "border-[#c95b38] bg-[#c95b38] text-white shadow-md"
+                              : "border-[#e6d8ce] bg-white text-[#4a3e38] hover:bg-[#faf6f2]"
+                          }`}
+                        >
+                          ₹{amt.toLocaleString("en-IN")}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Custom Amount Input */}
+                  <div className="mt-3">
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#8a7b72]">
+                        ₹
+                      </span>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="Or enter custom amount in Rupees"
+                        value={customAmount}
+                        onChange={(e) => {
+                          setCustomAmount(e.target.value);
+                          setAmount("custom");
+                          setFeedback(null);
+                        }}
+                        className="pl-8 bg-white border-[#ebdcd0] focus:border-[#c95b38]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Donor Details */}
+                <div className="space-y-3 pt-1 border-t border-[#f0e4db]">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#665a52]">
+                    Donor Details (For 80G Tax Receipt)
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Input
+                        type="text"
+                        placeholder="Full Name *"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        required
+                        className="bg-white border-[#ebdcd0]"
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        type="email"
+                        placeholder="Email Address *"
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            email: e.target.value,
+                          }))
+                        }
+                        required
+                        className="bg-white border-[#ebdcd0]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Input
+                        type="tel"
+                        placeholder="Phone Number (optional)"
+                        value={formData.phone}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            phone: e.target.value,
+                          }))
+                        }
+                        className="bg-white border-[#ebdcd0]"
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        type="text"
+                        placeholder="PAN Card No. (optional for 80G)"
+                        value={formData.pan}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            pan: e.target.value.toUpperCase(),
+                          }))
+                        }
+                        className="bg-white border-[#ebdcd0]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Textarea
+                      placeholder="Add a message or dedication (optional)"
+                      rows={2}
+                      value={formData.message}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          message: e.target.value,
+                        }))
+                      }
+                      className="bg-white border-[#ebdcd0]"
+                    />
+                  </div>
+                </div>
+
+                {/* Error/Feedback message */}
+                {feedback && (
+                  <div className="rounded-xl border border-[#f5c2c7] bg-[#f8d7da] px-3.5 py-2.5 text-xs font-medium text-[#842029]">
+                    {feedback}
+                  </div>
+                )}
+
+                {/* Submit Action */}
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || effectiveAmount <= 0}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#c95b38] py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-[#b94e30] disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmitting ? (
+                      "Connecting to Razorpay..."
+                    ) : (
+                      <>
+                        <span>
+                          Proceed to Donate ₹
+                          {effectiveAmount > 0
+                            ? effectiveAmount.toLocaleString("en-IN")
+                            : "0"}
+                        </span>
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+
+                  <div className="mt-3 flex items-center justify-center gap-2 text-center text-[11px] text-[#786b62]">
+                    <ShieldCheck className="h-3.5 w-3.5 text-[#2e7d32]" />
+                    <span>
+                      100% Secure Transaction via Razorpay | 80G Tax Exemption
+                    </span>
+                  </div>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

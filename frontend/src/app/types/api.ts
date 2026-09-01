@@ -67,12 +67,17 @@ export interface Testimonial {
 }
 
 export interface Therapist {
-  id: number;
+  id: string | number;
   name: string;
-  image: string;
-  department: string;
-  role: string;
-  summary: string;
+  image?: string;
+  department?: string;
+  role?: string;
+  summary?: string;
+  experience?: string;
+  active?: boolean;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface TherapistInquiry {

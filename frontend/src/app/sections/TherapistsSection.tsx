@@ -1,84 +1,133 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { WhatsAppBookingForm } from "../components/WhatsAppBookingForm";
+import { apiGet } from "../lib/api";
+import type { Therapist } from "../types/api";
 
-// Exactly 10 unique team members
-const THERAPISTS = [
+const FALLBACK_THERAPISTS: Therapist[] = [
   {
     id: "harsimran-01",
     name: "Ms. Harsimran Kaur",
     role: "Occupational Therapist (OT)",
     department: "Counselling / Home Programme",
-    image: "/images/harsimran.jpeg"
+    image: "/images/harsimran.jpeg",
+    active: true,
   },
   {
     id: "nikki-01",
     name: "Ms. Nikki",
     role: "Occupational Therapist (OT)",
-    department: "",
-    image: "/images/kanchan.png"
+    department: "OT",
+    image: "/images/kanchan.png",
+    active: true,
   },
   {
     id: "divya-01",
     name: "Ms. Divya",
     role: "Physiotherapist",
-    department: "",
-    image: "/images/divya.jpg"
+    department: "Physiotherapy",
+    image: "/images/divya.jpg",
+    active: true,
   },
   {
     id: "sonia-01",
     name: "Ms. Sonia",
     role: "Special Educator",
     department: "Remedial and Academics Support",
-    image: "/images/sonia.jpg"
+    image: "/images/sonia.jpg",
+    active: true,
   },
   {
     id: "shobha-01",
     name: "Ms. Shobha",
     role: "Special Educator",
     department: "Remedial and Academics Support",
-    image: "/images/shobha.jpg"
+    image: "/images/shobha.jpg",
+    active: true,
   },
   {
     id: "ranjana-01",
     name: "Ms. Ranjana",
     role: "Special Educator",
-    department: "",
-    image: "/images/savita.png"
+    department: "Special Education",
+    image: "/images/savita.png",
+    active: true,
   },
   {
     id: "sakshi-01",
     name: "Ms. Sakshi",
     role: "Speech Therapist",
-    department: "",
-    image: "/images/sakshi.jpg"
+    department: "Speech Therapy",
+    image: "/images/sakshi.jpg",
+    active: true,
   },
   {
     id: "atal-01",
     name: "Mr. Atal",
     role: "Speech Therapist",
-    department: "",
-    image: "/images/harish.png"
+    department: "Speech Therapy",
+    image: "/images/harish.png",
+    active: true,
   },
   {
     id: "durgesh-01",
     name: "Mr. Durgesh",
     role: "Physical Therapist",
-    department: "",
-    image: "/images/durgesh.jpg"
+    department: "Physical Therapy",
+    image: "/images/durgesh.jpg",
+    active: true,
   },
   {
     id: "tanu-01",
     name: "Ms. Tanu Rajput",
     role: "Counselling / Home Programme",
-    department: "",
-    image: "/images/tanu.jpeg"
-  }
+    department: "Counselling / Home Programme",
+    image: "/images/tanu.jpeg",
+    active: true,
+  },
 ];
 
 export function TherapistsSection() {
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
+  const [therapists, setTherapists] = useState<Therapist[]>(FALLBACK_THERAPISTS);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadTherapists() {
+      try {
+        const data = await apiGet<Therapist[]>("/content/therapists");
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          // Filter only active therapists
+          const activeList = data.filter(
+            (t) => t.active !== false && (t as any).isActive !== false
+          );
+          setTherapists(activeList);
+        }
+      } catch (err) {
+        console.warn("Could not fetch live therapists, using fallback:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadTherapists();
+
+    // Re-fetch when window gains focus so changes in admin panel show up instantly upon returning
+    const handleFocus = () => {
+      loadTherapists();
+    };
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
 
   return (
     <section className="scroll-mt-40 bg-[#f7f4ef] py-16 sm:py-20" id="therapists">
@@ -122,12 +171,12 @@ export function TherapistsSection() {
           )}
         </AnimatePresence>
 
-        {/* Single Unified Outer Frame Wrapping All 10 Cards in a Clean 5x2 Desktop Grid */}
+        {/* Dynamic Unified Outer Frame Wrapping All Active Therapists */}
         <div className="rounded-3xl bg-white p-3.5 sm:p-5 shadow-md border border-[#e8dfd8] overflow-hidden">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            {THERAPISTS.map((item) => (
+            {therapists.map((item) => (
               <article
-                key={item.id}
+                key={String(item.id ?? item.name)}
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#241912]/[0.08] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
               >
                 <div className="h-44 sm:h-48 md:h-52 w-full overflow-hidden bg-[#f7f4f1]">
@@ -143,12 +192,19 @@ export function TherapistsSection() {
                     <h3 className="text-base sm:text-lg font-semibold text-[#24396f] leading-snug">
                       {item.name}
                     </h3>
-                    <div className="mt-1 text-[11px] font-semibold text-[#d36f47] leading-tight">
-                      {item.role}
-                    </div>
+                    {item.role && (
+                      <div className="mt-1 text-[11px] font-semibold text-[#d36f47] leading-tight">
+                        {item.role}
+                      </div>
+                    )}
                     {item.department ? (
                       <div className="mt-0.5 text-[11px] font-medium text-[#7b706a] leading-tight">
                         {item.department}
+                      </div>
+                    ) : null}
+                    {item.experience ? (
+                      <div className="mt-1 text-[10px] text-[#91857e]">
+                        Exp: {item.experience}
                       </div>
                     ) : null}
                   </div>
