@@ -283,3 +283,48 @@ export async function deleteTherapistLeave(id) {
   }
   return data;
 }
+
+export async function getAvailability(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const urls = [
+    `${PUBLIC_UPLOAD_BASE}/api/availability${query ? `?${query}` : ""}`,
+    `${API_BASE}/availability${query ? `?${query}` : ""}`,
+    `/api/availability${query ? `?${query}` : ""}`,
+    `/api/admin/availability${query ? `?${query}` : ""}`,
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && (data.success !== false || Array.isArray(data.data))) {
+          return data.data || [];
+        }
+      }
+    } catch {}
+  }
+  return [];
+}
+
+export async function toggleAvailability(payload) {
+  const urls = [
+    `${PUBLIC_UPLOAD_BASE}/api/availability/toggle`,
+    `${API_BASE}/availability/toggle`,
+    `/api/availability/toggle`,
+    `/api/admin/availability/toggle`,
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data;
+      }
+    } catch {}
+  }
+  throw new Error("Failed to toggle availability across endpoints");
+}

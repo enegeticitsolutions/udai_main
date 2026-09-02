@@ -46,6 +46,7 @@ import CareersPage from "./components/CareersPage";
 import AppointmentsPage from "./components/AppointmentsPage";
 import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
 import WhatsAppMessagesPage from "./components/WhatsAppMessagesPage";
+import AvailabilityManagerPage from "./components/AvailabilityManagerPage";
 
 const tokenKey = "udai_standalone_admin_token";
 
@@ -2506,13 +2507,7 @@ export default function App() {
           />
         );
       case "Availability Manager":
-        return (
-          <AvailabilityPage
-            therapists={therapists}
-            deactivatedDates={deactivatedDates}
-            onToggleDeactivate={handleToggleDeactivate}
-          />
-        );
+        return <AvailabilityManagerPage />;
       case "Products":
         return (
           <ProductsPage

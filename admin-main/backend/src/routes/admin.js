@@ -548,3 +548,62 @@ adminRouter.delete("/webhook/messages/:id", async (req, res, next) => {
   }
 });
 
+// ── Availability Manager Endpoints ────────────────────────────────
+adminRouter.get("/availability", async (req, res, next) => {
+  try {
+    await connectMongoDb();
+    if (!isMongoConnected()) {
+      return res.status(500).json({ success: false, message: "Database not connected" });
+    }
+    const db = getMongoDb();
+    const { startDate, endDate, date, department } = req.query;
+    const filter = {};
+    if (date) filter.date = String(date).trim();
+    else if (startDate && endDate) filter.date = { $gte: String(startDate).trim(), $lte: String(endDate).trim() };
+    else if (startDate) filter.date = { $gte: String(startDate).trim() };
+    if (department) filter.department = String(department).trim();
+
+    const records = await db.collection("availabilities").find(filter).toArray();
+    res.json({ success: true, count: records.length, data: records });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/availability/toggle", async (req, res, next) => {
+  try {
+    await connectMongoDb();
+    if (!isMongoConnected()) {
+      return res.status(500).json({ success: false, message: "Database not connected" });
+    }
+    const db = getMongoDb();
+    const { therapistName, department, date, isAvailable } = req.body;
+    if (!therapistName || !date) {
+      return res.status(400).json({ success: false, message: "therapistName and date are required" });
+    }
+    const cleanDate = String(date).trim();
+    const cleanName = String(therapistName).trim();
+    const cleanDept = String(department || "").trim();
+    const availableVal = isAvailable === undefined ? true : Boolean(isAvailable);
+
+    await db.collection("availabilities").updateOne(
+      { therapistName: cleanName, date: cleanDate },
+      {
+        $set: {
+          therapistName: cleanName,
+          department: cleanDept,
+          date: cleanDate,
+          isAvailable: availableVal,
+          updatedAt: new Date(),
+        },
+      },
+      { upsert: true }
+    );
+
+    const doc = await db.collection("availabilities").findOne({ therapistName: cleanName, date: cleanDate });
+    res.json({ success: true, data: doc });
+  } catch (error) {
+    next(error);
+  }
+});
+

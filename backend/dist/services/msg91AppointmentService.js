@@ -277,20 +277,15 @@ export async function saveMsg91Appointment(payload) {
     else {
         input.isFirstSession = input.firstSession === "true" || input.firstSession === "yes" || input.firstSession === "1";
     }
+    // Check availability on date
+    const availableSlots = await getAvailableSlots(input.therapistName, input.appointmentDate);
+    if (!availableSlots || availableSlots.length === 0) {
+        console.warn(`[saveMsg91Appointment] No therapists/slots available for ${input.therapistName} on ${input.appointmentDate}`);
+        throw new NoSlotsAvailableError(`All therapists for ${input.therapistName} are marked as unavailable on ${input.appointmentDate}. Please choose another date.`);
+    }
     // If appointmentTime is missing or empty, pick first available slot or fallback to default slot 10:00
     if (!input.appointmentTime || input.appointmentTime.trim() === "") {
-        try {
-            const availableSlots = await getAvailableSlots(input.therapistName, input.appointmentDate);
-            if (availableSlots && availableSlots.length > 0) {
-                input.appointmentTime = availableSlots[0].time;
-            }
-            else {
-                input.appointmentTime = "10:00";
-            }
-        }
-        catch {
-            input.appointmentTime = "10:00";
-        }
+        input.appointmentTime = availableSlots[0]?.time || "10:00";
     }
     // Assign therapist if possible
     try {

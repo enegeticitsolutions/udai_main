@@ -16,6 +16,39 @@
 import { TherapistModel, DEFAULT_WEEKLY_SCHEDULE, type ITherapist } from "../models/Therapist.js";
 import { TherapistUnavailability } from "../models/TherapistUnavailability.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
+import { AvailabilityModel } from "../models/Availability.js";
+import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
+import mongoose from "mongoose";
+
+// ── Dynamic Availability Helper ──────────────────────────────────────────────
+
+async function getUnavailableTherapists(date: string): Promise<string[]> {
+  try {
+    let records: any[] = [];
+    if (mongoose.connection.readyState === 1) {
+      records = await AvailabilityModel.find({ date, isAvailable: false }).lean();
+    } else {
+      await connectMongoDb();
+      const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+      if (db) {
+        records = await db.collection("availabilities").find({ date, isAvailable: false }).toArray();
+      }
+    }
+    return records.map((r: any) => String(r.therapistName ?? ""));
+  } catch (err: any) {
+    console.warn("[getUnavailableTherapists] Error reading availabilities:", err.message);
+    return [];
+  }
+}
+
+function isTherapistUnavailable(name: string, unavailableNames: string[]): boolean {
+  if (!unavailableNames || unavailableNames.length === 0) return false;
+  const n = name.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+  return unavailableNames.some((un) => {
+    const unNorm = un.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+    return n === unNorm || n.includes(unNorm) || unNorm.includes(n);
+  });
+}
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -245,14 +278,25 @@ export async function getAvailableSlots(
   const workingTherapists = therapists.filter((t) =>
     t.weeklySchedule.some((s) => s.day === dayOfWeek)
   );
-  const workingTherapistNames = workingTherapists.map((t) => t.name);
   if (workingTherapists.length === 0) {
-    console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [${workingTherapistNames.join(", ")}], Generated Slots: 0`);
+    console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0`);
+    return [];
+  }
+
+  // 2b. Exclude therapists dynamically marked as Unavailable in MongoDB availabilities collection
+  const unavailNames = await getUnavailableTherapists(date);
+  const activeWorkingTherapists = workingTherapists.filter(
+    (t) => !isTherapistUnavailable(t.name, unavailNames)
+  );
+  const activeTherapistNames = activeWorkingTherapists.map((t) => t.name);
+
+  if (activeWorkingTherapists.length === 0) {
+    console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", All therapists unavailable [${unavailNames.join(", ")}], Generated Slots: 0`);
     return [];
   }
 
   // 3. Load leave records for these therapists on this date
-  const therapistIds = workingTherapists.map((t) => String(t._id));
+  const therapistIds = activeWorkingTherapists.map((t) => String(t._id));
   const leaves = await TherapistUnavailability.find({
     therapistId: { $in: therapistIds },
     date,
@@ -279,7 +323,7 @@ export async function getAvailableSlots(
     "17:00",
   ]);
 
-  for (const therapist of workingTherapists) {
+  for (const therapist of activeWorkingTherapists) {
     const sched = therapist.weeklySchedule.find((s) => s.day === dayOfWeek);
     if (!sched) continue;
     const tSlots = generateSlots(sched.startTime, sched.endTime, sched.lunchStart, sched.lunchEnd);
@@ -304,7 +348,7 @@ export async function getAvailableSlots(
     let freeCount = 0;
     let therapistsShiftCount = 0;
 
-    for (const therapist of workingTherapists) {
+    for (const therapist of activeWorkingTherapists) {
       const tid = String(therapist._id);
       if (!isTimeInTherapistShift(time, therapist, dayOfWeek)) continue;
       therapistsShiftCount++;
@@ -324,7 +368,7 @@ export async function getAvailableSlots(
     });
   }
 
-  console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [${workingTherapistNames.join(", ")}], Generated Slots: ${availableSlots.length}`);
+  console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [${activeTherapistNames.join(", ")}], Generated Slots: ${availableSlots.length}`);
   return availableSlots;
 }
 
@@ -389,7 +433,14 @@ export async function assignTherapist(
   );
   if (workingTherapists.length === 0) return null;
 
-  const therapistIds = workingTherapists.map((t) => String(t._id));
+  // Exclude therapists dynamically marked unavailable
+  const unavailNames = await getUnavailableTherapists(date);
+  const activeWorkingTherapists = workingTherapists.filter(
+    (t) => !isTherapistUnavailable(t.name, unavailNames)
+  );
+  if (activeWorkingTherapists.length === 0) return null;
+
+  const therapistIds = activeWorkingTherapists.map((t) => String(t._id));
   const leaves = await TherapistUnavailability.find({
     therapistId: { $in: therapistIds },
     date,
@@ -411,7 +462,7 @@ export async function assignTherapist(
   const unassignedTotal = bookingsAtSlot.filter((b) => !b.assignedTherapistId).length;
   let unassignedConsumed = 0;
 
-  for (const therapist of workingTherapists) {
+  for (const therapist of activeWorkingTherapists) {
     const tid = String(therapist._id);
 
     // Verify the slot falls within this therapist's shift hours
@@ -444,7 +495,9 @@ export async function assignTherapist(
     return { id: tid, name: therapist.name };
   }
 
-  return { id: "udai-therapist-default", name: "UDAI Senior Therapist" };
+  return activeWorkingTherapists.length > 0
+    ? { id: String(activeWorkingTherapists[0]._id), name: activeWorkingTherapists[0].name }
+    : null;
 }
 
 /**
