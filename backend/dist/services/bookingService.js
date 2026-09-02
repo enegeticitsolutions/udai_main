@@ -14,7 +14,6 @@
  */
 import { TherapistModel } from "../models/Therapist.js";
 import { TherapistUnavailability } from "../models/TherapistUnavailability.js";
-import { WebhookMessage } from "../models/WebhookMessage.js";
 import { AvailabilityModel } from "../models/Availability.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 import mongoose from "mongoose";
@@ -252,6 +251,44 @@ async function loadTherapists(department) {
         weeklySchedule: getTherapistClinicalSchedule(t.name),
     }));
 }
+// ── Active Appointments Helper ───────────────────────────────────────────────
+async function getActiveAppointmentsForDate(date) {
+    try {
+        if (!isMongoConnected() && mongoose.connection.readyState !== 1) {
+            await connectMongoDb();
+        }
+        const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+        if (db) {
+            const docs = await db.collection("appointments").find({
+                appointmentDate: date,
+                bookingStatus: { $nin: ["cancelled", "rejected"] },
+            }).toArray();
+            return docs;
+        }
+    }
+    catch (err) {
+        console.warn("[getActiveAppointmentsForDate] Error fetching appointments:", err.message);
+    }
+    return [];
+}
+export function isTherapistBookedForSlot(therapist, time, appointments) {
+    const tName = therapist.name.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+    const tid = String(therapist._id || "");
+    return appointments.some((appt) => {
+        if (appt.appointmentTime !== time)
+            return false;
+        const aName = String(appt.therapistName || appt.assignedTherapist || "")
+            .toLowerCase()
+            .replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "")
+            .trim();
+        const aId = String(appt.therapistId || appt.assignedTherapistId || "");
+        if (tid && aId && tid === aId)
+            return true;
+        if (aName && (tName === aName || tName.includes(aName) || aName.includes(tName)))
+            return true;
+        return false;
+    });
+}
 /**
  * Returns ONLY the available 45-min slots for a department on a given date.
  */
@@ -291,14 +328,8 @@ export async function getAvailableSlots(department, date) {
         therapistId: { $in: therapistIds },
         date,
     }).lean();
-    // 4. Load confirmed bookings for this department + date
-    const confirmedBookings = await WebhookMessage.find({
-        department: normalizedDept,
-        appointmentDate: date,
-        status: { $nin: ["cancelled", "rejected"] },
-    })
-        .select("appointmentTime assignedTherapistId")
-        .lean();
+    // 4. Load confirmed bookings from appointments collection
+    const activeBookings = await getActiveAppointmentsForDate(date);
     // 5. Generate all possible 45-minute slot times from active working therapists
     const slotTimesSet = new Set();
     for (const therapist of activeWorkingTherapists) {
@@ -314,30 +345,36 @@ export async function getAvailableSlots(department, date) {
     const sortedSlotTimes = Array.from(slotTimesSet).sort((a, b) => {
         return toMinutes(a) - toMinutes(b);
     });
-    // 6. Evaluate each slot (Ensure all slots are available)
+    // 6. Evaluate each slot capacity
     const availableSlots = [];
     for (const time of sortedSlotTimes) {
-        const bookingsAtSlot = confirmedBookings.filter((b) => b.appointmentTime === time);
-        let freeCount = 0;
-        let therapistsShiftCount = 0;
-        for (const therapist of activeWorkingTherapists) {
-            const tid = String(therapist._id);
+        const freeTherapistsAtSlot = activeWorkingTherapists.filter((therapist) => {
+            // Must fit in shift & not overlap lunch
             if (!isTimeInTherapistShift(time, therapist, dayOfWeek))
-                continue;
-            therapistsShiftCount++;
+                return false;
+            // Must not be on leave
+            const tid = String(therapist._id);
             if (leaves.some((l) => l.therapistId === tid && l.type === "full"))
-                continue;
-            freeCount++;
-        }
-        const availableCount = Math.max(freeCount > 0 ? freeCount : 3, 1);
-        availableSlots.push({
-            time,
-            label: formatLabel(time),
-            totalTherapists: Math.max(therapistsShiftCount, 3),
-            bookedCount: bookingsAtSlot.length,
-            availableCount,
-            isAvailable: true,
+                return false;
+            // Must not be already booked in appointments collection
+            if (isTherapistBookedForSlot(therapist, time, activeBookings))
+                return false;
+            return true;
         });
+        const availableCount = freeTherapistsAtSlot.length;
+        const totalTherapists = activeWorkingTherapists.filter((t) => isTimeInTherapistShift(time, t, dayOfWeek)).length;
+        // STRICT NON-COLLISION RULE:
+        // If availableCount === 0 (all therapists booked or unavailable), OMIT this slot completely so it cannot be selected on WhatsApp!
+        if (availableCount > 0) {
+            availableSlots.push({
+                time,
+                label: formatLabel(time),
+                totalTherapists,
+                bookedCount: totalTherapists - availableCount,
+                availableCount,
+                isAvailable: true,
+            });
+        }
     }
     console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [${activeTherapistNames.join(", ")}], Generated Slots: ${availableSlots.length}`);
     return availableSlots;
@@ -386,7 +423,7 @@ export async function assignTherapist(department, date, time) {
     const workingTherapists = therapists.filter((t) => t.weeklySchedule.some((s) => s.day === dayOfWeek));
     if (workingTherapists.length === 0)
         return null;
-    // Exclude therapists dynamically marked unavailable
+    // Exclude therapists dynamically marked unavailable in availabilities collection
     const unavailNames = await getUnavailableTherapists(date);
     const activeWorkingTherapists = workingTherapists.filter((t) => !isTherapistUnavailable(t.name, unavailNames));
     if (activeWorkingTherapists.length === 0)
@@ -396,17 +433,7 @@ export async function assignTherapist(department, date, time) {
         therapistId: { $in: therapistIds },
         date,
     }).lean();
-    const bookingsAtSlot = await WebhookMessage.find({
-        department: normalizedDept,
-        appointmentDate: date,
-        appointmentTime: time,
-        status: { $nin: ["cancelled", "rejected"] },
-    })
-        .select("assignedTherapistId")
-        .lean();
-    const bookedTherapistIds = new Set(bookingsAtSlot.map((b) => b.assignedTherapistId).filter(Boolean));
-    const unassignedTotal = bookingsAtSlot.filter((b) => !b.assignedTherapistId).length;
-    let unassignedConsumed = 0;
+    const activeBookings = await getActiveAppointmentsForDate(date);
     for (const therapist of activeWorkingTherapists) {
         const tid = String(therapist._id);
         // Verify the slot falls within this therapist's shift hours
@@ -422,18 +449,14 @@ export async function assignTherapist(department, date, time) {
             l.endTime &&
             timeInRange(time, l.startTime, l.endTime)))
             continue;
-        // Skip: already has a confirmed booking at this slot
-        if (bookedTherapistIds.has(tid))
+        // Skip: already booked in appointments collection for this exact date & time
+        if (isTherapistBookedForSlot(therapist, time, activeBookings))
             continue;
-        if (unassignedConsumed < unassignedTotal) {
-            unassignedConsumed++;
-            continue;
-        }
+        // Found a free available therapist!
         return { id: tid, name: therapist.name };
     }
-    return activeWorkingTherapists.length > 0
-        ? { id: String(activeWorkingTherapists[0]._id), name: activeWorkingTherapists[0].name }
-        : null;
+    // Strictly return null if all therapists in department are booked for this slot
+    return null;
 }
 /**
  * Returns a list of all 6 public bookable departments.

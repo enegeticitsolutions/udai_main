@@ -287,6 +287,49 @@ async function loadTherapists(department: string): Promise<ITherapist[]> {
     }));
 }
 
+// ── Active Appointments Helper ───────────────────────────────────────────────
+
+async function getActiveAppointmentsForDate(date: string): Promise<any[]> {
+  try {
+    if (!isMongoConnected() && mongoose.connection.readyState !== 1) {
+      await connectMongoDb();
+    }
+    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+    if (db) {
+      const docs = await db.collection("appointments").find({
+        appointmentDate: date,
+        bookingStatus: { $nin: ["cancelled", "rejected"] },
+      }).toArray();
+      return docs;
+    }
+  } catch (err: any) {
+    console.warn("[getActiveAppointmentsForDate] Error fetching appointments:", err.message);
+  }
+  return [];
+}
+
+export function isTherapistBookedForSlot(
+  therapist: ITherapist,
+  time: string,
+  appointments: any[]
+): boolean {
+  const tName = therapist.name.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+  const tid = String(therapist._id || "");
+
+  return appointments.some((appt) => {
+    if (appt.appointmentTime !== time) return false;
+    const aName = String(appt.therapistName || appt.assignedTherapist || "")
+      .toLowerCase()
+      .replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "")
+      .trim();
+    const aId = String(appt.therapistId || appt.assignedTherapistId || "");
+
+    if (tid && aId && tid === aId) return true;
+    if (aName && (tName === aName || tName.includes(aName) || aName.includes(tName))) return true;
+    return false;
+  });
+}
+
 // ── Core booking queries ──────────────────────────────────────────────────────
 
 export interface SlotInfo {
@@ -352,14 +395,8 @@ export async function getAvailableSlots(
     date,
   }).lean();
 
-  // 4. Load confirmed bookings for this department + date
-  const confirmedBookings = await WebhookMessage.find({
-    department: normalizedDept,
-    appointmentDate: date,
-    status: { $nin: ["cancelled", "rejected"] },
-  })
-    .select("appointmentTime assignedTherapistId")
-    .lean();
+  // 4. Load confirmed bookings from appointments collection
+  const activeBookings = await getActiveAppointmentsForDate(date);
 
   // 5. Generate all possible 45-minute slot times from active working therapists
   const slotTimesSet = new Set<string>();
@@ -378,35 +415,36 @@ export async function getAvailableSlots(
     return toMinutes(a) - toMinutes(b);
   });
 
-  // 6. Evaluate each slot (Ensure all slots are available)
+  // 6. Evaluate each slot capacity
   const availableSlots: SlotInfo[] = [];
 
   for (const time of sortedSlotTimes) {
-    const bookingsAtSlot = confirmedBookings.filter(
-      (b) => b.appointmentTime === time
-    );
-
-    let freeCount = 0;
-    let therapistsShiftCount = 0;
-
-    for (const therapist of activeWorkingTherapists) {
+    const freeTherapistsAtSlot = activeWorkingTherapists.filter((therapist) => {
+      // Must fit in shift & not overlap lunch
+      if (!isTimeInTherapistShift(time, therapist, dayOfWeek)) return false;
+      // Must not be on leave
       const tid = String(therapist._id);
-      if (!isTimeInTherapistShift(time, therapist, dayOfWeek)) continue;
-      therapistsShiftCount++;
-      if (leaves.some((l) => l.therapistId === tid && l.type === "full")) continue;
-      freeCount++;
-    }
-
-    const availableCount = Math.max(freeCount > 0 ? freeCount : 3, 1);
-
-    availableSlots.push({
-      time,
-      label: formatLabel(time),
-      totalTherapists: Math.max(therapistsShiftCount, 3),
-      bookedCount: bookingsAtSlot.length,
-      availableCount,
-      isAvailable: true,
+      if (leaves.some((l) => l.therapistId === tid && l.type === "full")) return false;
+      // Must not be already booked in appointments collection
+      if (isTherapistBookedForSlot(therapist, time, activeBookings)) return false;
+      return true;
     });
+
+    const availableCount = freeTherapistsAtSlot.length;
+    const totalTherapists = activeWorkingTherapists.filter((t) => isTimeInTherapistShift(time, t, dayOfWeek)).length;
+
+    // STRICT NON-COLLISION RULE:
+    // If availableCount === 0 (all therapists booked or unavailable), OMIT this slot completely so it cannot be selected on WhatsApp!
+    if (availableCount > 0) {
+      availableSlots.push({
+        time,
+        label: formatLabel(time),
+        totalTherapists,
+        bookedCount: totalTherapists - availableCount,
+        availableCount,
+        isAvailable: true,
+      });
+    }
   }
 
   console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [${activeTherapistNames.join(", ")}], Generated Slots: ${availableSlots.length}`);
@@ -474,7 +512,7 @@ export async function assignTherapist(
   );
   if (workingTherapists.length === 0) return null;
 
-  // Exclude therapists dynamically marked unavailable
+  // Exclude therapists dynamically marked unavailable in availabilities collection
   const unavailNames = await getUnavailableTherapists(date);
   const activeWorkingTherapists = workingTherapists.filter(
     (t) => !isTherapistUnavailable(t.name, unavailNames)
@@ -487,21 +525,7 @@ export async function assignTherapist(
     date,
   }).lean();
 
-  const bookingsAtSlot = await WebhookMessage.find({
-    department: normalizedDept,
-    appointmentDate: date,
-    appointmentTime: time,
-    status: { $nin: ["cancelled", "rejected"] },
-  })
-    .select("assignedTherapistId")
-    .lean();
-
-  const bookedTherapistIds = new Set(
-    bookingsAtSlot.map((b) => b.assignedTherapistId).filter(Boolean)
-  );
-
-  const unassignedTotal = bookingsAtSlot.filter((b) => !b.assignedTherapistId).length;
-  let unassignedConsumed = 0;
+  const activeBookings = await getActiveAppointmentsForDate(date);
 
   for (const therapist of activeWorkingTherapists) {
     const tid = String(therapist._id);
@@ -525,20 +549,15 @@ export async function assignTherapist(
     )
       continue;
 
-    // Skip: already has a confirmed booking at this slot
-    if (bookedTherapistIds.has(tid)) continue;
+    // Skip: already booked in appointments collection for this exact date & time
+    if (isTherapistBookedForSlot(therapist, time, activeBookings)) continue;
 
-    if (unassignedConsumed < unassignedTotal) {
-      unassignedConsumed++;
-      continue;
-    }
-
+    // Found a free available therapist!
     return { id: tid, name: therapist.name };
   }
 
-  return activeWorkingTherapists.length > 0
-    ? { id: String(activeWorkingTherapists[0]._id), name: activeWorkingTherapists[0].name }
-    : null;
+  // Strictly return null if all therapists in department are booked for this slot
+  return null;
 }
 
 /**

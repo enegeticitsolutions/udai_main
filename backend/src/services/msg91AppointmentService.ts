@@ -358,21 +358,22 @@ export async function saveMsg91Appointment(payload: unknown) {
     throw new NoSlotsAvailableError(`All therapists for ${input.therapistName} are marked as unavailable on ${input.appointmentDate}. Please choose another date.`);
   }
 
-  // If appointmentTime is missing or empty, pick first available slot or fallback to default slot 10:00
+  // If appointmentTime is missing or empty, pick first available slot
   if (!input.appointmentTime || input.appointmentTime.trim() === "") {
     input.appointmentTime = availableSlots[0]?.time || "10:00";
   }
 
-  // Assign therapist if possible
-  try {
-    const assigned = await assignTherapist(input.therapistName, input.appointmentDate, input.appointmentTime);
-    if (assigned) {
-      input.therapistId = assigned.id;
-      input.therapistName = assigned.name;
-    }
-  } catch (err: any) {
-    console.warn("[saveMsg91Appointment] Therapist assignment fallback:", err.message);
+  // Assign a free therapist for the requested slot & prevent collision
+  const assigned = await assignTherapist(input.therapistName, input.appointmentDate, input.appointmentTime);
+  if (!assigned) {
+    console.warn(`[saveMsg91Appointment] Collision detected: No therapist available for ${input.therapistName} on ${input.appointmentDate} at ${input.appointmentTime}`);
+    throw new NoSlotsAvailableError(
+      `Slot ${input.appointmentTime} on ${input.appointmentDate} is already booked. Please choose another available slot.`
+    );
   }
+
+  input.therapistId = assigned.id;
+  input.therapistName = assigned.name;
 
   input.bookingStatus = "confirmed";
   const bookingId = input.bookingId || generatedBookingId(input);
