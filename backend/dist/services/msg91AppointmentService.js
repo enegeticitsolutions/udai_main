@@ -226,6 +226,57 @@ function normalizeMongoAppointment(document) {
 }
 export async function saveMsg91Appointment(payload) {
     const { input } = parseMsg91AppointmentPayload(payload);
+    // Connect to MongoDB targeting explicit database
+    try {
+        await connectMongoDb();
+    }
+    catch (connErr) {
+        console.warn("[saveMsg91Appointment] connectMongoDb error:", connErr.message);
+    }
+    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+    // ── First Session Service Guard ─────────────────────────────────
+    // Strictly during new booking creation without modifying existing DB records
+    let isFirstSession = true;
+    if (db && input.phoneNumber) {
+        const cleanPhone = normalizePhone(input.phoneNumber);
+        const phoneQueries = [input.phoneNumber, cleanPhone];
+        if (cleanPhone.length === 10) {
+            phoneQueries.push(`91${cleanPhone}`, `+91${cleanPhone}`);
+        }
+        else if (cleanPhone.length === 12 && cleanPhone.startsWith("91")) {
+            phoneQueries.push(cleanPhone.slice(2), `+${cleanPhone}`);
+        }
+        try {
+            const existingCount = await db.collection(appointmentCollection).countDocuments({
+                phoneNumber: { $in: phoneQueries },
+            });
+            if (existingCount === 0) {
+                // New patient: Force department to Counselling and set isFirstSession = true
+                isFirstSession = true;
+                input.therapistName = "Counselling";
+                input.firstSession = "true";
+                input.isFirstSession = true;
+                input.additionalNotes = input.additionalNotes
+                    ? `${input.additionalNotes} | First session auto-assigned to Counselling`
+                    : "First session auto-assigned to Counselling";
+                console.log(`[First Session Guard] New patient (${cleanPhone}) -> Force department: Counselling, isFirstSession: true`);
+            }
+            else {
+                // Returning patient: Keep chosen service as-is and set isFirstSession = false
+                isFirstSession = false;
+                input.firstSession = "false";
+                input.isFirstSession = false;
+                console.log(`[First Session Guard] Returning patient (${cleanPhone}) with ${existingCount} prior booking(s) -> Retained department: ${input.therapistName}, isFirstSession: false`);
+            }
+        }
+        catch (countErr) {
+            console.warn("[First Session Guard] Error checking existingCount:", countErr.message);
+            input.isFirstSession = input.firstSession === "true" || input.firstSession === "yes" || input.firstSession === "1";
+        }
+    }
+    else {
+        input.isFirstSession = input.firstSession === "true" || input.firstSession === "yes" || input.firstSession === "1";
+    }
     // If appointmentTime is missing or empty, pick first available slot or fallback to default slot 10:00
     if (!input.appointmentTime || input.appointmentTime.trim() === "") {
         try {
@@ -262,14 +313,6 @@ export async function saveMsg91Appointment(payload) {
         createdAt: now,
         updatedAt: now,
     };
-    // Connect to MongoDB targeting explicit database
-    try {
-        await connectMongoDb();
-    }
-    catch (connErr) {
-        console.warn("[saveMsg91Appointment] connectMongoDb error:", connErr.message);
-    }
-    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
     if (db) {
         const collection = db.collection(appointmentCollection);
         // Check if an appointment with this bookingId or phone + slot exists

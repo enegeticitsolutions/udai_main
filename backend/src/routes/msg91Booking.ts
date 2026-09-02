@@ -98,6 +98,7 @@ msg91BookingRouter.post("/", async (req, res) => {
         parentName: appointment.parentName || "",
         age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "",
         firstSession: (appointment as any).firstSession || "",
+        isFirstSession: (appointment as any).isFirstSession,
         appointmentDate: appointment.appointmentDate || "",
         appointmentTime: appointment.appointmentTime || "",
         department: appointment.therapistName || "",

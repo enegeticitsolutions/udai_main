@@ -11,6 +11,7 @@ const WebhookMessageSchema = new mongoose.Schema({
     parentName: { type: String, default: "" },
     age: { type: String, default: "" },
     firstSession: { type: String, default: "" },
+    isFirstSession: { type: Boolean, default: true },
     appointmentDate: { type: String, default: "" },
     appointmentTime: { type: String, default: "" },
     department: { type: String, default: "" },

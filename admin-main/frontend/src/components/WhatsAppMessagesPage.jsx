@@ -554,13 +554,15 @@ export default function WhatsAppMessagesPage() {
                 const isMenuOpen = openMenuId === (msg._id || idx);
 
                 // First Session tag
-                const rawFirst = String(
-                  msg.firstSession ??
-                  raw.firstSession ??
-                  raw.first_session ??
-                  raw.isFirstSession ??
-                  ""
-                ).toLowerCase();
+                const rawFirst = msg.isFirstSession !== undefined
+                  ? String(msg.isFirstSession).toLowerCase()
+                  : String(
+                      msg.firstSession ??
+                      raw.isFirstSession ??
+                      raw.firstSession ??
+                      raw.first_session ??
+                      ""
+                    ).toLowerCase();
                 const isFirstTime = rawFirst === "true" || rawFirst === "yes" || rawFirst === "1";
                 const isReturning = rawFirst === "false" || rawFirst === "no" || rawFirst === "0";
 

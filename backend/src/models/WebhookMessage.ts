@@ -9,6 +9,7 @@ export interface IWebhookMessage {
   parentName?: string;
   age?: string;
   firstSession?: string;
+  isFirstSession?: boolean;
   appointmentDate?: string;
   appointmentTime?: string;
   department?: string;
@@ -39,6 +40,7 @@ const WebhookMessageSchema = new mongoose.Schema<IWebhookMessage>(
     parentName: { type: String, default: "" },
     age: { type: String, default: "" },
     firstSession: { type: String, default: "" },
+    isFirstSession: { type: Boolean, default: true },
     appointmentDate: { type: String, default: "" },
     appointmentTime: { type: String, default: "" },
     department: { type: String, default: "" },
