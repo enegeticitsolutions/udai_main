@@ -12,6 +12,7 @@ import msg91WebhookRouter from "./msg91Webhook.js";
 import bookingRouter from "./booking.js";
 import therapistsRouter from "./therapists.js";
 import appointmentRouter from "./appointment.js";
+import msg91PaymentRouter from "./msg91PaymentWebhook.js";
 import { isMongoConnected } from "../lib/mongodb.js";
 export const apiRouter = Router();
 apiRouter.get("/health", (_req, res) => {
@@ -37,6 +38,7 @@ apiRouter.use("/whatsapp", whatsappRouter);
 apiRouter.use("/webhook", webhookRouter);
 apiRouter.use("/msg91-booking", msg91BookingRouter);
 apiRouter.use("/webhooks/msg91", msg91WebhookRouter);
+apiRouter.use("/msg91", msg91PaymentRouter);
 apiRouter.use("/booking", bookingRouter);
 apiRouter.use("/therapists", therapistsRouter);
 apiRouter.use("/appointments", appointmentRouter);

@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
 import { WebhookMessage } from "./models/WebhookMessage.js";
 import { assignTherapist, getAvailableSlots, normalizeDepartment } from "./services/bookingService.js";
+import { handleMsg91PaymentWebhook } from "./controllers/msg91PaymentWebhookController.js";
 // ── MongoDB Connection & Lifecycle Logging ──────────────────────────
 // Uses config.mongoUri (from MONGODB_URI env) with explicit dbName
 if (config.mongoUri) {
@@ -50,6 +51,10 @@ export function createApp() {
         });
     });
     app.use("/api", apiRouter);
+    // ── MSG91 WhatsApp Payment Webhook Direct Route ──────────────────
+    app.post("/api/msg91/payment-webhook", handleMsg91PaymentWebhook);
+    app.post("/msg91/payment-webhook", handleMsg91PaymentWebhook);
+    app.post("/api/msg91", handleMsg91PaymentWebhook);
     // ── Webhook: receive MSG91 data & save to MongoDB ─────────────────
     app.post("/webhook/receive-msg", async (req, res) => {
         try {
