@@ -27,6 +27,7 @@ export type AppointmentRecord = {
   gender?: string;
   city?: string;
   preferredLanguage?: string;
+  department?: string;
   therapistId?: string | null;
   therapistName: string;
   appointmentDate: string;
@@ -238,11 +239,39 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
     pick(data, "appointment_time", "appointmentTime", "time", "selected_time", "slot", "appointment_slot", "slot_time") ||
     pick(root, "appointmentTime", "appointment_time", "time", "slot");
 
-  // Department / Therapist:
+  // Department / Service: Exhaustive key check and strict normalization
   const rawDepartment =
-    pick(data, "department", "service", "selected_service", "service_name", "therapist_name", "therapistName", "doctor", "doctor_name") ||
-    pick(root, "department", "service", "therapistName", "doctor") ||
-    "OT";
+    pick(
+      data,
+      "department",
+      "service",
+      "selected_service",
+      "concern_of_child",
+      "service_concern",
+      "service_name",
+      "therapist_name",
+      "therapistName",
+      "doctor",
+      "doctor_name",
+      "mainConcern",
+      "main_concern",
+      "concern"
+    ) ||
+    pick(
+      root,
+      "department",
+      "service",
+      "selected_service",
+      "concern_of_child",
+      "service_concern",
+      "service_name",
+      "therapistName",
+      "doctor",
+      "mainConcern",
+      "concern"
+    ) ||
+    "";
+  const resolvedDept = normalizeDepartment(rawDepartment);
 
   // Concern:
   const rawConcern =
@@ -267,8 +296,9 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
     gender: rawGender || undefined,
     city: rawCity || undefined,
     preferredLanguage: rawLang || "English",
+    department: resolvedDept,
     therapistId: pick(data, "therapist_id", "therapistId", "doctor_id", "doctorId") || null,
-    therapistName: normalizeDepartment(rawDepartment || "OT"),
+    therapistName: resolvedDept,
     appointmentDate: normalizeAppointmentDate(rawDate),
     appointmentTime: normalizeAppointmentTime(rawTime),
     appointmentType: normalizeAppointmentType(pick(data, "appointment_type", "appointmentType", "visit_type") || "in-person"),
@@ -310,8 +340,9 @@ export async function saveMsg91Appointment(payload: unknown) {
   const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
 
   // ── First Session Service Guard ─────────────────────────────────
-  // Strictly during new booking creation without modifying existing DB records
+  let targetDepartment = input.department || normalizeDepartment(input.therapistName || "OT");
   let isFirstSession = true;
+
   if (db && input.phoneNumber) {
     const cleanPhone = normalizePhone(input.phoneNumber);
     const phoneQueries: string[] = [input.phoneNumber, cleanPhone];
@@ -329,7 +360,8 @@ export async function saveMsg91Appointment(payload: unknown) {
       if (existingCount === 0) {
         // New patient: Force department to Counselling and set isFirstSession = true
         isFirstSession = true;
-        input.therapistName = "Counselling";
+        targetDepartment = "Counselling";
+        input.department = "Counselling";
         input.firstSession = "true";
         input.isFirstSession = true;
         input.additionalNotes = input.additionalNotes
@@ -339,9 +371,10 @@ export async function saveMsg91Appointment(payload: unknown) {
       } else {
         // Returning patient: Keep chosen service as-is and set isFirstSession = false
         isFirstSession = false;
+        input.department = targetDepartment;
         input.firstSession = "false";
         input.isFirstSession = false;
-        console.log(`[First Session Guard] Returning patient (${cleanPhone}) with ${existingCount} prior booking(s) -> Retained department: ${input.therapistName}, isFirstSession: false`);
+        console.log(`[First Session Guard] Returning patient (${cleanPhone}) with ${existingCount} prior booking(s) -> Retained department: ${targetDepartment}, isFirstSession: false`);
       }
     } catch (countErr: any) {
       console.warn("[First Session Guard] Error checking existingCount:", countErr.message);
@@ -352,10 +385,10 @@ export async function saveMsg91Appointment(payload: unknown) {
   }
 
   // Check availability on date
-  const availableSlots = await getAvailableSlots(input.therapistName, input.appointmentDate);
+  const availableSlots = await getAvailableSlots(targetDepartment, input.appointmentDate);
   if (!availableSlots || availableSlots.length === 0) {
-    console.warn(`[saveMsg91Appointment] No therapists/slots available for ${input.therapistName} on ${input.appointmentDate}`);
-    throw new NoSlotsAvailableError(`All therapists for ${input.therapistName} are marked as unavailable on ${input.appointmentDate}. Please choose another date.`);
+    console.warn(`[saveMsg91Appointment] No therapists/slots available for ${targetDepartment} on ${input.appointmentDate}`);
+    throw new NoSlotsAvailableError(`All therapists for ${targetDepartment} are marked as unavailable on ${input.appointmentDate}. Please choose another date.`);
   }
 
   // If appointmentTime is missing or empty, pick first available slot
@@ -363,15 +396,16 @@ export async function saveMsg91Appointment(payload: unknown) {
     input.appointmentTime = availableSlots[0]?.time || "10:00";
   }
 
-  // Assign a free therapist for the requested slot & prevent collision
-  const assigned = await assignTherapist(input.therapistName, input.appointmentDate, input.appointmentTime);
+  // Assign a free therapist using balanced alternating logic across eligible doctors
+  const assigned = await assignTherapist(targetDepartment, input.appointmentDate, input.appointmentTime);
   if (!assigned) {
-    console.warn(`[saveMsg91Appointment] Collision detected: No therapist available for ${input.therapistName} on ${input.appointmentDate} at ${input.appointmentTime}`);
+    console.warn(`[saveMsg91Appointment] Collision detected: No therapist available for ${targetDepartment} on ${input.appointmentDate} at ${input.appointmentTime}`);
     throw new NoSlotsAvailableError(
       `Slot ${input.appointmentTime} on ${input.appointmentDate} is already booked. Please choose another available slot.`
     );
   }
 
+  input.department = targetDepartment;
   input.therapistId = assigned.id;
   input.therapistName = assigned.name;
 

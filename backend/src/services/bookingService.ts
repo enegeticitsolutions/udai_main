@@ -57,19 +57,62 @@ const SLOT_DURATION_MINUTES = 45;
 // ── Department Normalization ─────────────────────────────────────────────────
 
 /**
- * Normalizes input department name to one of the 6 public bookable departments.
- * Excludes Founder Trustee or other non-bookable roles.
+ * Normalizes input department name to one of the 7 public bookable departments.
  */
 export function normalizeDepartment(dept: string): string {
   const d = String(dept ?? "").trim();
-  if (/^(ot|occupational\s*therapist)$/i.test(d)) return "OT";
-  if (/^(speech\s*therapy|speech\s*therapist|speech\s*and\s*language\s*therapist)$/i.test(d)) return "Speech Therapy";
-  if (/^(physical\s*therapy|physiotherapy|pediatric\s*physiotherapist)$/i.test(d)) return "Physical Therapy";
-  if (/^(nios\s*instructor|academic\s*support)$/i.test(d)) return "Academic Support";
-  if (/^(special\s*educator)$/i.test(d)) return "Special Educator";
-  if (/^(counselling)$/i.test(d)) return "Counselling";
-  return d;
+  if (!d) return "OT";
+  if (/speech/i.test(d)) return "Speech Therapy";
+  if (/physio/i.test(d)) return "Physiotherapy";
+  if (/special.*ed/i.test(d)) return "Special Educator";
+  if (/physical.*th/i.test(d)) return "Physical Therapy";
+  if (/academic/i.test(d)) return "Academic Support";
+  if (/counsel/i.test(d)) return "Counselling";
+  if (/ot|occupational/i.test(d)) return "OT";
+
+  // Known roster departments
+  const validDepartments = [
+    "Speech Therapy",
+    "Physiotherapy",
+    "Special Educator",
+    "Physical Therapy",
+    "Academic Support",
+    "Counselling",
+    "OT",
+  ];
+  const exact = validDepartments.find((v) => v.toLowerCase() === d.toLowerCase());
+  return exact || d || "OT";
 }
+
+export const CLINIC_ROSTER_BY_DEPARTMENT: Record<string, Array<{ name: string; role: string }>> = {
+  "Speech Therapy": [
+    { name: "Mr. Atal", role: "Speech Therapist" },
+    { name: "Dr. Sakshi", role: "Speech Therapist" },
+  ],
+  "Physiotherapy": [
+    { name: "Dr. Divya", role: "Physiotherapist" },
+  ],
+  "Special Educator": [
+    { name: "Ms. Sobha", role: "Special Educator" },
+    { name: "Ms. Sonia", role: "Special Educator" },
+    { name: "Ms. Ranjana", role: "Special Educator" },
+  ],
+  "Physical Therapy": [
+    { name: "Dr. Durgesh", role: "Physical Therapist" },
+  ],
+  "Academic Support": [
+    { name: "Ms. Sonia", role: "Academic Instructor" },
+    { name: "Ms. Sobha", role: "Academic Instructor" },
+  ],
+  "Counselling": [
+    { name: "Ms. Tanu", role: "Psychological Counsellor" },
+    { name: "Ms. Sonia", role: "Counsellor" },
+  ],
+  "OT": [
+    { name: "Ms. Nikki", role: "Occupational Therapist" },
+    { name: "Ms. Harsimran", role: "Occupational Therapist" },
+  ],
+};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -263,6 +306,19 @@ async function loadTherapists(department: string): Promise<ITherapist[]> {
       ...t,
       weeklySchedule: getTherapistClinicalSchedule(t.name),
     })) as ITherapist[];
+  }
+
+  // Use defined clinic roster with clinical shift schedules
+  const roster = CLINIC_ROSTER_BY_DEPARTMENT[normalizedDept];
+  if (roster && roster.length > 0) {
+    return roster.map((m, idx) => ({
+      _id: `roster-${normalizedDept.toLowerCase().replace(/\s+/g, "-")}-${idx + 1}`,
+      name: m.name,
+      department: normalizedDept,
+      role: m.role,
+      active: true,
+      weeklySchedule: getTherapistClinicalSchedule(m.name),
+    }));
   }
 
   // Fallback: JSON-based content service with clinical shift schedules
@@ -496,7 +552,8 @@ export async function getAvailableDates(
 }
 
 /**
- * Assigns the first available therapist for a department / date / time.
+ * Assigns the best available therapist for a department / date / time
+ * using balanced alternating (round-robin) assignment across doctors.
  */
 export async function assignTherapist(
   department: string,
@@ -527,10 +584,13 @@ export async function assignTherapist(
 
   const activeBookings = await getActiveAppointmentsForDate(date);
 
+  // Collect all eligible therapists free at this specific slot
+  const eligibleTherapists: ITherapist[] = [];
+
   for (const therapist of activeWorkingTherapists) {
     const tid = String(therapist._id);
 
-    // Verify the slot falls within this therapist's shift hours
+    // Verify the slot falls within this therapist's shift hours & not in lunch
     if (!isTimeInTherapistShift(time, therapist, dayOfWeek)) continue;
 
     // Skip: full-day leave
@@ -552,24 +612,64 @@ export async function assignTherapist(
     // Skip: already booked in appointments collection for this exact date & time
     if (isTherapistBookedForSlot(therapist, time, activeBookings)) continue;
 
-    // Found a free available therapist!
-    return { id: tid, name: therapist.name };
+    eligibleTherapists.push(therapist);
   }
 
-  // Strictly return null if all therapists in department are booked for this slot
-  return null;
+  if (eligibleTherapists.length === 0) return null;
+  if (eligibleTherapists.length === 1) {
+    return { id: String(eligibleTherapists[0]._id), name: eligibleTherapists[0].name };
+  }
+
+  // ── Multi-Therapist Balanced Assignment (Round-Robin / Alternating) ──
+  let db: any = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+  if (!db) {
+    await connectMongoDb();
+    db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+  }
+
+  const scoredTherapists = await Promise.all(
+    eligibleTherapists.map(async (t) => {
+      const tName = t.name;
+      const tClean = tName.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+      let count = 0;
+      if (db) {
+        count = await db.collection("appointments").countDocuments({
+          appointmentDate: date,
+          bookingStatus: { $nin: ["cancelled", "rejected"] },
+          $or: [
+            { therapistName: tName },
+            { therapistName: new RegExp(tClean, "i") },
+            { assignedTherapist: new RegExp(tClean, "i") },
+            { therapistId: String(t._id || "") },
+          ],
+        });
+      }
+      return { therapist: t, count };
+    })
+  );
+
+  // Sort ascending by booking count today (lowest count first = alternates evenly)
+  scoredTherapists.sort((a, b) => a.count - b.count);
+
+  const selected = scoredTherapists[0].therapist;
+  console.log(
+    `[Balanced Assignment] Dept: "${normalizedDept}", Date: "${date}", Time: "${time}" -> Assigned to "${selected.name}" (Bookings today: ${scoredTherapists[0].count} vs other candidate counts: ${scoredTherapists.slice(1).map(s => `${s.therapist.name}: ${s.count}`).join(", ")})`
+  );
+
+  return { id: String(selected._id || ""), name: selected.name };
 }
 
 /**
- * Returns a list of all 6 public bookable departments.
+ * Returns a list of all 7 public bookable departments.
  */
 export async function getDepartments(): Promise<string[]> {
   return [
-    "OT",
-    "Special Educator",
     "Speech Therapy",
+    "Physiotherapy",
+    "Special Educator",
     "Physical Therapy",
     "Academic Support",
-    "Counselling"
+    "Counselling",
+    "OT",
   ];
 }
