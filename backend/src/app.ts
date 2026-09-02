@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import { config } from "./config.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
+import msg91BookingRouter from "./routes/msg91Booking.js";
 import { WebhookMessage } from "./models/WebhookMessage.js";
 import { assignTherapist, getAvailableSlots, normalizeDepartment } from "./services/bookingService.js";
 import { handleMsg91PaymentWebhook } from "./controllers/msg91PaymentWebhookController.js";
@@ -61,6 +62,7 @@ export function createApp() {
   });
 
   app.use("/api", apiRouter);
+  app.use("/msg91-booking", msg91BookingRouter);
 
   // ── MSG91 WhatsApp Payment Webhook Direct Route ──────────────────
   app.post("/api/msg91/payment-webhook", handleMsg91PaymentWebhook);

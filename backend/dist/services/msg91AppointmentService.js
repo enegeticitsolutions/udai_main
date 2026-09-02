@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { ObjectId } from "mongodb";
-import { z } from "zod";
+import mongoose from "mongoose";
 import { config } from "../config.js";
 import { readJsonFile, writeJsonFile } from "../lib/fileStore.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
@@ -13,45 +13,23 @@ export class NoSlotsAvailableError extends Error {
         this.name = "NoSlotsAvailableError";
     }
 }
-const appointmentTypeSchema = z.enum(["online", "in-person"]);
-const paymentStatusSchema = z.enum(["pending", "paid", "failed", "not-required"]);
-const bookingStatusSchema = z.enum(["pending", "confirmed", "completed", "cancelled"]);
-const msg91AppointmentSchema = z.object({
-    bookingId: z.string().trim().min(2).max(180).optional(),
-    patientName: z.string().trim().max(160).default(""),
-    parentName: z.string().trim().max(160).optional().default(""),
-    phoneNumber: z.string().trim().default(""),
-    age: z.coerce.number().int().min(0).max(120).optional().default(0),
-    firstSession: z.string().trim().optional().default(""),
-    gender: z.string().trim().optional().default(""),
-    city: z.string().trim().optional().default(""),
-    preferredLanguage: z.string().trim().optional().default("English"),
-    therapistId: z.string().trim().max(160).optional().nullable(),
-    therapistName: z.string().trim().max(160).default("OT"),
-    appointmentDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Appointment date must use YYYY-MM-DD"),
-    appointmentTime: z.string().trim().optional().default(""),
-    appointmentType: appointmentTypeSchema.optional().default("in-person"),
-    mainConcern: z.string().trim().max(500).optional().default(""),
-    concernDescription: z.string().trim().max(3000).optional().default(""),
-    additionalNotes: z.string().trim().max(3000).optional().default(""),
-    paymentStatus: paymentStatusSchema.optional().default("pending"),
-    bookingStatus: bookingStatusSchema.optional().default("pending"),
-});
 const appointmentCollection = "appointments";
 function storedAppointmentsPath() {
     return path.join(config.storageDir, "appointments.json");
 }
 function pick(body, ...keys) {
+    if (!body || typeof body !== "object")
+        return "";
     for (const key of keys) {
         const value = body[key];
         if (value !== undefined && value !== null) {
             if (typeof value === "string" && value.trim() !== "")
-                return value;
+                return value.trim();
             if (typeof value === "number" || typeof value === "boolean")
                 return String(value);
             if (typeof value === "object") {
                 const obj = value;
-                const inner = String(obj.value ?? obj.name ?? obj.label ?? obj.title ?? "").trim();
+                const inner = String(obj.value ?? obj.name ?? obj.label ?? obj.title ?? obj.id ?? "").trim();
                 if (inner)
                     return inner;
             }
@@ -68,14 +46,15 @@ function normalizeAppointmentType(value) {
         return "in-person";
     if (["online", "video", "virtual"].includes(normalized))
         return "online";
-    return normalized;
+    return normalized || "in-person";
 }
 function normalizeStatus(value) {
-    return String(value ?? "").trim().toLowerCase().replace(/[_ ]+/g, "-");
+    const s = String(value ?? "").trim().toLowerCase().replace(/[_ ]+/g, "-");
+    return s || "pending";
 }
 function payloadData(payload) {
     const body = (payload ?? {});
-    return (body.data ?? body.payload ?? body.variables ?? body);
+    return (body.data ?? body.payload ?? body.variables ?? body.body ?? body);
 }
 export function normalizeAppointmentDate(dateInput) {
     const str = String(dateInput ?? "").trim();
@@ -135,7 +114,7 @@ export function normalizeAppointmentDate(dateInput) {
 export function normalizeAppointmentTime(timeInput) {
     const str = String(timeInput ?? "").trim().toUpperCase();
     if (!str)
-        return "";
+        return "10:00";
     // 1. Check for 12-hour format like "10:30 AM", "2:15 PM", "9:00AM", "12:00 PM"
     const match12 = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
     if (match12) {
@@ -157,19 +136,26 @@ export function normalizeAppointmentTime(timeInput) {
             return `${String(hours).padStart(2, "0")}:${minutes}`;
         }
     }
-    return str;
+    return str || "10:00";
 }
 export function parseMsg91AppointmentPayload(payload) {
     const data = payloadData(payload);
-    // Phone: Extract from payload.phoneNumber || payload.phone || payload.sender || payload.from || payload.mobile || payload.wa_id || ""
-    const rawPhone = pick(data, "phoneNumber", "phone_number", "phone", "sender", "from", "mobile", "mobileNumber", "mobile_number", "wa_id", "wa_number", "whatsapp_number", "customerNumber", "customer_number", "caller", "msisdn", "number", "user_phone", "user_id", "receiver");
+    const root = (payload ?? {});
+    // Phone: Extract from all possible locations
+    const rawPhone = pick(data, "phoneNumber", "phone_number", "phone", "sender", "from", "mobile", "mobileNumber", "mobile_number", "customerNumber", "customer_number", "customer_mobile", "wa_id", "wa_number", "whatsapp_number", "caller", "msisdn", "number", "user_phone", "user_id", "receiver") ||
+        pick(root, "phoneNumber", "phone_number", "phone", "customerNumber", "customer_mobile", "from", "mobile", "wa_id");
     const cleanPhone = normalizePhone(rawPhone);
-    // Child Name: Extract from payload.childName || payload.child_name || payload.name_of_child || payload.patientName || payload.name || ""
-    const rawChildName = pick(data, "childName", "child_name", "name_of_child", "nameOfChild", "child", "patientName", "patient_name", "name", "full_name", "customerName", "userName");
-    // Parent Name: Extract from payload.parentName || payload.parent_name || payload.guardianName || ""
-    const rawParentName = pick(data, "parentName", "parent_name", "parent", "guardianName", "guardian_name");
-    // Age: Extract from payload.age || payload.child_age || ""
-    const rawAge = pick(data, "age", "child_age", "childAge", "age_of_child", "ageOfChild", "patient_age", "patientAge");
+    // Child / Patient Name: Extract with flexible fallback
+    const rawChildName = pick(data, "patientName", "patient_name", "childName", "child_name", "name_of_child", "nameOfChild", "child", "name", "full_name", "customerName", "userName", "user_name") ||
+        pick(root, "patientName", "childName", "name", "customerName") ||
+        "Not specified";
+    // Parent Name:
+    const rawParentName = pick(data, "parentName", "parent_name", "parent", "guardianName", "guardian_name") ||
+        pick(root, "parentName", "parent", "guardianName") ||
+        "";
+    // Age:
+    const rawAge = pick(data, "age", "child_age", "childAge", "age_of_child", "ageOfChild", "patient_age", "patientAge") ||
+        pick(root, "age", "child_age", "patientAge");
     let parsedAge = 0;
     if (rawAge !== undefined && rawAge !== null && rawAge !== "") {
         const digitsOnly = String(rawAge).replace(/[^\d]/g, "");
@@ -177,60 +163,59 @@ export function parseMsg91AppointmentPayload(payload) {
             parsedAge = parseInt(digitsOnly, 10);
         }
     }
-    // First Session: Extract from payload.firstSession || payload.first_session || payload.is_first_session || ""
-    const rawFirstSession = pick(data, "firstSession", "first_session", "is_first_session", "isFirstSession", "first_session_attended", "firstSessionAttended");
-    // Appointment Date: Preserve existing normalizeAppointmentDate call
-    const rawDate = pick(data, "appointmentDate", "appointment_date", "date", "selected_date", "date_of_appointment");
+    // First Session:
+    const rawFirstSession = pick(data, "firstSession", "first_session", "is_first_session", "isFirstSession", "first_session_attended", "firstSessionAttended") ||
+        pick(root, "firstSession", "isFirstSession") ||
+        "";
+    // Appointment Date:
+    const rawDate = pick(data, "appointmentDate", "appointment_date", "date", "selected_date", "date_of_appointment", "schedule") ||
+        pick(root, "appointmentDate", "appointment_date", "date", "selected_date");
     const hasDate = Boolean(rawDate && String(rawDate).trim());
-    // Appointment Time: Extract from payload.appointment_time || payload.time || payload.selected_time || payload.slot || ""
-    const rawTime = pick(data, "appointment_time", "appointmentTime", "time", "selected_time", "slot", "appointment_slot", "slot_time");
-    // Department: Extract from payload.department || payload.service || payload.selected_service || payload.service_name || "OT"
-    const rawDepartment = pick(data, "department", "service", "selected_service", "service_name", "therapist_name", "therapistName", "doctor", "doctor_name");
-    // Concern
-    const rawConcern = pick(data, "concern", "main_concern", "mainConcern", "concern_of_child", "concernOfChild", "child_concern", "problem", "message");
-    const rawGender = pick(data, "gender");
-    const rawCity = pick(data, "city");
-    const rawLang = pick(data, "preferred_language", "preferredLanguage", "language");
-    const parsedInput = msg91AppointmentSchema.parse({
-        bookingId: pick(data, "booking_id", "bookingId", "id") || undefined,
+    // Appointment Time:
+    const rawTime = pick(data, "appointment_time", "appointmentTime", "time", "selected_time", "slot", "appointment_slot", "slot_time") ||
+        pick(root, "appointmentTime", "appointment_time", "time", "slot");
+    // Department / Therapist:
+    const rawDepartment = pick(data, "department", "service", "selected_service", "service_name", "therapist_name", "therapistName", "doctor", "doctor_name") ||
+        pick(root, "department", "service", "therapistName", "doctor") ||
+        "OT";
+    // Concern:
+    const rawConcern = pick(data, "mainConcern", "main_concern", "concern", "concern_of_child", "concernOfChild", "child_concern", "problem", "message") ||
+        pick(root, "mainConcern", "concern", "problem", "message") ||
+        "";
+    const rawGender = pick(data, "gender") || pick(root, "gender") || "";
+    const rawCity = pick(data, "city") || pick(root, "city") || "";
+    const rawLang = pick(data, "preferred_language", "preferredLanguage", "language") || pick(root, "preferredLanguage") || "English";
+    const rawBookingId = pick(data, "booking_id", "bookingId", "id", "requestId", "uuid") || pick(root, "bookingId", "booking_id", "requestId", "uuid");
+    const rawPaymentStatus = pick(data, "payment_status", "paymentStatus") || pick(root, "paymentStatus", "payment_status") || "pending";
+    const rawBookingStatus = pick(data, "booking_status", "bookingStatus", "status") || pick(root, "bookingStatus", "status") || "confirmed";
+    const input = {
+        bookingId: rawBookingId || undefined,
         patientName: rawChildName,
         parentName: rawParentName,
-        phoneNumber: cleanPhone,
+        phoneNumber: cleanPhone || rawPhone,
         age: parsedAge,
         firstSession: rawFirstSession,
         gender: rawGender || undefined,
         city: rawCity || undefined,
-        preferredLanguage: rawLang || undefined,
+        preferredLanguage: rawLang || "English",
         therapistId: pick(data, "therapist_id", "therapistId", "doctor_id", "doctorId") || null,
         therapistName: normalizeDepartment(rawDepartment || "OT"),
         appointmentDate: normalizeAppointmentDate(rawDate),
-        appointmentTime: normalizeAppointmentTime(rawTime) || undefined,
+        appointmentTime: normalizeAppointmentTime(rawTime),
         appointmentType: normalizeAppointmentType(pick(data, "appointment_type", "appointmentType", "visit_type") || "in-person"),
         mainConcern: rawConcern,
         concernDescription: pick(data, "concern_description", "concernDescription", "description") || "",
         additionalNotes: pick(data, "additional_notes", "additionalNotes", "notes") || "",
-        paymentStatus: normalizeStatus(pick(data, "payment_status", "paymentStatus") || "pending"),
-        bookingStatus: normalizeStatus(pick(data, "booking_status", "bookingStatus", "status") || "pending"),
-    });
-    return { input: parsedInput, hasDate };
+        paymentStatus: normalizeStatus(rawPaymentStatus),
+        bookingStatus: normalizeStatus(rawBookingStatus) || "confirmed",
+    };
+    return { input, hasDate };
 }
 function generatedBookingId(input) {
     return `MSG91-${createHash("sha256")
         .update(`${input.phoneNumber}|${input.appointmentDate}|${input.appointmentTime}|${input.therapistId ?? input.therapistName}`)
         .digest("hex")
         .slice(0, 20)}`;
-}
-function duplicateFilter(input, bookingId) {
-    return {
-        $or: [
-            { bookingId },
-            {
-                phoneNumber: input.phoneNumber,
-                appointmentDate: input.appointmentDate,
-                appointmentTime: input.appointmentTime,
-            },
-        ],
-    };
 }
 function normalizeMongoAppointment(document) {
     const { _id, ...appointment } = document;
@@ -239,60 +224,33 @@ function normalizeMongoAppointment(document) {
         id: _id ? String(_id) : String(appointment.id ?? ""),
     };
 }
-async function ensureAppointmentIndexes() {
-    const collection = getMongoDb().collection(appointmentCollection);
-    await Promise.all([
-        collection.createIndex({ bookingId: 1 }, { unique: true }),
-        collection.createIndex({ phoneNumber: 1, appointmentDate: 1, appointmentTime: 1 }, { unique: true }),
-        collection.createIndex({ bookingStatus: 1, appointmentDate: 1 }),
-        collection.createIndex({ therapistId: 1, appointmentDate: 1 }),
-        collection.createIndex({ createdAt: -1 }),
-    ]);
-    return collection;
-}
-async function readStoredAppointments() {
-    try {
-        return await readJsonFile(storedAppointmentsPath());
-    }
-    catch (error) {
-        if (error.code === "ENOENT")
-            return [];
-        throw error;
-    }
-}
 export async function saveMsg91Appointment(payload) {
-    const { input, hasDate } = parseMsg91AppointmentPayload(payload);
-    // If date was NOT explicitly provided in the payload (intermediate flow node like Connection_Api_2),
-    // return preliminary success without writing incomplete bookings to DB or locking slots.
-    if (!hasDate) {
-        const preliminaryRecord = {
-            ...input,
-            id: "preliminary-service-selection",
-            bookingId: "PRELIMINARY",
-            appointmentDate: "",
-            appointmentTime: "",
-            bookingStatus: "pending",
-            rawPayload: payload,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
-        return { appointment: preliminaryRecord, duplicate: false, isPreliminary: true };
-    }
+    const { input } = parseMsg91AppointmentPayload(payload);
     // If appointmentTime is missing or empty, pick first available slot or fallback to default slot 10:00
     if (!input.appointmentTime || input.appointmentTime.trim() === "") {
-        const availableSlots = await getAvailableSlots(input.therapistName, input.appointmentDate);
-        if (availableSlots && availableSlots.length > 0) {
-            input.appointmentTime = availableSlots[0].time;
+        try {
+            const availableSlots = await getAvailableSlots(input.therapistName, input.appointmentDate);
+            if (availableSlots && availableSlots.length > 0) {
+                input.appointmentTime = availableSlots[0].time;
+            }
+            else {
+                input.appointmentTime = "10:00";
+            }
         }
-        else {
+        catch {
             input.appointmentTime = "10:00";
         }
     }
-    // Reserve slot by assigning available therapist if possible
-    const assigned = await assignTherapist(input.therapistName, input.appointmentDate, input.appointmentTime);
-    if (assigned) {
-        input.therapistId = assigned.id;
-        input.therapistName = assigned.name;
+    // Assign therapist if possible
+    try {
+        const assigned = await assignTherapist(input.therapistName, input.appointmentDate, input.appointmentTime);
+        if (assigned) {
+            input.therapistId = assigned.id;
+            input.therapistName = assigned.name;
+        }
+    }
+    catch (err) {
+        console.warn("[saveMsg91Appointment] Therapist assignment fallback:", err.message);
     }
     input.bookingStatus = "confirmed";
     const bookingId = input.bookingId || generatedBookingId(input);
@@ -304,25 +262,67 @@ export async function saveMsg91Appointment(payload) {
         createdAt: now,
         updatedAt: now,
     };
-    await connectMongoDb();
-    if (isMongoConnected()) {
-        const collection = await ensureAppointmentIndexes();
-        const filter = duplicateFilter(input, bookingId);
-        const existing = await collection.findOne(filter);
-        if (existing)
-            return { appointment: normalizeMongoAppointment(existing), duplicate: true };
-        const result = await collection.insertOne(document);
-        return { appointment: { id: result.insertedId.toString(), ...document }, duplicate: false };
+    // Connect to MongoDB targeting explicit database
+    try {
+        await connectMongoDb();
     }
+    catch (connErr) {
+        console.warn("[saveMsg91Appointment] connectMongoDb error:", connErr.message);
+    }
+    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+    if (db) {
+        const collection = db.collection(appointmentCollection);
+        // Check if an appointment with this bookingId or phone + slot exists
+        const filter = {
+            $or: [
+                { bookingId },
+                {
+                    phoneNumber: input.phoneNumber,
+                    appointmentDate: input.appointmentDate,
+                    appointmentTime: input.appointmentTime,
+                },
+            ],
+        };
+        const existing = await collection.findOne(filter);
+        if (existing) {
+            // Update existing record
+            await collection.updateOne({ _id: existing._id }, {
+                $set: {
+                    ...document,
+                    updatedAt: now,
+                },
+            });
+            console.log(`[saveMsg91Appointment] Updated existing appointment record: ${bookingId}`);
+            return { appointment: normalizeMongoAppointment({ ...existing, ...document }), duplicate: true, isPreliminary: false };
+        }
+        const result = await collection.insertOne(document);
+        console.log(`[saveMsg91Appointment] Inserted new appointment in MongoDB: ${result.insertedId}`);
+        return { appointment: { id: result.insertedId.toString(), ...document }, duplicate: false, isPreliminary: false };
+    }
+    async function readStoredAppointments() {
+        try {
+            return await readJsonFile(storedAppointmentsPath());
+        }
+        catch (error) {
+            if (error.code === "ENOENT")
+                return [];
+            throw error;
+        }
+    }
+    // File store fallback
     await fs.mkdir(config.storageDir, { recursive: true });
     const appointments = await readStoredAppointments();
-    const existing = appointments.find((item) => item.bookingId === bookingId ||
+    const existingIndex = appointments.findIndex((item) => item.bookingId === bookingId ||
         (item.phoneNumber === input.phoneNumber && item.appointmentDate === input.appointmentDate && item.appointmentTime === input.appointmentTime));
-    if (existing)
-        return { appointment: existing, duplicate: true };
+    if (existingIndex >= 0) {
+        const updated = { ...appointments[existingIndex], ...document, updatedAt: now };
+        appointments[existingIndex] = updated;
+        await writeJsonFile(storedAppointmentsPath(), appointments);
+        return { appointment: updated, duplicate: true, isPreliminary: false };
+    }
     const appointment = { id: randomUUID(), ...document };
     await writeJsonFile(storedAppointmentsPath(), [appointment, ...appointments]);
-    return { appointment, duplicate: false };
+    return { appointment, duplicate: false, isPreliminary: false };
 }
 export function appointmentMongoIdFilter(id) {
     return ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };

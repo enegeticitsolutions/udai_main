@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { MongoServerError } from "mongodb";
-import { ZodError } from "zod";
-import { NoSlotsAvailableError, normalizeAppointmentDate, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import mongoose from "mongoose";
+import { normalizeAppointmentDate, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
 import { getAvailableDates, getAvailableSlots, getDepartments } from "../services/bookingService.js";
+import { WebhookMessage } from "../models/WebhookMessage.js";
 
 const msg91BookingRouter = Router();
 
@@ -79,26 +79,22 @@ const handleSlots = async (req: any, res: any, next: any) => {
 msg91BookingRouter.get("/slots", handleSlots);
 msg91BookingRouter.post("/slots", handleSlots);
 
-import { WebhookMessage } from "../models/WebhookMessage.js";
-
 /**
- * Backward-compatible alias for older MSG91 bot flow nodes.
- * New integrations should call POST /api/webhooks/msg91.
+ * POST /api/msg91-booking
+ * Receives incoming appointment booking requests from MSG91 bot flows.
  */
 msg91BookingRouter.post("/", async (req, res) => {
-  console.info("[MSG91 legacy booking] Incoming payload:", JSON.stringify(req.body));
+  console.log("==> Incoming MSG91 Booking Payload:", req.body);
   try {
-    const { appointment, duplicate, isPreliminary } = await saveMsg91Appointment(req.body);
-    if (isPreliminary) {
-      res.status(200).json({ success: true, status: "success", message: "Service selection acknowledged", data: [] });
-      return;
-    }
+    const { appointment, duplicate } = await saveMsg91Appointment(req.body);
+    console.info(`[MSG91 Booking] ${duplicate ? "Existing booking updated" : "New booking created"}: ${appointment.bookingId}`);
 
+    // 1. Log to WebhookMessage (for WhatsApp Messages dashboard)
     try {
       await WebhookMessage.create({
         rawData: req.body,
         phone: appointment.phoneNumber || "",
-        childName: appointment.patientName || "",
+        childName: appointment.patientName || "Not specified",
         parentName: appointment.parentName || "",
         age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "",
         firstSession: (appointment as any).firstSession || "",
@@ -108,26 +104,65 @@ msg91BookingRouter.post("/", async (req, res) => {
         concern: appointment.mainConcern || "",
         assignedTherapist: appointment.therapistName || "",
         assignedTherapistId: appointment.therapistId || "",
-        status: "confirmed",
+        status: appointment.bookingStatus || "confirmed",
         bookingSource: "whatsapp",
       });
-      console.log(`[MSG91 legacy booking] Logged appointment payload to WebhookMessage`);
+      console.log(`[MSG91 Booking] Logged appointment payload to WebhookMessage`);
     } catch (dbErr: any) {
-      console.error("[MSG91 legacy booking] Failed to log WebhookMessage:", dbErr.message);
+      console.error("[MSG91 Booking] Failed to log WebhookMessage:", dbErr.message);
+    }
+
+    // 2. Sync to chatbotsubmissions (for WhatsApp Appointments dashboard)
+    try {
+      const db = mongoose.connection.db;
+      if (db && appointment.phoneNumber) {
+        const txnId = appointment.bookingId || `MSG91-${Date.now()}`;
+        await db.collection("chatbotsubmissions").updateOne(
+          { transactionId: txnId },
+          {
+            $set: {
+              phone: appointment.phoneNumber,
+              message: appointment.mainConcern || `Appointment for ${appointment.patientName}`,
+              userDetails: {
+                name: appointment.patientName || undefined,
+                age: appointment.age || undefined,
+                parentName: appointment.parentName || undefined,
+                problem: appointment.mainConcern || appointment.therapistName || undefined,
+                appointmentDate: appointment.appointmentDate,
+                appointmentTime: appointment.appointmentTime,
+              },
+              assignedTherapist: appointment.therapistName || undefined,
+              assignedTherapistId: appointment.therapistId || undefined,
+              status: appointment.bookingStatus || "confirmed",
+              source: "whatsapp",
+              rawPayload: req.body,
+              updatedAt: new Date(),
+            },
+            $setOnInsert: {
+              transactionId: txnId,
+              createdAt: new Date(),
+            },
+          },
+          { upsert: true }
+        );
+      }
+    } catch (submissionsErr: any) {
+      console.error("[MSG91 Booking] Failed to sync chatbotsubmissions:", submissionsErr.message);
     }
 
     res.status(200).json({
       success: true,
       status: "success",
       data: appointment,
-      message: duplicate ? "Duplicate booking already recorded" : "Booking saved successfully",
+      message: duplicate ? "Booking record updated successfully" : "Booking saved successfully",
     });
   } catch (error: any) {
-    console.warn("[MSG91 legacy booking] Gracefully handled payload error:", error.message || error);
+    console.error("[MSG91 Booking] Error saving booking:", error.message || error);
     res.status(200).json({
       success: true,
       status: "success",
       message: "Request processed",
+      error: error.message,
     });
   }
 });
