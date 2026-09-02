@@ -269,32 +269,62 @@ export function createApp() {
   app.patch("/webhook/messages/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, appointmentDate, appointmentTime, assignedTherapist, concern, childName, parentName, age } = req.body;
+      const {
+        status,
+        bookingStatus,
+        appointmentDate,
+        appointmentTime,
+        assignedTherapist,
+        assignedTherapistId,
+        concern,
+        childName,
+        parentName,
+        age,
+        paymentStatus,
+        paymentMode,
+        transactionId,
+      } = req.body;
+
       const updateData: any = {};
       if (status !== undefined) updateData.status = status;
+      if (bookingStatus !== undefined) updateData.bookingStatus = bookingStatus;
       if (appointmentDate !== undefined) updateData.appointmentDate = appointmentDate;
       if (appointmentTime !== undefined) updateData.appointmentTime = appointmentTime;
       if (assignedTherapist !== undefined) updateData.assignedTherapist = assignedTherapist;
+      if (assignedTherapistId !== undefined) updateData.assignedTherapistId = assignedTherapistId;
       if (concern !== undefined) updateData.concern = concern;
       if (childName !== undefined) updateData.childName = childName;
       if (parentName !== undefined) updateData.parentName = parentName;
       if (age !== undefined) updateData.age = String(age);
+      if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
+      if (paymentMode !== undefined) updateData.paymentMode = paymentMode;
+      if (transactionId !== undefined) updateData.transactionId = transactionId;
+      updateData.updatedAt = new Date();
 
       const updated = await WebhookMessage.findByIdAndUpdate(id, { $set: updateData }, { new: true });
       if (!updated) {
         return res.status(404).json({ success: false, message: "Record not found" });
       }
 
-      // Also sync status and details to chatbotsubmissions if phone exists
+      // Also sync status and details to chatbotsubmissions and appointments if phone exists
       if (updated.phone) {
         try {
           const db = mongoose.connection.db;
           if (db) {
+            const cleanPhone = updated.phone.replace(/[^\d]/g, "");
+            const phoneQueries = [updated.phone, cleanPhone];
+            if (cleanPhone.length === 10) {
+              phoneQueries.push(`91${cleanPhone}`, `+91${cleanPhone}`);
+            }
+
             await db.collection("chatbotsubmissions").updateMany(
-              { phone: updated.phone },
+              { phone: { $in: phoneQueries } },
               {
                 $set: {
-                  status: updated.status,
+                  ...(updated.status ? { status: updated.status } : {}),
+                  ...(paymentStatus ? { paymentStatus } : {}),
+                  ...(paymentMode ? { paymentMode } : {}),
+                  ...(transactionId ? { transactionId } : {}),
                   "userDetails.appointmentDate": updated.appointmentDate,
                   "userDetails.appointmentTime": updated.appointmentTime,
                   "userDetails.name": updated.childName,
@@ -304,9 +334,23 @@ export function createApp() {
                 },
               }
             );
+
+            const appointmentUpdate: any = { updatedAt: new Date().toISOString() };
+            if (paymentStatus) appointmentUpdate.paymentStatus = paymentStatus;
+            if (status) appointmentUpdate.bookingStatus = status;
+            if (bookingStatus) appointmentUpdate.bookingStatus = bookingStatus;
+            if (appointmentDate) appointmentUpdate.appointmentDate = appointmentDate;
+            if (appointmentTime) appointmentUpdate.appointmentTime = appointmentTime;
+            if (assignedTherapist) appointmentUpdate.therapistName = assignedTherapist;
+            if (transactionId) appointmentUpdate.transactionId = transactionId;
+
+            await db.collection("appointments").updateMany(
+              { phoneNumber: { $in: phoneQueries } },
+              { $set: appointmentUpdate }
+            );
           }
         } catch (syncErr: any) {
-          console.warn("Could not sync to chatbotsubmissions:", syncErr.message);
+          console.warn("Could not sync to chatbotsubmissions/appointments:", syncErr.message);
         }
       }
 

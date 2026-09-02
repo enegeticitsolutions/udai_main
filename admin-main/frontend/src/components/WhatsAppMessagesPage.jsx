@@ -20,13 +20,13 @@ const BACKEND_BASE = getBackendBase();
 function formatTime(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr);
   return d.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
     hour12: true,
   });
 }
@@ -37,6 +37,12 @@ function extractField(raw, ...keys) {
     if (raw[key] !== undefined && raw[key] !== null && raw[key] !== "") return String(raw[key]);
   }
   return "—";
+}
+
+function normalizePhone(val) {
+  const digits = String(val || "").replace(/[^\d]/g, "");
+  if (digits.length === 10) return `91${digits}`;
+  return digits;
 }
 
 function getStatusBadge(status) {
@@ -163,6 +169,64 @@ export default function WhatsAppMessagesPage() {
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
+  const patchMessage = async (targetId, updatePayload) => {
+    const patchUrls = [
+      `${BACKEND_BASE}/webhook/messages/${targetId}`,
+      `${BACKEND_BASE}/api/webhook/messages/${targetId}`,
+      `${BACKEND_BASE}/api/admin/webhook/messages/${targetId}`,
+      `/api/admin/webhook/messages/${targetId}`,
+      `/api/webhook/messages/${targetId}`,
+      `/webhook/messages/${targetId}`,
+    ];
+
+    let success = false;
+    for (const url of patchUrls) {
+      try {
+        const res = await fetch(url, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatePayload),
+        });
+        if (res.ok) {
+          success = true;
+          break;
+        }
+      } catch {}
+    }
+    return success;
+  };
+
+  // 1. Mark as Paid handler
+  const handleMarkAsPaid = async (msg) => {
+    const targetId = msg._id || msg.id;
+    setOpenMenuId(null);
+    try {
+      setIsUpdating(true);
+      const success = await patchMessage(targetId, {
+        paymentStatus: "completed",
+        paymentMode: "offline",
+        status: "confirmed",
+      });
+
+      if (!success) throw new Error("Could not connect to server");
+
+      // Optimistic update
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === targetId || m.id === targetId
+            ? { ...m, paymentStatus: "completed", paymentMode: "offline" }
+            : m
+        )
+      );
+      showToast("Payment marked as Paid successfully! ✓");
+    } catch (err) {
+      alert("Failed to mark as paid: " + err.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // 2. Reschedule handler
   const handleOpenReschedule = (msg) => {
     const raw = msg.rawData || {};
     const currentDate = msg.appointmentDate || raw.appointmentDate || raw.appointment_date || "";
@@ -183,38 +247,19 @@ export default function WhatsAppMessagesPage() {
     try {
       setIsUpdating(true);
       const targetId = rescheduleItem._id || rescheduleItem.id;
-      const patchUrls = [
-        `${BACKEND_BASE}/webhook/messages/${targetId}`,
-        `${BACKEND_BASE}/api/webhook/messages/${targetId}`,
-        `${BACKEND_BASE}/api/admin/webhook/messages/${targetId}`,
-      ];
+      const success = await patchMessage(targetId, {
+        status: "rescheduled",
+        bookingStatus: "rescheduled",
+        appointmentDate: rescheduleDate,
+        appointmentTime: rescheduleTime,
+        assignedTherapist: rescheduleTherapist,
+      });
 
-      let success = false;
-      for (const url of patchUrls) {
-        try {
-          const res = await fetch(url, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              status: "rescheduled",
-              appointmentDate: rescheduleDate,
-              appointmentTime: rescheduleTime,
-              assignedTherapist: rescheduleTherapist,
-            }),
-          });
-          if (res.ok) {
-            success = true;
-            break;
-          }
-        } catch {}
-      }
+      if (!success) throw new Error("Could not connect to server");
 
-      if (!success) throw new Error("Failed to reach backend endpoint");
-
-      // Update local state optimistically
       setMessages((prev) =>
         prev.map((m) =>
-          (m._id === targetId || m.id === targetId)
+          m._id === targetId || m.id === targetId
             ? {
                 ...m,
                 status: "rescheduled",
@@ -235,39 +280,43 @@ export default function WhatsAppMessagesPage() {
     }
   };
 
+  // 3. WhatsApp Chat handler
+  const handleChatOnWhatsApp = (msg) => {
+    setOpenMenuId(null);
+    const raw = msg.rawData || {};
+    const rawPhone =
+      msg.phone ||
+      raw.customerNumber ||
+      raw.phoneNumber ||
+      raw.phone_number ||
+      raw.from ||
+      raw.sender ||
+      "";
+    const phone = normalizePhone(rawPhone);
+    if (!phone) {
+      alert("No valid phone number found for this booking.");
+      return;
+    }
+    window.open(`https://wa.me/${phone}`, "_blank");
+  };
+
+  // 4. Cancel handler
   const handleConfirmCancel = async () => {
     if (!cancelItem) return;
 
     try {
       setIsUpdating(true);
       const targetId = cancelItem._id || cancelItem.id;
-      const patchUrls = [
-        `${BACKEND_BASE}/webhook/messages/${targetId}`,
-        `${BACKEND_BASE}/api/webhook/messages/${targetId}`,
-        `${BACKEND_BASE}/api/admin/webhook/messages/${targetId}`,
-      ];
+      const success = await patchMessage(targetId, {
+        status: "cancelled",
+        bookingStatus: "cancelled",
+      });
 
-      let success = false;
-      for (const url of patchUrls) {
-        try {
-          const res = await fetch(url, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "cancelled" }),
-          });
-          if (res.ok) {
-            success = true;
-            break;
-          }
-        } catch {}
-      }
+      if (!success) throw new Error("Could not connect to server");
 
-      if (!success) throw new Error("Failed to reach backend endpoint");
-
-      // Update local state optimistically
       setMessages((prev) =>
         prev.map((m) =>
-          (m._id === targetId || m.id === targetId) ? { ...m, status: "cancelled" } : m
+          m._id === targetId || m.id === targetId ? { ...m, status: "cancelled" } : m
         )
       );
 
@@ -290,11 +339,11 @@ export default function WhatsAppMessagesPage() {
             bottom: 24,
             right: 24,
             zIndex: 9999,
-            background: "#1e293b",
+            background: "#0f172a",
             color: "#fff",
             padding: "12px 20px",
             borderRadius: 10,
-            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
             fontSize: 14,
             fontWeight: 500,
             display: "flex",
@@ -400,11 +449,11 @@ export default function WhatsAppMessagesPage() {
             accent: "#059669",
           },
           {
-            label: "First Session",
+            label: "First-Time Patients",
             value: messages.filter((m) => {
               const raw = m.rawData || {};
               const val = String(m.firstSession ?? raw.firstSession ?? raw.first_session ?? raw.isFirstSession ?? "").toLowerCase();
-              return val === "true" || val === "yes";
+              return val === "true" || val === "yes" || val === "1";
             }).length,
             icon: "🌟",
             bg: "#eff6ff",
@@ -479,11 +528,11 @@ export default function WhatsAppMessagesPage() {
               <tr style={{ background: "#f9fafb", textAlign: "left" }}>
                 <th style={thStyle}>#</th>
                 <th style={thStyle}>Phone Number</th>
-                <th style={thStyle}>Child Name</th>
-                <th style={thStyle}>Parent Name</th>
-                <th style={thStyle}>Age</th>
-                <th style={thStyle}>First Session</th>
-                <th style={thStyle}>Appointment</th>
+                <th style={thStyle}>Child &amp; Parent</th>
+                <th style={{ ...thStyle, textAlign: "center" }}>Age</th>
+                <th style={thStyle}>Service / Concern</th>
+                <th style={thStyle}>Date &amp; Slot</th>
+                <th style={{ ...thStyle, textAlign: "center" }}>Payment</th>
                 <th style={thStyle}>Status</th>
                 <th style={{ ...thStyle, textAlign: "center", width: 70 }}>Actions</th>
               </tr>
@@ -499,9 +548,33 @@ export default function WhatsAppMessagesPage() {
                 };
 
                 const childName = field("childName", "child_name", "name", "patientName");
+                const parentName = field("parentName", "parent_name", "parent", "guardianName");
                 const phone = field("phone", "customerNumber", "phoneNumber", "phone_number", "from", "sender");
                 const statusVal = msg.status || raw.status || "confirmed";
-                const isMenuOpen = openMenuId === msg._id;
+                const isMenuOpen = openMenuId === (msg._id || idx);
+
+                // First Session tag
+                const rawFirst = String(
+                  msg.firstSession ??
+                  raw.firstSession ??
+                  raw.first_session ??
+                  raw.isFirstSession ??
+                  ""
+                ).toLowerCase();
+                const isFirstTime = rawFirst === "true" || rawFirst === "yes" || rawFirst === "1";
+                const isReturning = rawFirst === "false" || rawFirst === "no" || rawFirst === "0";
+
+                // Service / Concern
+                const serviceOrConcern =
+                  field("department", "service", "selected_service", "concern", "mainConcern", "therapistName", "doctor", "problem");
+
+                // Payment Status & Mode
+                const pStatus = (msg.paymentStatus || raw.paymentStatus || raw.payment_status || "").toLowerCase();
+                const pMode = (msg.paymentMode || raw.paymentMode || raw.payment_mode || "").toLowerCase();
+                const isPaid = pStatus === "completed" || pStatus === "paid";
+
+                const apptDate = field("appointmentDate", "appointment_date", "date", "schedule");
+                const apptTime = field("appointmentTime", "appointment_time", "time", "slot");
 
                 return (
                   <tr
@@ -518,67 +591,119 @@ export default function WhatsAppMessagesPage() {
                     <td style={{ ...tdStyle, fontWeight: 600, fontFamily: "monospace", letterSpacing: 0.5 }}>
                       {phone}
                     </td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{childName}</td>
-                    <td style={{ ...tdStyle, fontWeight: 500 }}>
-                      {field("parentName", "parent_name", "parent", "guardianName")}
+
+                    {/* ── Combined Child & Parent with [New] / [Returning] tag ── */}
+                    <td style={tdStyle}>
+                      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                        <span style={{ fontWeight: 600, color: "#1e293b", fontSize: 13.5 }}>
+                          {childName !== "—" ? childName : "N/A"}
+                        </span>
+                        {isFirstTime && (
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                              background: "#ecfdf5",
+                              color: "#047857",
+                              border: "1px solid #a7f3d0",
+                              letterSpacing: 0.2,
+                            }}
+                            title="First-time Patient"
+                          >
+                            New
+                          </span>
+                        )}
+                        {isReturning && (
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 600,
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                              background: "#f1f5f9",
+                              color: "#64748b",
+                              border: "1px solid #e2e8f0",
+                              letterSpacing: 0.2,
+                            }}
+                            title="Returning Patient"
+                          >
+                            Returning
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>
+                        {parentName !== "—" ? parentName : "Parent: —"}
+                      </div>
                     </td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>
+
+                    {/* ── Age ── */}
+                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 500, color: "#334155" }}>
                       {field("age", "child_age", "patientAge")}
                     </td>
-                    <td style={tdStyle}>
-                      {(() => {
-                        const val = field("firstSession", "first_session", "isFirstSession");
-                        if (val === "true" || val === "yes")
-                          return (
-                            <span
-                              style={{
-                                display: "inline-block",
-                                padding: "3px 10px",
-                                borderRadius: 12,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                background: "#d4edda",
-                                color: "#155724",
-                              }}
-                            >
-                              Yes
-                            </span>
-                          );
-                        if (val === "false" || val === "no")
-                          return (
-                            <span
-                              style={{
-                                display: "inline-block",
-                                padding: "3px 10px",
-                                borderRadius: 12,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                background: "#fff3cd",
-                                color: "#856404",
-                              }}
-                            >
-                              No
-                            </span>
-                          );
-                        return <span style={{ color: "#aaa" }}>{val}</span>;
-                      })()}
-                    </td>
-                    <td style={{ ...tdStyle, whiteSpace: "nowrap", fontSize: 13, color: "#555" }}>
-                      {field("appointmentDate", "appointment_date", "date", "schedule")}{" "}
-                      <span style={{ color: "#888" }}>
-                        {field("appointmentTime", "appointment_time", "time", "slot") !== "—"
-                          ? field("appointmentTime", "appointment_time", "time", "slot")
-                          : ""}
+
+                    {/* ── Service / Concern ── */}
+                    <td style={{ ...tdStyle, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span
+                        style={{
+                          fontWeight: 500,
+                          color: "#334155",
+                          background: "#f8fafc",
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                          border: "1px solid #e2e8f0",
+                          fontSize: 12,
+                          display: "inline-block",
+                        }}
+                        title={serviceOrConcern}
+                      >
+                        {serviceOrConcern !== "—" ? serviceOrConcern : "General Consultation"}
                       </span>
                     </td>
+
+                    {/* ── Date & Slot ── */}
+                    <td style={{ ...tdStyle, whiteSpace: "nowrap", fontSize: 12.5, color: "#334155" }}>
+                      <div>{apptDate !== "—" ? apptDate : "—"}</div>
+                      {apptTime !== "—" && (
+                        <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 1 }}>
+                          🕒 {apptTime}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* ── Payment (Paid or Blank) ── */}
+                    <td style={{ ...tdStyle, textAlign: "center" }}>
+                      {isPaid ? (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            background: "#ecfdf5",
+                            color: "#065f46",
+                            border: "1px solid #a7f3d0",
+                          }}
+                        >
+                          Paid
+                        </span>
+                      ) : (
+                        <span style={{ color: "#94a3b8" }}>—</span>
+                      )}
+                    </td>
+
+                    {/* ── Status ── */}
                     <td style={tdStyle}>{getStatusBadge(statusVal)}</td>
+
+                    {/* ── Actions (3-dots) ── */}
                     <td style={{ ...tdStyle, textAlign: "center", position: "relative" }}>
-                      {/* ── 3-Dot Menu Button ──────────────── */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setOpenMenuId(isMenuOpen ? null : msg._id);
+                          setOpenMenuId(isMenuOpen ? null : (msg._id || idx));
                         }}
                         style={{
                           background: isMenuOpen ? "#e2e8f0" : "transparent",
@@ -611,41 +736,20 @@ export default function WhatsAppMessagesPage() {
                           style={{
                             position: "absolute",
                             right: 12,
-                            top: 40,
+                            top: 38,
                             zIndex: 1000,
                             background: "#ffffff",
                             borderRadius: 10,
                             boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
                             border: "1px solid #e2e8f0",
-                            width: 170,
+                            width: 185,
                             padding: "6px 0",
                             textAlign: "left",
                             animation: "fadeIn 0.15s ease-out",
                           }}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <button
-                            type="button"
-                            onClick={() => handleOpenReschedule(msg)}
-                            style={menuItemStyle}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                          >
-                            <span style={{ fontSize: 14 }}>📅</span> Reschedule
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCancelItem(msg);
-                              setOpenMenuId(null);
-                            }}
-                            style={{ ...menuItemStyle, color: "#dc2626" }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                          >
-                            <span style={{ fontSize: 14 }}>❌</span> Cancel
-                          </button>
-                          <div style={{ height: 1, background: "#f1f5f9", margin: "4px 0" }} />
+                          {/* View Details */}
                           <button
                             type="button"
                             onClick={() => {
@@ -657,6 +761,57 @@ export default function WhatsAppMessagesPage() {
                             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                           >
                             <span style={{ fontSize: 14 }}>ℹ️</span> View Details
+                          </button>
+
+                          {/* Mark as Paid (if not already paid) */}
+                          {!isPaid && (
+                            <button
+                              type="button"
+                              onClick={() => handleMarkAsPaid(msg)}
+                              style={{ ...menuItemStyle, color: "#047857" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "#ecfdf5")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                            >
+                              <span style={{ fontSize: 14 }}>💳</span> Mark as Paid
+                            </button>
+                          )}
+
+                          {/* Reschedule Slot */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenReschedule(msg)}
+                            style={menuItemStyle}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          >
+                            <span style={{ fontSize: 14 }}>📅</span> Reschedule Slot
+                          </button>
+
+                          {/* Chat on WhatsApp */}
+                          <button
+                            type="button"
+                            onClick={() => handleChatOnWhatsApp(msg)}
+                            style={{ ...menuItemStyle, color: "#16a34a" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#f0fdf4")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          >
+                            <span style={{ fontSize: 14 }}>💬</span> Chat on WhatsApp
+                          </button>
+
+                          <div style={{ height: 1, background: "#f1f5f9", margin: "4px 0" }} />
+
+                          {/* Cancel Appointment */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCancelItem(msg);
+                              setOpenMenuId(null);
+                            }}
+                            style={{ ...menuItemStyle, color: "#dc2626" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          >
+                            <span style={{ fontSize: 14 }}>❌</span> Cancel Appointment
                           </button>
                         </div>
                       )}
@@ -675,7 +830,7 @@ export default function WhatsAppMessagesPage() {
           <div style={modalBoxStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1e293b" }}>
-                📅 Reschedule Appointment
+                📅 Reschedule Appointment Slot
               </h3>
               <button
                 type="button"
@@ -699,9 +854,8 @@ export default function WhatsAppMessagesPage() {
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>New Appointment Date</label>
                 <input
-                  type="text"
+                  type="date"
                   required
-                  placeholder="e.g. 2026-08-30 or Fri, 28 Aug"
                   value={rescheduleDate}
                   onChange={(e) => setRescheduleDate(e.target.value)}
                   style={inputStyle}
@@ -709,11 +863,11 @@ export default function WhatsAppMessagesPage() {
               </div>
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>New Appointment Time</label>
+                <label style={labelStyle}>New Appointment Time / Slot</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 11:00 AM"
+                  placeholder="e.g. 10:00 AM or 11:30"
                   value={rescheduleTime}
                   onChange={(e) => setRescheduleTime(e.target.value)}
                   style={inputStyle}
@@ -724,7 +878,7 @@ export default function WhatsAppMessagesPage() {
                 <label style={labelStyle}>Assigned Therapist (Optional)</label>
                 <input
                   type="text"
-                  placeholder="e.g. Dr. Sakshi"
+                  placeholder="e.g. Dr. Sakshi or Occupational Therapy"
                   value={rescheduleTherapist}
                   onChange={(e) => setRescheduleTherapist(e.target.value)}
                   style={inputStyle}
@@ -793,10 +947,10 @@ export default function WhatsAppMessagesPage() {
       {/* ── Details Modal ──────────────────────────────────── */}
       {detailsItem && (
         <div style={modalOverlayStyle}>
-          <div style={{ ...modalBoxStyle, maxWidth: 520 }}>
+          <div style={{ ...modalBoxStyle, maxWidth: 540 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1e293b" }}>
-                ℹ️ Child & Booking Details
+                ℹ️ Child &amp; Booking Details
               </h3>
               <button
                 type="button"
@@ -807,24 +961,34 @@ export default function WhatsAppMessagesPage() {
               </button>
             </div>
 
-            <div style={{ display: "grid", gap: 12, fontSize: 13, color: "#334155" }}>
+            <div style={{ display: "grid", gap: 10, fontSize: 13, color: "#334155" }}>
               <div><strong>Child Name:</strong> {detailsItem.childName || detailsItem.rawData?.childName || "—"}</div>
               <div><strong>Parent Name:</strong> {detailsItem.parentName || detailsItem.rawData?.parentName || "—"}</div>
               <div><strong>Phone Number:</strong> {detailsItem.phone || detailsItem.rawData?.customerNumber || "—"}</div>
               <div><strong>Age:</strong> {detailsItem.age || detailsItem.rawData?.age || "—"}</div>
-              <div><strong>First Session:</strong> {detailsItem.firstSession || detailsItem.rawData?.firstSession || "—"}</div>
-              <div><strong>Appointment:</strong> {detailsItem.appointmentDate || detailsItem.rawData?.appointmentDate || "—"} {detailsItem.appointmentTime || detailsItem.rawData?.appointmentTime || ""}</div>
+              <div><strong>First-Time Session:</strong> {detailsItem.firstSession || detailsItem.rawData?.firstSession || "—"}</div>
+              <div><strong>Appointment Slot:</strong> {detailsItem.appointmentDate || detailsItem.rawData?.appointmentDate || "—"} {detailsItem.appointmentTime || detailsItem.rawData?.appointmentTime || ""}</div>
               <div><strong>Assigned Therapist:</strong> {detailsItem.assignedTherapist || detailsItem.rawData?.assignedTherapist || "—"}</div>
-              <div><strong>Major Concern / Department:</strong> {detailsItem.concern || detailsItem.department || detailsItem.rawData?.concern || detailsItem.rawData?.department || "—"}</div>
-              <div><strong>Status:</strong> {detailsItem.status || "confirmed"}</div>
+              <div><strong>Service / Department:</strong> {detailsItem.department || detailsItem.rawData?.department || "—"}</div>
+              <div><strong>Problem / Concern:</strong> {detailsItem.concern || detailsItem.rawData?.concern || "—"}</div>
+              <div><strong>Ticket / Transaction ID:</strong> {detailsItem.transactionId || detailsItem.rawData?.requestId || detailsItem.rawData?.uuid || detailsItem._id || "—"}</div>
+              <div><strong>Payment Status:</strong> {detailsItem.paymentStatus || detailsItem.rawData?.paymentStatus || "—"}</div>
+              <div><strong>Booking Status:</strong> {detailsItem.status || "confirmed"}</div>
               <div><strong>Received At:</strong> {formatTime(detailsItem.receivedAt)}</div>
             </div>
 
-            <div style={{ marginTop: 20, textAlign: "right" }}>
+            <div style={{ marginTop: 20, display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => handleChatOnWhatsApp(detailsItem)}
+                style={{ ...primaryBtnStyle, background: "#16a34a" }}
+              >
+                💬 Chat on WhatsApp
+              </button>
               <button
                 type="button"
                 onClick={() => setDetailsItem(null)}
-                style={primaryBtnStyle}
+                style={cancelBtnStyle}
               >
                 Close
               </button>
@@ -939,4 +1103,3 @@ const closeBtnStyle = {
   cursor: "pointer",
   padding: 4,
 };
-

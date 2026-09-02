@@ -466,9 +466,24 @@ adminRouter.patch("/webhook/messages/:id", async (req, res, next) => {
     const db = getMongoDb();
     const id = req.params.id;
     const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };
-    const { status, appointmentDate, appointmentTime, assignedTherapist, concern, childName, parentName, age } = req.body;
+    const {
+      status,
+      bookingStatus,
+      appointmentDate,
+      appointmentTime,
+      assignedTherapist,
+      concern,
+      childName,
+      parentName,
+      age,
+      paymentStatus,
+      paymentMode,
+      transactionId,
+    } = req.body;
+
     const updateData = {};
     if (status !== undefined) updateData.status = status;
+    if (bookingStatus !== undefined) updateData.bookingStatus = bookingStatus;
     if (appointmentDate !== undefined) updateData.appointmentDate = appointmentDate;
     if (appointmentTime !== undefined) updateData.appointmentTime = appointmentTime;
     if (assignedTherapist !== undefined) updateData.assignedTherapist = assignedTherapist;
@@ -476,10 +491,42 @@ adminRouter.patch("/webhook/messages/:id", async (req, res, next) => {
     if (childName !== undefined) updateData.childName = childName;
     if (parentName !== undefined) updateData.parentName = parentName;
     if (age !== undefined) updateData.age = String(age);
+    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
+    if (paymentMode !== undefined) updateData.paymentMode = paymentMode;
+    if (transactionId !== undefined) updateData.transactionId = transactionId;
     updateData.updatedAt = new Date();
 
     const result = await db.collection("webhookmessages").findOneAndUpdate(filter, { $set: updateData }, { returnDocument: "after" });
-    res.json({ success: true, data: result.value || result });
+    
+    // Also sync to appointments and chatbotsubmissions
+    const doc = result.value || result;
+    if (doc && doc.phone) {
+      const cleanPhone = String(doc.phone).replace(/[^\d]/g, "");
+      const phoneQueries = [doc.phone, cleanPhone];
+      if (cleanPhone.length === 10) phoneQueries.push(`91${cleanPhone}`, `+91${cleanPhone}`);
+
+      try {
+        await db.collection("appointments").updateMany(
+          { phoneNumber: { $in: phoneQueries } },
+          {
+            $set: {
+              ...(paymentStatus ? { paymentStatus } : {}),
+              ...(status ? { bookingStatus: status } : {}),
+              ...(bookingStatus ? { bookingStatus } : {}),
+              ...(appointmentDate ? { appointmentDate } : {}),
+              ...(appointmentTime ? { appointmentTime } : {}),
+              ...(assignedTherapist ? { therapistName: assignedTherapist } : {}),
+              ...(transactionId ? { transactionId } : {}),
+              updatedAt: new Date().toISOString(),
+            },
+          }
+        );
+      } catch (aptErr) {
+        console.warn("admin.js appointments sync error:", aptErr.message);
+      }
+    }
+
+    res.json({ success: true, data: doc });
   } catch (error) {
     next(error);
   }
