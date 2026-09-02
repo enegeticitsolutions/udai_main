@@ -3,6 +3,14 @@ import Badge from "./Badge";
 import StatCard from "./StatCard";
 import { getAvailability, toggleAvailability } from "../services/adminApi";
 
+export function getTherapistShiftWindow(therapistName) {
+  const name = String(therapistName || "").toLowerCase().trim();
+  if (name.includes("atal")) return "09:15 - 17:15 (Lunch: 1:00-1:30)";
+  if (name.includes("sakshi")) return "10:00 - 14:00 (No Lunch)";
+  if (name.includes("harsimran")) return "13:00 - 17:15 (No Lunch)";
+  return "10:00 - 16:30 (Lunch: 1:00-1:30)";
+}
+
 // Configured clinic therapists grouped by department as specified
 export const CLINIC_THERAPISTS_ROSTER = [
   { department: "OT", therapistName: "Nikki", role: "Occupational Therapist" },
@@ -400,6 +408,27 @@ export default function AvailabilityManagerPage() {
                         {therapist.department}
                       </span>
                       <span style={{ fontSize: 11, color: "#94a3b8" }}>{therapist.role}</span>
+                    </div>
+                    <div style={{ marginTop: 5 }}>
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 600,
+                          padding: "2px 7px",
+                          borderRadius: 4,
+                          background: "#f8fafc",
+                          color: "#475569",
+                          border: "1px solid #e2e8f0",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          letterSpacing: 0.1,
+                        }}
+                        title="Clinical Shift Window & Lunch"
+                      >
+                        <span style={{ fontSize: 10 }}>🕒</span>
+                        <span>{getTherapistShiftWindow(therapist.therapistName)}</span>
+                      </span>
                     </div>
                   </td>
 

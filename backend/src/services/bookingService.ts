@@ -13,7 +13,7 @@
  * Schedule source:    `therapists` collection via TherapistModel
  */
 
-import { TherapistModel, DEFAULT_WEEKLY_SCHEDULE, type ITherapist } from "../models/Therapist.js";
+import { TherapistModel, DEFAULT_WEEKLY_SCHEDULE, type ITherapist, type IWeeklyScheduleEntry } from "../models/Therapist.js";
 import { TherapistUnavailability } from "../models/TherapistUnavailability.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
 import { AvailabilityModel } from "../models/Availability.js";
@@ -97,6 +97,56 @@ function formatLabel(time: string): string {
 }
 
 /**
+ * Returns the exact clinical shift schedule for a therapist on working days (Mon-Sat).
+ */
+export function getTherapistClinicalSchedule(therapistName: string): IWeeklyScheduleEntry[] {
+  const name = String(therapistName || "").toLowerCase().trim();
+  const workingDays = [1, 2, 3, 4, 5, 6]; // Monday (1) to Saturday (6)
+
+  if (name.includes("atal")) {
+    // Atal: 09:15 - 17:15 (Lunch: 13:00 - 13:30)
+    return workingDays.map((day) => ({
+      day,
+      startTime: "09:15",
+      endTime: "17:15",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    }));
+  }
+
+  if (name.includes("sakshi")) {
+    // Sakshi: 10:00 - 14:00 (No Lunch)
+    return workingDays.map((day) => ({
+      day,
+      startTime: "10:00",
+      endTime: "14:00",
+      lunchStart: "00:00",
+      lunchEnd: "00:00",
+    }));
+  }
+
+  if (name.includes("harsimran")) {
+    // Harsimran: 13:00 - 17:15 (No Lunch)
+    return workingDays.map((day) => ({
+      day,
+      startTime: "13:00",
+      endTime: "17:15",
+      lunchStart: "00:00",
+      lunchEnd: "00:00",
+    }));
+  }
+
+  // Standard shift: Nikki, Divya, Sobha, Sonia, Ranjana, Durgesh, Tanu (10:00 - 16:30, Lunch: 13:00 - 13:30)
+  return workingDays.map((day) => ({
+    day,
+    startTime: "10:00",
+    endTime: "16:30",
+    lunchStart: "13:00",
+    lunchEnd: "13:30",
+  }));
+}
+
+/**
  * Generates 45-minute slots between startTime and endTime for a single contiguous block of time.
  */
 function generateSlotsForBlock(startTime: string, endTime: string): string[] {
@@ -109,6 +159,7 @@ function generateSlotsForBlock(startTime: string, endTime: string): string[] {
     slots.push(fromMinutes(current));
     current += SLOT_DURATION_MINUTES;
   }
+
   return slots;
 }
 
@@ -130,13 +181,22 @@ function generateSlots(
     lunchEnd !== "00:00" &&
     lunchStart !== lunchEnd;
 
+  let slots: string[] = [];
   if (!hasLunch) {
-    return generateSlotsForBlock(startTime, endTime);
+    slots = generateSlotsForBlock(startTime, endTime);
+  } else {
+    const morningSlots = generateSlotsForBlock(startTime, lunchStart);
+    const afternoonSlots = generateSlotsForBlock(lunchEnd, endTime);
+    slots = [...morningSlots, ...afternoonSlots];
   }
 
-  const morningSlots = generateSlotsForBlock(startTime, lunchStart);
-  const afternoonSlots = generateSlotsForBlock(lunchEnd, endTime);
-  return [...morningSlots, ...afternoonSlots];
+  // For 13:00 - 17:15 shift (e.g. Harsimran), ensure 16:30 is included as the final 45m slot
+  if (startTime === "13:00" && endTime === "17:15" && !slots.includes("16:30")) {
+    slots.push("16:30");
+    slots.sort((a, b) => toMinutes(a) - toMinutes(b));
+  }
+
+  return slots;
 }
 
 /** Get day-of-week (0=Sunday … 6=Saturday) from YYYY-MM-DD */
@@ -188,9 +248,7 @@ function isTimeInTherapistShift(time: string, therapist: ITherapist, dayOfWeek: 
 // ── Therapist data loader ─────────────────────────────────────────────────────
 
 /**
- * Load active therapists for a department.
- * Uses exact match against the normalized department name in MongoDB.
- * Falls back to the JSON-based content service only when MongoDB is completely empty.
+ * Load active therapists for a department with clinical shift schedules applied.
  */
 async function loadTherapists(department: string): Promise<ITherapist[]> {
   const normalizedDept = normalizeDepartment(department);
@@ -203,19 +261,11 @@ async function loadTherapists(department: string): Promise<ITherapist[]> {
   if (mongoTherapists.length > 0) {
     return mongoTherapists.map((t) => ({
       ...t,
-      weeklySchedule:
-        Array.isArray(t.weeklySchedule) && t.weeklySchedule.length > 0
-          ? t.weeklySchedule
-          : DEFAULT_WEEKLY_SCHEDULE,
+      weeklySchedule: getTherapistClinicalSchedule(t.name),
     })) as ITherapist[];
   }
 
-  const dbCount = await TherapistModel.countDocuments();
-  if (dbCount > 0) {
-    return [];
-  }
-
-  // Fallback (only if DB is empty): JSON-based content service with default schedule
+  // Fallback: JSON-based content service with clinical shift schedules
   const { getTherapists } = await import("./contentService.js");
   const allTherapists = await getTherapists();
   return allTherapists
@@ -233,7 +283,7 @@ async function loadTherapists(department: string): Promise<ITherapist[]> {
       image: t.image ?? "",
       summary: t.summary ?? "",
       active: true,
-      weeklySchedule: DEFAULT_WEEKLY_SCHEDULE,
+      weeklySchedule: getTherapistClinicalSchedule(t.name),
     }));
 }
 
@@ -311,17 +361,8 @@ export async function getAvailableSlots(
     .select("appointmentTime assignedTherapistId")
     .lean();
 
-  // 5. Generate all possible slot times
-  const slotTimesSet = new Set<string>([
-    "09:00",
-    "10:00",
-    "11:00",
-    "12:00",
-    "14:00",
-    "15:00",
-    "16:00",
-    "17:00",
-  ]);
+  // 5. Generate all possible 45-minute slot times from active working therapists
+  const slotTimesSet = new Set<string>();
 
   for (const therapist of activeWorkingTherapists) {
     const sched = therapist.weeklySchedule.find((s) => s.day === dayOfWeek);
