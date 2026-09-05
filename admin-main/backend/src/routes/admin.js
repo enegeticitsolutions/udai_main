@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
+import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 import {
   authenticateAdmin,
   createAdminUser,
@@ -479,11 +481,11 @@ adminRouter.post("/products", async (req, res, next) => {
       res.status(400).json({ success: false, message: "Title, price, and image are required" });
       return;
     }
-    
+
     if (!payload.slug) {
       payload.slug = slugify(payload.title);
     }
-    
+
     const record = await createAdminRecord("products", payload);
     res.status(201).json({ success: true, data: record, message: "Product added successfully" });
   } catch (error) {
@@ -646,7 +648,7 @@ adminRouter.patch("/webhook/messages/:id", async (req, res, next) => {
     updateData.updatedAt = new Date();
 
     const result = await db.collection("webhookmessages").findOneAndUpdate(filter, { $set: updateData }, { returnDocument: "after" });
-    
+
     // Also sync to appointments and chatbotsubmissions
     const doc = result.value || result;
     if (doc && doc.phone) {
