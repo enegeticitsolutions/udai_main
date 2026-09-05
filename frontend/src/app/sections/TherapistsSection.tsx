@@ -171,20 +171,20 @@ export function TherapistsSection() {
           )}
         </AnimatePresence>
 
-        {/* Dynamic Unified Outer Frame Wrapping All Active Therapists */}
-        <div className="rounded-3xl bg-white p-3.5 sm:p-5 shadow-md border border-[#e8dfd8] overflow-hidden">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            {therapists.map((item) => (
+        {/* Dynamic Unified Outer Frame with Infinite Continuous Loop */}
+        <div className="therapist-marquee rounded-3xl bg-white p-3.5 sm:p-5 shadow-md border border-[#e8dfd8] overflow-hidden">
+          <div className="therapist-marquee-track">
+            {[...therapists, ...therapists].map((item, index) => (
               <article
-                key={String(item.id ?? item.name)}
-                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#241912]/[0.08] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                key={`${String(item.id ?? item.name)}-${index}`}
+                className="therapist-marquee-card group flex h-full flex-col overflow-hidden rounded-2xl border border-[#241912]/[0.08] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
               >
-                <div className="h-44 sm:h-48 md:h-52 w-full overflow-hidden bg-[#f7f4f1]">
+                <div className="h-60 sm:h-64 md:h-72 w-full overflow-hidden bg-[#f7f4f1]">
                   <ImageWithFallback
                     src={item.image || "/images/doctor2.png"}
                     fallbackImage="/images/doctor2.png"
                     alt={item.name}
-                    className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover object-[center_top] transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
                 <div className="flex flex-1 flex-col justify-between p-3.5 bg-white">

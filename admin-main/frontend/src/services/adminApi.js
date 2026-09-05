@@ -328,3 +328,96 @@ export async function toggleAvailability(payload) {
   }
   throw new Error("Failed to toggle availability across endpoints");
 }
+
+export function fetchAdminUsers() {
+  return request("/users");
+}
+
+export function createAdminUser(data) {
+  return request("/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateAdminUser(id, data) {
+  return request(`/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteAdminUser(id, requesterEmail = "") {
+  return request(`/users/${id}`, {
+    method: "DELETE",
+    headers: {
+      "x-admin-email": requesterEmail,
+    },
+  });
+}
+
+export function resetAdminCredentials(payload) {
+  return request("/reset-credentials", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteSubscriber(id) {
+  return request(`/subscribers/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function patchContact(id, updates) {
+  return request(`/contacts/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+}
+
+export function deleteContact(id) {
+  return request(`/contacts/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchNotifications() {
+  return request("/notifications");
+}
+
+export function deleteNotification(id) {
+  return request(`/notifications/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchBroadcastHistory() {
+  return request("/broadcast/history");
+}
+
+export function sendBroadcast(payload) {
+  return request("/broadcast/send", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchSettings() {
+  return request("/settings");
+}
+
+export function updateSettings(payload) {
+  return request("/settings", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function testSmtpEmail(targetEmail) {
+  return request("/settings/test-email", {
+    method: "POST",
+    body: JSON.stringify({ targetEmail }),
+  });
+}
+

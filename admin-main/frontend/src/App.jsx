@@ -28,6 +28,9 @@ import {
   patchVolunteer,
   toggleDeactivateDate,
   sendNotification,
+  deleteSubscriber,
+  patchContact,
+  deleteContact,
   createProduct,
   patchProduct,
   deleteProduct as removeProductApi,
@@ -47,13 +50,43 @@ import AppointmentsPage from "./components/AppointmentsPage";
 import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
 import WhatsAppMessagesPage from "./components/WhatsAppMessagesPage";
 import AvailabilityManagerPage from "./components/AvailabilityManagerPage";
+import DonationsPage from "./components/DonationsPage";
+import OrdersPage from "./components/OrdersPage";
+import DashboardPage from "./components/DashboardPage";
+import AdminManagementPage from "./components/AdminManagementPage";
+import ResetCredentialsModal from "./components/ResetCredentialsModal";
+import SubscribersPage from "./components/SubscribersPage";
+import ContactsPage from "./components/ContactsPage";
+import NotificationsPage from "./components/NotificationsPage";
+import BroadcastPage from "./components/BroadcastPage";
+import ReportsPage from "./components/ReportsPage";
+import SettingsPage from "./components/SettingsPage";
 
 const tokenKey = "udai_standalone_admin_token";
 
 const roleSections = {
+  super_admin: [
+    "Dashboard",
+    "Admin Management",
+    // "WhatsApp Appointments",
+    "WhatsApp Messages",
+    "Orders / Purchases",
+    "Donations",
+    "Volunteers",
+    "Therapist Management",
+    "Availability Manager",
+    "Products",
+    "Career Management",
+    "Subscribe",
+    "Contacts",
+    "Notifications Center",
+    "Message Broadcast",
+    "Reports / Analytics",
+    "Settings",
+  ],
   admin: [
     "Dashboard",
-    "WhatsApp Appointments",
+    // "WhatsApp Appointments",
     "WhatsApp Messages",
     "Orders / Purchases",
     "Donations",
@@ -70,7 +103,7 @@ const roleSections = {
     "Settings",
   ],
   editor: [
-    "WhatsApp Appointments",
+    // "WhatsApp Appointments",
     "WhatsApp Messages",
     "Therapist Management",
     "Availability Manager",
@@ -235,10 +268,11 @@ function autoAssignInquiries(items, therapistMap) {
 }
 
 function LoginScreen({ onLogin }) {
-  const [email, setEmail] = useState("admin1@udai.in");
-  const [password, setPassword] = useState("111111");
+  const [email, setEmail] = useState("superadmin@udai.in");
+  const [password, setPassword] = useState("SuperAdmin@123");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -258,12 +292,12 @@ function LoginScreen({ onLogin }) {
   return (
     <main className="login-page">
       <section className="login-card">
-        <div className="login-badge">Standalone Admin</div>
+        <div className="login-badge">UDAI Operations</div>
         <h1>Login to UDAI Admin Panel</h1>
-        <p>Local demo login, no backend connection.</p>
+        <p>Access patient appointments, donations, store orders, and staff controls.</p>
 
         <form onSubmit={handleSubmit} className="login-form">
-          <Input label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input label="Email (Login ID)" value={email} onChange={(e) => setEmail(e.target.value)} />
           <Input
             label="Password"
             type="password"
@@ -272,63 +306,78 @@ function LoginScreen({ onLogin }) {
           />
           {error && <div className="error-box">{error}</div>}
           <Button type="submit" disabled={loading}>
-            {loading ? "Signing in..." : "Login"}
+            {loading ? "Signing in..." : "Login to Portal"}
           </Button>
         </form>
+
+        <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", textAlign: "center" }}>
+          <button
+            type="button"
+            onClick={() => setShowResetModal(true)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#2563eb",
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            🔑 Reset Login ID or Password
+          </button>
+
+          <div style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "4px" }}>
+            Quick Demo Logins:{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("superadmin@udai.in");
+                setPassword("SuperAdmin@123");
+              }}
+              style={{
+                background: "#f1f5f9",
+                border: "1px solid #cbd5e1",
+                borderRadius: "4px",
+                padding: "2px 6px",
+                fontSize: "0.72rem",
+                cursor: "pointer",
+                marginRight: "4px",
+              }}
+            >
+              Super Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("admin1@udai.in");
+                setPassword("111111");
+              }}
+              style={{
+                background: "#f1f5f9",
+                border: "1px solid #cbd5e1",
+                borderRadius: "4px",
+                padding: "2px 6px",
+                fontSize: "0.72rem",
+                cursor: "pointer",
+              }}
+            >
+              Admin One
+            </button>
+          </div>
+        </div>
+
+        {showResetModal && (
+          <ResetCredentialsModal
+            currentUser={{ email }}
+            onClose={() => setShowResetModal(false)}
+            onUpdateUser={(updated) => {
+              if (updated?.email) setEmail(updated.email);
+            }}
+          />
+        )}
       </section>
     </main>
-  );
-}
-
-function DashboardPage({ inquiries, therapists, donations, orders, currentUser, dashboard, isConnected, whatsappBookings = [], volunteers = [] }) {
-  const totalDonations = dashboard?.donationTotal ?? donations.reduce((sum, donation) => sum + donation.amount, 0);
-  const totalOrders = dashboard?.totalOrders ?? orders.length;
-
-  const metrics = [
-    { label: "Therapist Bookings (WhatsApp)", value: dashboard?.totalWhatsappBookings ?? whatsappBookings.length, hint: "Live WhatsApp chatbot sessions" },
-    { label: "Donation Total", value: `₹${totalDonations}`, hint: "Funds raised" },
-    { label: "Total Volunteer Requests", value: dashboard?.totalVolunteers ?? volunteers.length, hint: "Volunteer applications received" },
-    { label: "Total Purchases (Orders)", value: totalOrders, hint: "E-commerce checkout orders" },
-    { label: "Active Therapists", value: dashboard?.activeTherapists ?? therapists.filter((item) => item.active !== false).length, hint: "Available on panel" },
-  ];
-
-  return (
-    <section className="dashboard-stack">
-      <div className="dashboard-hero">
-        <div className="dashboard-hero-copy">
-          <Badge tone="blue">Admin overview</Badge>
-          <h2>Welcome back, {currentUser?.name}</h2>
-          <p>
-            Manage appointments, donations, therapists, volunteers, and follow-ups from one clean
-            control center.
-          </p>
-        </div>
-        <div className="dashboard-hero-panel">
-          <span>Role</span>
-          <strong>{currentUser?.role ?? "guest"}</strong>
-          <small>{isConnected ? "Connected to backend" : "Local demo admin account"}</small>
-        </div>
-      </div>
-
-      <div className="panel-grid metrics-grid">
-        {metrics.map((metric) => (
-          <StatCard key={metric.label} {...metric} />
-        ))}
-      </div>
-
-
-
-      <div className="content-card wide">
-        <div className="section-head">
-          <h2>Logged In</h2>
-          <Badge tone="purple">{currentUser?.role ?? "guest"}</Badge>
-        </div>
-        <div className="mini-row">
-          <strong>{currentUser?.name}</strong>
-          <span>{currentUser?.email}</span>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -585,159 +634,6 @@ function InquiriesPage({ inquiries, therapists, therapistMap, onUpdateInquiry })
   );
 }
 
-function DonationsPage({ donations }) {
-  const [currentTab, setCurrentTab] = useState("meal");
-  const mealDonations = donations.filter((donation) => donation.donationCategory === "meal" || /meal/i.test(String(donation.purpose ?? "")));
-  const futureDonations = donations.filter((donation) => !(donation.donationCategory === "meal" || /meal/i.test(String(donation.purpose ?? ""))));
-  const visibleDonations = currentTab === "meal" ? mealDonations : futureDonations;
-  const totalDonations = visibleDonations.reduce((sum, donation) => sum + Number(donation.amount ?? 0), 0);
-  const totalMeals = visibleDonations.reduce((sum, donation) => sum + Number(donation.meals ?? 0), 0);
-
-  return (
-    <section className="content-card">
-      <div style={{ display: "flex", gap: "12px", borderBottom: "1px solid #edf2f7", paddingBottom: "12px", marginBottom: "20px" }}>
-        <button
-          type="button"
-          onClick={() => setCurrentTab("meal")}
-          style={{
-            padding: "10px 20px",
-            borderRadius: "8px",
-            border: currentTab === "meal" ? "none" : "1px solid #cbd5e0",
-            backgroundColor: currentTab === "meal" ? "#2f5597" : "var(--surface)",
-            color: currentTab === "meal" ? "white" : "var(--text)",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.2s"
-          }}
-        >
-          Donation for Meal
-        </button>
-        <button
-          type="button"
-          onClick={() => setCurrentTab("future")}
-          style={{
-            padding: "10px 20px",
-            borderRadius: "8px",
-            border: currentTab === "future" ? "none" : "1px solid #cbd5e0",
-            backgroundColor: currentTab === "future" ? "#2f5597" : "var(--surface)",
-            color: currentTab === "future" ? "white" : "var(--text)",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.2s"
-          }}
-        >
-          Donation for Future
-        </button>
-      </div>
-
-      <div className="section-head">
-        <h2>{currentTab === "meal" ? "Meal Donations" : "Future Donations"}</h2>
-        <Badge tone="green">Private donor view</Badge>
-      </div>
-
-      <div className="panel-grid donations-stats">
-        <StatCard
-          label={currentTab === "meal" ? "Meal donation total" : "Future donation total"}
-          value={`₹${totalDonations}`}
-          hint={currentTab === "meal" ? "Mid-Day Meal donations" : "Invest in Their Future donations"}
-        />
-        {currentTab === "meal" ? (
-          <StatCard label="Meals sponsored" value={totalMeals || "-"} hint="Known meal-count selections" />
-        ) : null}
-      </div>
-
-      <Table
-        columns={currentTab === "meal"
-          ? ["Donor Name", "Email", "Amount", "Meals", "Method", "Date", "Purpose", "Message"]
-          : ["Donor Name", "Email", "Amount", "Method", "Date", "Purpose", "Message"]}
-        rows={visibleDonations.map((donation) => currentTab === "meal" ? [
-          donation.donorName ?? donation.name ?? "-",
-          donation.email ?? "-",
-          `₹${Number(donation.amount ?? 0)}`,
-          donation.meals ?? "-",
-          donation.paymentMethod ?? "-",
-          donation.createdAt ? new Date(donation.createdAt).toLocaleDateString() : "-",
-          donation.purpose ?? "-",
-          donation.message ?? "-",
-        ] : [
-          donation.donorName ?? donation.name ?? "-",
-          donation.email ?? "-",
-
-          `₹${Number(donation.amount ?? 0)}`,
-          donation.paymentMethod ?? "-",
-
-          donation.createdAt ? new Date(donation.createdAt).toLocaleDateString() : "-",
-          donation.purpose ?? "-",
-          donation.message ?? "-",
-        ])}
-      />
-    </section>
-  );
-}
-
-function OrdersPage({ orders, onUpdateOrder }) {
-  const [items, setItems] = useState(orders);
-
-  useEffect(() => {
-    setItems(orders);
-  }, [orders]);
-
-  async function updateOrder(index, updates) {
-    const currentItem = items[index];
-    const nextItems = items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...updates } : item));
-    setItems(nextItems);
-
-    try {
-      const saved = await onUpdateOrder(currentItem.id, updates);
-      if (saved) {
-        setItems((prev) => prev.map((item) => (item.id === saved.id ? { ...item, ...saved } : item)));
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  return (
-    <section className="content-card">
-      <div className="section-head">
-        <h2>Orders / Purchases</h2>
-        <Badge tone="blue">Backend connected</Badge>
-      </div>
-
-      <div className="panel-grid donations-stats">
-        <StatCard label="Total orders" value={items.length} hint="Recorded purchases" />
-        <StatCard label="Paid" value={items.filter((item) => item.paymentStatus === "paid").length} hint="Successful payments" />
-        <StatCard label="Initiated" value={items.filter((item) => item.paymentStatus === "initiated").length} hint="Waiting for gateway" />
-        <StatCard label="Revenue" value={`₹${items.reduce((sum, item) => sum + Number(item.totalAmount ?? item.subtotal ?? 0), 0)}`} hint="Total order value" />
-      </div>
-
-      <Table
-        columns={["Order", "Customer", "Contact", "Items", "Payment", "Payment Status", "Amount", "Created"]}
-        rows={items.map((order, index) => [
-          <strong key={`${order.id}-number`}>{order.orderNumber ?? order.id}</strong>,
-          order.customerName ?? "-",
-          <div key={`${order.id}-contact`} className="stack" style={{ gap: "4px" }}>
-            <span>{order.customerEmail ?? "-"}</span>
-            <span>{order.customerPhone ?? "-"}</span>
-          </div>,
-          Array.isArray(order.items)
-            ? order.items.map((item) => `${item.title} ×${item.quantity}`).join(", ")
-            : "-",
-          order.paymentMethod ?? "-",
-          <Badge
-            key={`${order.id}-payment-status`}
-            tone={order.paymentStatus === "paid" ? "green" : order.paymentStatus === "failed" ? "red" : "amber"}
-          >
-            {order.paymentStatus ?? "-"}
-          </Badge>,
-
-          `₹${Number(order.totalAmount ?? order.subtotal ?? 0)}`,
-          order.createdAt ?? "-",
-        ])}
-      />
-    </section>
-  );
-}
 
 function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
   const [items, setItems] = useState(volunteers);
@@ -1745,473 +1641,6 @@ function AvailabilityPage({ therapists, deactivatedDates, onToggleDeactivate }) 
   );
 }
 
-function NotificationsPage({ inquiries = [], onSendNotification }) {
-  const [activeDropdown, setActiveDropdown] = useState(null);
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
-  const [filterLocation, setFilterLocation] = useState("New Delhi Clinic");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sendingState, setSendingState] = useState({});
-
-  const filteredInquiries = inquiries.filter(item => {
-    if (filterDate && item.appointmentDate !== filterDate) return false;
-    if (searchQuery && !item.childName?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
-
-  const messageOptions = ["Appointment confirmed", "Reminder", "Reschedule", "Cancel"];
-
-  const handleSend = async (item, opt) => {
-    setSendingState(prev => ({ ...prev, [`${item.id}-${opt}`]: "sending" }));
-    try {
-      await onSendNotification({
-        inquiryId: item.id,
-        type: opt,
-        phone: item.phone,
-        childName: item.childName
-      });
-      setSendingState(prev => ({ ...prev, [`${item.id}-${opt}`]: "sent" }));
-      setTimeout(() => {
-        setActiveDropdown(null);
-        setSendingState(prev => ({ ...prev, [`${item.id}-${opt}`]: null }));
-      }, 1000);
-    } catch (error) {
-      console.error(error);
-      setSendingState(prev => ({ ...prev, [`${item.id}-${opt}`]: "error" }));
-    }
-  };
-
-  return (
-    <section className="content-card notifications-page">
-      {/* Filters Bar */}
-      <div className="filters-bar">
-        <div className="filter-group">
-          <label>Manage by Appointment Date</label>
-          <input 
-            type="date" 
-            value={filterDate} 
-            onChange={(e) => setFilterDate(e.target.value)} 
-            className="filter-input"
-          />
-        </div>
-        <div className="filter-group">
-          <label>Select Location</label>
-          <select 
-            value={filterLocation} 
-            onChange={(e) => setFilterLocation(e.target.value)}
-            className="filter-input"
-          >
-            <option>New Delhi Clinic</option>
-            <option>Online</option>
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Search Patients</label>
-          <input 
-            type="text" 
-            placeholder="Search Patients" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="filter-input"
-          />
-        </div>
-      </div>
-
-      <div className="section-head mt-6">
-        <h2>{filterDate ? `Appointments for Therapy on ${formatDisplayDate(filterDate)}` : "All Appointments for Therapy"}</h2>
-      </div>
-
-      <div className="table-responsive">
-        <table className="notifications-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Child Name</th>
-              <th>Parent's Name</th>
-              <th>Phone Number</th>
-              <th>Therapist</th>
-              <th>Status</th>
-              <th className="text-center">Send Message</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInquiries.length > 0 ? filteredInquiries.map((item, index) => (
-              <tr key={item.id}>
-                <td>{item.appointmentTime || "-"}</td>
-                <td>{item.childName || "-"}</td>
-                <td>{item.parent || "-"}</td>
-                <td>
-                  {item.parentPhone || item.phone || "-"}
-                </td>
-                <td>{item.assignedTherapist || "-"}</td>
-                <td>
-                  <Badge tone={inquiryTone(item.status)}>{item.status}</Badge>
-                </td>
-                <td>
-                  <div className="actions-cell relative">
-                    <button 
-                      className="action-btn more-btn" 
-                      onClick={() => setActiveDropdown(activeDropdown === index ? null : index)}
-                    >
-                      <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-                    </button>
-                    
-                    {activeDropdown === index && (
-                      <div className="message-dropdown shadow-lg">
-                        {messageOptions.map((opt) => {
-                          const state = sendingState[`${item.id}-${opt}`];
-                          return (
-                            <div key={opt} className="message-dropdown-item">
-                              <span>{opt}</span>
-                              <button 
-                                className={`send-btn ${state === "sent" ? "success" : state === "error" ? "error" : ""}`} 
-                                onClick={() => handleSend(item, opt)}
-                                disabled={state === "sending" || state === "sent"}
-                              >
-                                {state === "sending" ? "Sending..." : state === "sent" ? "Sent ✓" : state === "error" ? "Failed" : "Send"}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            )) : (
-              <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "24px" }}>No appointments found for this filter.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <style>{`
-        .notifications-page {
-          padding: 24px;
-        }
-        .filters-bar {
-          display: flex;
-          gap: 20px;
-          background: #f8fafc;
-          padding: 16px;
-          border-radius: 12px;
-          border: 1px solid var(--line);
-          margin-bottom: 24px;
-          flex-wrap: wrap;
-        }
-        .filter-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          flex: 1;
-          min-width: 200px;
-        }
-        .filter-group label {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--muted);
-        }
-        .filter-input {
-          padding: 10px 14px;
-          border-radius: 8px;
-          border: 1px solid #cbd5e1;
-          background: var(--surface);
-          font-size: 14px;
-          outline: none;
-        }
-        .filter-input:focus {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-        }
-        .mt-6 { margin-top: 24px; }
-        .table-responsive {
-          overflow-x: auto;
-          border: 1px solid var(--line);
-          border-radius: 12px;
-        }
-        .notifications-table {
-          width: 100%;
-          border-collapse: collapse;
-          text-align: left;
-        }
-        .notifications-table th, .notifications-table td {
-          padding: 16px;
-          border-bottom: 1px solid var(--line);
-          font-size: 14px;
-          color: var(--text);
-        }
-        .notifications-table th {
-          background: #f8fafc;
-          font-weight: 600;
-          color: var(--muted);
-        }
-        .actions-cell {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          justify-content: center;
-        }
-        .action-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          cursor: pointer;
-          color: white;
-          transition: opacity 0.2s;
-        }
-        .action-btn:hover {
-          opacity: 0.9;
-        }
-        .more-btn {
-          background: #3b82f6;
-        }
-        .message-dropdown {
-          position: absolute;
-          right: 0;
-          top: 40px;
-          background: var(--surface);
-          border: 1px solid var(--line);
-          border-radius: 12px;
-          width: 250px;
-          z-index: 50;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-          overflow: hidden;
-        }
-        .message-dropdown-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 16px;
-          border-bottom: 1px solid #f1f5f9;
-        }
-        .message-dropdown-item:last-child {
-          border-bottom: none;
-        }
-        .message-dropdown-item span {
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--text);
-        }
-        .send-btn {
-          background: transparent;
-          border: 1px solid #3b82f6;
-          color: #3b82f6;
-          padding: 4px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-        }
-        .send-btn:hover {
-          background: #eff6ff;
-        }
-        .relative { position: relative; }
-        .text-center { text-align: center !important; }
-        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-      `}</style>
-    </section>
-  );
-}
-
-function SubscribersPage({ subscribers, onAddSubscriber }) {
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const totalSubscribers = subscribers.length;
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    const value = email.trim().toLowerCase();
-
-    if (!value) {
-      setError("Email is required.");
-      setMessage("");
-      return;
-    }
-
-    setError("");
-
-    try {
-      await onAddSubscriber(value);
-      setMessage("Subscriber saved successfully.");
-      setEmail("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save subscriber.");
-      setMessage("");
-    }
-  }
-
-  return (
-    <section className="split-grid">
-      <div className="content-card">
-        <div className="section-head">
-          <h2>Subscribe</h2>
-          <Badge tone="blue">{totalSubscribers} saved</Badge>
-        </div>
-        <p className="note">Add email addresses here to record newsletter subscribers in the admin console.</p>
-
-        <form className="form-grid" onSubmit={handleSubmit}>
-          <Input
-            label="Email address"
-            className="wide"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="subscriber@example.com"
-          />
-          {error ? <div className="error-box wide">{error}</div> : null}
-          {message ? <div className="note wide">{message}</div> : null}
-          <div className="wide">
-            <Button type="submit">Save Subscriber</Button>
-          </div>
-        </form>
-      </div>
-
-      <div className="content-card">
-        <div className="section-head">
-          <h2>Saved Subscribers</h2>
-          <Badge tone={totalSubscribers ? "green" : "slate"}>{totalSubscribers}</Badge>
-        </div>
-        <div className="stack">
-          {subscribers.length ? (
-            subscribers.map((subscriber) => (
-              <div className="mini-row" key={subscriber.id}>
-                <span>{subscriber.email}</span>
-                <Badge tone="slate">{subscriber.createdAt ? new Date(subscriber.createdAt).toLocaleDateString() : "-"}</Badge>
-              </div>
-            ))
-          ) : (
-            <div className="note">No subscribers recorded yet.</div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ContactsPage({ contacts }) {
-  const totalContacts = contacts.length;
-
-  return (
-    <section className="content-card">
-      <div className="section-head">
-        <h2>Contact Messages</h2>
-        <Badge tone={totalContacts ? "green" : "slate"}>{totalContacts} received</Badge>
-      </div>
-      <p className="note">Messages submitted from the public Contact page appear here.</p>
-
-      <div className="panel-grid donations-stats">
-        <StatCard label="Total messages" value={totalContacts} hint="All contact submissions" />
-      </div>
-
-      {contacts.length ? (
-        <Table
-          columns={["Name", "Email", "Subject", "Message", "Date"]}
-          rows={contacts.map((contact) => [
-            contact.name ?? "-",
-            contact.email ?? "-",
-            contact.subject ?? "-",
-            contact.message ?? "-",
-            contact.createdAt ? new Date(contact.createdAt).toLocaleString() : "-",
-          ])}
-        />
-      ) : (
-        <div className="note">No contact messages recorded yet.</div>
-      )}
-    </section>
-  );
-}
-
-function BroadcastPage() {
-  return (
-    <section className="content-card">
-      <div className="section-head">
-        <h2>Message Broadcast</h2>
-        <Badge tone="purple">Bulk messages</Badge>
-      </div>
-      <div className="form-grid">
-        <label className="field">
-          <span>Target audience</span>
-          <select className="select-inline">
-            <option>All users</option>
-            <option>Selected users</option>
-          </select>
-        </label>
-        <label className="field wide">
-          <span>Message</span>
-          <textarea rows="5" placeholder="Write your broadcast message..." />
-        </label>
-      </div>
-      <Button>Send Broadcast</Button>
-    </section>
-  );
-}
-
-function ReportsPage({ inquiries, therapists }) {
-  return (
-    <section className="panel-grid">
-      <StatCard label="Total bookings" value={inquiries.length} hint="All inquiry records" />
-      <StatCard label="Conversion rate" value="67%" hint="Demo metric" />
-      <StatCard label="Therapist workload" value={`${therapists.length} profiles`} hint="Roster size" />
-      <div className="content-card wide">
-        <div className="section-head">
-          <h2>Workload Snapshot</h2>
-        </div>
-        <div className="stack">
-          {Object.entries(buildDepartmentMap(therapists)).map(([department, team]) => (
-            <div className="mini-row" key={department}>
-              <span>{department}</span>
-              <strong>{team.length} therapists</strong>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function SettingsPage() {
-  return (
-    <section className="split-grid">
-      <div className="content-card">
-        <div className="section-head">
-          <h2>Admin Profile</h2>
-        </div>
-        <div className="stack">
-          <Input label="Name" defaultValue="UDAI Admin" />
-          <Input label="Email" defaultValue="admin@udai.in" />
-          <label className="field">
-            <span>Role</span>
-            <select className="select-inline">
-              <option>admin</option>
-              <option>editor</option>
-              <option>viewer</option>
-            </select>
-          </label>
-        </div>
-      </div>
-      <div className="content-card">
-        <div className="section-head">
-          <h2>Role Management</h2>
-        </div>
-        <div className="stack">
-          {["admin", "editor", "finance", "viewer"].map((role) => (
-            <div className="mini-row" key={role}>
-              <span>{role}</span>
-              <Badge tone="slate">Active</Badge>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     const stored = localStorage.getItem(tokenKey);
@@ -2239,6 +1668,7 @@ export default function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [backendError, setBackendError] = useState("");
   const [isAddTherapistOpen, setIsAddTherapistOpen] = useState(false);
+  const [showResetCredentials, setShowResetCredentials] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("adminTheme") || "light");
 
   useEffect(() => {
@@ -2255,7 +1685,16 @@ export default function App() {
   }, [currentUser]);
 
   const therapistMap = useMemo(() => buildDepartmentMap(therapists), [therapists]);
-  const allowedSections = currentUser ? roleSections[currentUser.role] ?? roleSections.viewer : [];
+  const allowedSections = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === "super_admin") {
+      return roleSections.super_admin;
+    }
+    if (Array.isArray(currentUser.permissions) && currentUser.permissions.length > 0) {
+      return currentUser.permissions;
+    }
+    return roleSections[currentUser.role] ?? roleSections.viewer;
+  }, [currentUser]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -2412,6 +1851,22 @@ export default function App() {
     return saved;
   }
 
+  async function handleSubscriberDelete(id) {
+    await deleteSubscriber(id);
+    setSubscribers((prev) => prev.filter((item) => (item.id || item._id) !== id));
+  }
+
+  async function handleContactUpdate(id, updates) {
+    const saved = await patchContact(id, updates);
+    setContacts((prev) => prev.map((item) => ((item.id || item._id) === id ? { ...item, ...updates, ...(saved?.data || saved) } : item)));
+    return saved;
+  }
+
+  async function handleContactDelete(id) {
+    await deleteContact(id);
+    setContacts((prev) => prev.filter((item) => (item.id || item._id) !== id));
+  }
+
   async function handleSendNotification(payload) {
     await sendNotification(payload);
   }
@@ -2478,8 +1933,12 @@ export default function App() {
             isConnected={isConnected}
             whatsappBookings={whatsappBookings}
             volunteers={volunteers}
+            onNavigate={setActiveSection}
+            onOpenResetCredentials={() => setShowResetCredentials(true)}
           />
         );
+      case "Admin Management":
+        return <AdminManagementPage currentUser={currentUser} />;
       case "Appointments / Inquiries":
         return (
           <InquiriesPage
@@ -2526,22 +1985,52 @@ export default function App() {
             onDeleteCareer={handleCareerRemove}
           />
         );
-      case "WhatsApp Appointments":
-        return <WhatsAppBookingsPage bookings={whatsappBookings} />;
+      // case "WhatsApp Appointments":
+      //   return <WhatsAppBookingsPage bookings={whatsappBookings} />;
       case "WhatsApp Messages":
         return <WhatsAppMessagesPage />;
       case "Subscribe":
-        return <SubscribersPage subscribers={subscribers} onAddSubscriber={handleSubscriberAdd} />;
+        return (
+          <SubscribersPage
+            subscribers={subscribers}
+            onAddSubscriber={handleSubscriberAdd}
+            onDeleteSubscriber={handleSubscriberDelete}
+          />
+        );
       case "Contacts":
-        return <ContactsPage contacts={contacts} />;
+        return (
+          <ContactsPage
+            contacts={contacts}
+            onUpdateContact={handleContactUpdate}
+            onDeleteContact={handleContactDelete}
+          />
+        );
       case "Notifications Center":
-        return <NotificationsPage inquiries={inquiries} onSendNotification={handleSendNotification} />;
+        return <NotificationsPage inquiries={inquiries} />;
       case "Message Broadcast":
-        return <BroadcastPage />;
+        return (
+          <BroadcastPage
+            subscribers={subscribers}
+            inquiries={inquiries}
+            currentUser={currentUser}
+          />
+        );
       case "Reports / Analytics":
-        return <ReportsPage inquiries={inquiries} therapists={therapists} />;
+        return (
+          <ReportsPage
+            inquiries={inquiries}
+            therapists={therapists}
+            donations={donations}
+            orders={orders}
+          />
+        );
       case "Settings":
-        return <SettingsPage />;
+        return (
+          <SettingsPage
+            currentUser={currentUser}
+            onOpenResetCredentials={() => setShowResetCredentials(true)}
+          />
+        );
       default:
         return (
           <DashboardPage
@@ -2552,6 +2041,10 @@ export default function App() {
             currentUser={currentUser}
             dashboard={dashboard}
             isConnected={isConnected}
+            whatsappBookings={whatsappBookings}
+            volunteers={volunteers}
+            onNavigate={setActiveSection}
+            onOpenResetCredentials={() => setShowResetCredentials(true)}
           />
         );
     }
@@ -2578,8 +2071,14 @@ export default function App() {
             >
               {theme === "dark" ? "Light" : "Dark"}
             </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowResetCredentials(true)}
+            >
+              🔑 Reset ID / Password
+            </Button>
             <div className={`connection-dot connection-dot--${backendStatus}`} aria-label={backendStatusLabel(backendStatus)} />
-            <Badge tone="green">{currentUser.role}</Badge>
+            <Badge tone="green">{currentUser.role === "super_admin" ? "Super Admin" : currentUser.role}</Badge>
             {backendError ? <span className="backend-error">{backendError}</span> : null}
 
             {activeSection === "Therapist Management" && (
@@ -2596,6 +2095,16 @@ export default function App() {
 
         {page}
       </main>
+
+      {showResetCredentials && (
+        <ResetCredentialsModal
+          currentUser={currentUser}
+          onClose={() => setShowResetCredentials(false)}
+          onUpdateUser={(updated) => {
+            setCurrentUser((prev) => ({ ...prev, ...updated }));
+          }}
+        />
+      )}
     </div>
   );
 }

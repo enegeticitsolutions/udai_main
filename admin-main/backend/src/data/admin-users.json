@@ -1,23 +1,112 @@
 [
   {
+    "id": "user_superadmin",
+    "name": "Super Administrator",
+    "email": "superadmin@udai.in",
+    "password": "SuperAdmin@123",
+    "role": "super_admin",
+    "permissions": [
+      "Dashboard",
+      "Admin Management",
+      "WhatsApp Appointments",
+      "WhatsApp Messages",
+      "Orders / Purchases",
+      "Donations",
+      "Volunteers",
+      "Therapist Management",
+      "Availability Manager",
+      "Products",
+      "Career Management",
+      "Subscribe",
+      "Contacts",
+      "Notifications Center",
+      "Message Broadcast",
+      "Reports / Analytics",
+      "Settings"
+    ],
+    "isActive": true,
+    "createdAt": "2026-09-05T19:50:00.000Z"
+  },
+  {
+    "id": "user_admin1",
     "name": "Admin One",
     "email": "admin1@udai.in",
     "password": "111111",
     "role": "admin",
-    "isActive": true
+    "permissions": [
+      "Dashboard",
+      "WhatsApp Appointments",
+      "WhatsApp Messages",
+      "Orders / Purchases",
+      "Donations",
+      "Volunteers",
+      "Therapist Management",
+      "Availability Manager",
+      "Products",
+      "Career Management",
+      "Subscribe",
+      "Contacts",
+      "Notifications Center",
+      "Message Broadcast",
+      "Reports / Analytics",
+      "Settings"
+    ],
+    "isActive": true,
+    "createdAt": "2026-09-05T19:50:00.000Z"
   },
   {
+    "id": "user_admin2",
     "name": "Admin Two",
     "email": "admin2@udai.in",
     "password": "222222",
     "role": "editor",
-    "isActive": true
+    "permissions": [
+      "WhatsApp Appointments",
+      "WhatsApp Messages",
+      "Therapist Management",
+      "Availability Manager"
+    ],
+    "isActive": true,
+    "createdAt": "2026-09-05T19:50:00.000Z"
   },
   {
+    "id": "user_admin3",
     "name": "Admin Three",
     "email": "admin3@udai.in",
     "password": "333333",
     "role": "finance",
-    "isActive": true
+    "permissions": [
+      "Orders / Purchases",
+      "Donations",
+      "Reports / Analytics"
+    ],
+    "isActive": true,
+    "createdAt": "2026-09-05T19:50:00.000Z"
+  },
+  {
+    "id": "user_1788633043099",
+    "name": "Shubham",
+    "email": "tripathishubh0099@gmail.com",
+    "password": "123456",
+    "role": "admin",
+    "permissions": [
+      "Dashboard",
+      "WhatsApp Messages",
+      "Orders / Purchases",
+      "Donations",
+      "Volunteers",
+      "Therapist Management",
+      "Availability Manager",
+      "Products",
+      "Career Management",
+      "Subscribe",
+      "Contacts",
+      "Notifications Center",
+      "Message Broadcast",
+      "Reports / Analytics",
+      "Settings"
+    ],
+    "isActive": true,
+    "createdAt": "2026-09-05T18:30:43.099Z"
   }
 ]

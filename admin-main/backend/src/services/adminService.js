@@ -26,6 +26,9 @@ const storageByEntity = {
   products: { fileName: "products.json", collectionName: "products", seed: seedProducts },
   careers: { fileName: "careers.json", collectionName: "careers", seed: [] },
   whatsappBookings: { fileName: "whatsapp-bookings.json", collectionName: "chatbotsubmissions", seed: [] },
+  notifications: { fileName: "notifications.json", collectionName: "notifications", seed: [] },
+  broadcasts: { fileName: "broadcasts.json", collectionName: "broadcasts", seed: [] },
+  settings: { fileName: "settings.json", collectionName: "settings", seed: [] },
 };
 
 function storagePath(fileName) {
@@ -84,11 +87,26 @@ async function readStorageRecords(entity) {
   const { fileName, seed } = storageByEntity[entity];
 
   try {
-    return await readJsonFile(entityStoragePath(entity, fileName));
+    const records = await readJsonFile(entityStoragePath(entity, fileName));
+    if (entity === "donations" && Array.isArray(records)) {
+      return records.filter((d) => {
+        const cat = String(d.category || "").toLowerCase();
+        const purp = String(d.purpose || "").toLowerCase();
+        return cat !== "shop" && !purp.startsWith("shop order");
+      });
+    }
+    return records;
   } catch {
     if (entity === "donations") {
       try {
-        return await readJsonFile(path.resolve(config.projectRoot, "..", "backend", "storage", fileName));
+        const records = await readJsonFile(path.resolve(config.projectRoot, "..", "backend", "storage", fileName));
+        return Array.isArray(records)
+          ? records.filter((d) => {
+              const cat = String(d.category || "").toLowerCase();
+              const purp = String(d.purpose || "").toLowerCase();
+              return cat !== "shop" && !purp.startsWith("shop order");
+            })
+          : seed;
       } catch {
         return seed;
       }
@@ -102,7 +120,7 @@ async function readStorageRecords(entity) {
   }
 }
 
-async function readRecords(entity) {
+export async function readRecords(entity) {
   const { collectionName } = storageByEntity[entity];
   try {
     await connectMongoDb();
@@ -125,9 +143,29 @@ async function readRecords(entity) {
       }
     }
 
+    // Proactively purge shop orders from donations collection if any were erroneously inserted
+    if (entity === "donations") {
+      try {
+        await collection.deleteMany({
+          $or: [
+            { category: "shop" },
+            { purpose: { $regex: /^shop order/i } },
+          ],
+        });
+      } catch {}
+    }
+
     const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
     if (docs.length > 0) {
-      return docs.map((doc) => normalizeMongoDocument(doc));
+      let result = docs.map((doc) => normalizeMongoDocument(doc));
+      if (entity === "donations") {
+        result = result.filter((d) => {
+          const cat = String(d.category || "").toLowerCase();
+          const purp = String(d.purpose || "").toLowerCase();
+          return cat !== "shop" && !purp.startsWith("shop order");
+        });
+      }
+      return result;
     }
 
     if ((entity === "careers" || entity === "therapists") && docs.length === 0) {
@@ -306,7 +344,7 @@ async function createMongoRecord(entity, record) {
 }
 
 export async function getAdminBootstrap() {
-  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers, products, careers, whatsappBookings] = await Promise.all([
+  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers, products, careers, whatsappBookings, notifications, broadcasts, settingsList] = await Promise.all([
     readRecords("inquiries"),
     readRecords("donations"),
     readRecords("volunteers"),
@@ -317,6 +355,9 @@ export async function getAdminBootstrap() {
     readRecords("products"),
     readRecords("careers"),
     readRecords("whatsappBookings"),
+    readRecords("notifications"),
+    readRecords("broadcasts"),
+    readRecords("settings"),
   ]);
 
   const totalDonations = donations.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
@@ -342,6 +383,9 @@ export async function getAdminBootstrap() {
     products,
     careers,
     whatsappBookings,
+    notifications,
+    broadcasts,
+    settings: settingsList[0] || null,
     dashboard: {
       totalRequests: inquiries.length,
       pendingRequests,

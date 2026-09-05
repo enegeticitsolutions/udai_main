@@ -541,7 +541,8 @@ td {
   text-align: left;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   vertical-align: top;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 th {

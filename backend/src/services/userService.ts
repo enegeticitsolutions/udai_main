@@ -95,15 +95,19 @@ function normalizeOrder(document: Record<string, unknown>): Order {
 
 export async function ensureUserIndexes() {
   const db = getMongoDb();
-  await Promise.all([
-    db.collection("users").createIndex({ email: 1 }, { unique: true }),
-    db.collection("users").createIndex({ phone: 1 }, { unique: true, sparse: true }),
-    db.collection("addresses").createIndex({ userId: 1 }),
-    db.collection("orders").createIndex({ userId: 1, createdAt: -1 }),
-    db.collection("carts").createIndex({ userId: 1 }, { unique: true }),
-    db.collection("pendingSignups").createIndex({ email: 1 }, { unique: true }),
-    db.collection("pendingSignups").createIndex({ otpExpiry: 1 }, { expireAfterSeconds: 0 }),
-  ]);
+  try {
+    await Promise.all([
+      db.collection("users").createIndex({ email: 1 }, { unique: true }),
+      db.collection("users").createIndex({ phone: 1 }, { unique: true, sparse: true }),
+      db.collection("addresses").createIndex({ userId: 1 }),
+      db.collection("orders").createIndex({ userId: 1, createdAt: -1 }),
+      db.collection("carts").createIndex({ userId: 1 }, { unique: true }),
+      db.collection("pendingSignups").createIndex({ email: 1 }, { unique: true }),
+      db.collection("pendingSignups").createIndex({ otpExpiry: 1 }, { expireAfterSeconds: 0 }),
+    ]);
+  } catch (err) {
+    console.warn("User index warning:", err);
+  }
 }
 
 export function signUserToken(user: User) {
@@ -242,13 +246,17 @@ export async function requestSignupVerification(input: SignupInput) {
     { upsert: true },
   );
 
+  console.log("==========================================");
+  console.log(`📩 SIGNUP OTP for ${email}: ${otp}`);
+  console.log("==========================================");
+
   const info = await sendEmail({
     to: email,
     subject: "Verify your UDAI account",
     html: otpEmailTemplate("Verify your UDAI account", otp),
   });
 
-  if (!info) {
+  if (!info && process.env.NODE_ENV === "production") {
     throw new HttpError(500, "Unable to send signup OTP. Please try again.");
   }
 }
@@ -379,7 +387,7 @@ export async function sendOtp(identifier: string) {
   });
   
   if (!user) {
-    throw new HttpError(404, "User not found");
+    throw new HttpError(404, "No account found with this email address.");
   }
   
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -390,7 +398,17 @@ export async function sendOtp(identifier: string) {
     { $set: { otp, otpExpiry } }
   );
   
-  console.log(`[DEV ONLY] OTP for ${identifier}: ${otp}`);
+  console.log("==========================================");
+  console.log(`📩 LOGIN OTP for ${user.email}: ${otp}`);
+  console.log("==========================================");
+
+  if (user.email) {
+    await sendEmail({
+      to: user.email,
+      subject: "Your UDAI login verification code",
+      html: otpEmailTemplate("Sign in to your UDAI account", otp),
+    });
+  }
 }
 
 function generateSixDigitOtp() {
