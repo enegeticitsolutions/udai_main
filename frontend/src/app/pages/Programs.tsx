@@ -47,7 +47,11 @@ export function Programs() {
       title: "Mom and Me",
       description:
         "A specialized program designed to strengthen the bond between mothers and their children through interactive and developmental activities.",
-      image: "/images/mom_and_me.png", // Assuming a placeholder or if they have an image
+      image: "/images/mom-and-me-1.jpg",
+      images: [
+        "/images/mom-and-me-1.jpg",
+        "/images/mom-and-me-2.jpg",
+      ],
       services: [
         "Early childhood development activities",
         "Parenting workshops and support groups",
@@ -121,12 +125,26 @@ export function Programs() {
                       ))}
                     </div>
                   </div>
-                  <div className={`relative h-80 sm:h-[480px] rounded-2xl overflow-hidden bg-white p-2 border border-[#ece4dd] shadow-lg ${!isEven ? 'md:col-start-1 md:row-start-1' : ''}`}>
-                    <ImageWithFallback
-                      src={program.image}
-                      alt={program.title}
-                      className="w-full h-full object-contain bg-white rounded-xl"
-                    />
+                  <div className={`relative ${program.images && program.images.length > 1 ? 'min-h-[240px] sm:min-h-[300px] flex items-center' : 'h-80 sm:h-[480px]'} rounded-2xl overflow-hidden bg-white p-2 sm:p-3 border border-[#ece4dd] shadow-lg ${!isEven ? 'md:col-start-1 md:row-start-1' : ''}`}>
+                    {program.images && program.images.length > 1 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full items-center">
+                        {program.images.map((imgSrc, imgIdx) => (
+                          <div key={imgIdx} className="relative w-full rounded-xl overflow-hidden bg-white border border-[#ece4dd] shadow-sm flex items-center justify-center p-0.5">
+                            <ImageWithFallback
+                              src={imgSrc}
+                              alt={`${program.title} photo ${imgIdx + 1}`}
+                              className="w-full h-auto object-contain rounded-lg block"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <ImageWithFallback
+                        src={program.image}
+                        alt={program.title}
+                        className="w-full h-full object-contain bg-white rounded-xl"
+                      />
+                    )}
                   </div>
                 </div>
               );
