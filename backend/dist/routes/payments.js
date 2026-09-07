@@ -541,8 +541,11 @@ async function createPaymentLinkHandler(req, res, next) {
             category,
         });
         await persistUserOrder(userId, localOrder);
-        // Also persist to donations collection in MongoDB if connected
-        if (isMongoConnected()) {
+        // Only persist to donations collection in MongoDB if this is a genuine donation (NOT an e-commerce shop order)
+        const isShopPurchase = category.toLowerCase() === "shop" ||
+            purpose.toLowerCase().startsWith("shop order") ||
+            (Array.isArray(items) && items.length > 0);
+        if (!isShopPurchase && isMongoConnected()) {
             try {
                 await getMongoDb().collection("donations").insertOne({
                     name: customerName,

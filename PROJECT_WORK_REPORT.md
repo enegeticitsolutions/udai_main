@@ -137,7 +137,7 @@ The **UDAI Digital Platform** provides an end-to-end healthcare management ecosy
 - **Strict Collision Guard**: `assignTherapist` strictly returns `null` if no clinician is free at the requested time, throwing a `409 / NoSlotsAvailableError` and preventing double-bookings.
 
 ### 3.7 Balanced Alternating (Round-Robin) Doctor Assignment
-- **Multi-Therapist Departments**: Speech Therapy (Atal, Sakshi), OT (Nikki, Harsimran), Special Educator (Sobha, Sonia, Ranjana), Academic Support (Sonia, Sobha), Counselling (Tanu, Sonia).
+- **Multi-Therapist Departments**: Speech Therapy (Atal, Sakshi), OT (Nikki, Harsimran), Special Educator (Sobha, Ranjana), Academic Support (Sobha), Counselling (Tanu, Sonia).
 - **Even Distribution Algorithm**:
   1. Identifies all free clinicians eligible for the requested slot.
   2. Queries MongoDB to count active appointments assigned to each eligible clinician on that specific date.
@@ -177,15 +177,13 @@ The **UDAI Digital Platform** provides an end-to-end healthcare management ecosy
 | 2 | **Speech Therapy** | Dr. Sakshi | Speech Therapist | `10:00 - 14:00` | No Lunch Break | 5 slots (10:00 to 13:00) |
 | 3 | **Physiotherapy** | Dr. Divya | Physiotherapist | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
 | 4 | **Special Educator** | Ms. Sobha | Special Educator | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 5 | **Special Educator** | Ms. Sonia | Special Educator | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 6 | **Special Educator** | Ms. Ranjana | Special Educator | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 7 | **Physical Therapy** | Dr. Durgesh | Physical Therapist | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 8 | **Academic Support** | Ms. Sonia | Academic Instructor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 9 | **Academic Support** | Ms. Sobha | Academic Instructor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 10 | **Counselling** | Ms. Tanu | Psychological Counsellor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 11 | **Counselling** | Ms. Sonia | Counsellor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 12 | **OT (Occupational)** | Ms. Nikki | Occupational Therapist | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 13 | **OT (Occupational)** | Ms. Harsimran | Occupational Therapist | `13:00 - 17:15` | No Lunch Break | 6 slots (13:00 to 16:30) |
+| 5 | **Special Educator** | Ms. Ranjana | Special Educator | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
+| 6 | **Physical Therapy** | Dr. Durgesh | Physical Therapist | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
+| 7 | **Academic Support** | Ms. Sobha | Academic Instructor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
+| 8 | **Counselling** | Ms. Tanu | Psychological Counsellor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
+| 9 | **Counselling** | Ms. Sonia | Counsellor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
+| 10 | **OT (Occupational)** | Ms. Nikki | Occupational Therapist | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
+| 11 | **OT (Occupational)** | Ms. Harsimran | Occupational Therapist | `13:00 - 17:15` | No Lunch Break | 6 slots (13:00 to 16:30) |
 
 ---
 

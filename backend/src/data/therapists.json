@@ -42,8 +42,8 @@
   {
     "id": "sonia-01",
     "name": "Ms. Sonia",
-    "role": "Special Educator",
-    "department": "Special Education",
+    "role": "Counsellor",
+    "department": "Counselling",
     "image": "/images/sonia.jpg",
     "active": true
   },

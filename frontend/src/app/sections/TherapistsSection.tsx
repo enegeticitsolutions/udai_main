@@ -33,8 +33,8 @@ const FALLBACK_THERAPISTS: Therapist[] = [
   {
     id: "sonia-01",
     name: "Ms. Sonia",
-    role: "Special Educator",
-    department: "Remedial and Academics Support",
+    role: "Counsellor",
+    department: "Counselling / Home Programme",
     image: "/images/sonia.jpg",
     active: true,
   },

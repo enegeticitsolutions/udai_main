@@ -41,11 +41,11 @@ export const sidebarItems = [
 
 export const therapistDepartments = {
   "Occupational Therapy": ["Ms Harsimran Kaur", "Ms Nikki", "Ms Anamika"],
-  "Special Education": ["Ms Promila", "Ms Sonia"],
+  "Special Education": ["Ms Promila"],
   "Speech Therapy": ["Ms Sakshi", "Mr Atal"],
   "Physical Therapy": ["Mr Durgesh"],
-  "Remedial & Academic Support": ["Ms Sonia", "Ms Shobha"],
-  "Counselling / Home Programme": ["Ms Tanu Rajput", "Ms Harsimran"],
+  "Remedial & Academic Support": ["Ms Shobha"],
+  "Counselling / Home Programme": ["Ms Tanu Rajput", "Ms Sonia", "Ms Harsimran"],
 };
 
 export const therapists = [];
@@ -243,7 +243,7 @@ export const records = [
     status: "confirmed",
     previousSlot: "-",
     newSlot: "5 Apr, 10 AM",
-    assignedTherapist: "Ms Sonia",
+    assignedTherapist: "Ms Shobha",
     school: "Sunrise Kids Academy",
     lastVisit: "2 Apr, 2026",
     nextFollowUp: "5 Apr, 2026",
@@ -265,7 +265,7 @@ export const records = [
     status: "cancelled",
     previousSlot: "4 Apr, 11 AM",
     newSlot: "-",
-    assignedTherapist: "Ms Sonia",
+    assignedTherapist: "Ms Shobha",
     school: "Bright Start School",
     lastVisit: "31 Mar, 2026",
     nextFollowUp: "Pending new schedule",

@@ -90,7 +90,7 @@ export const therapists = [
   { id: 2, name: "Ms Nikki", department: "Occupational Therapy", role: "OT Specialist", experience: "9 years", active: true },
   { id: 3, name: "Ms Anamika", department: "Occupational Therapy", role: "OT Specialist", experience: "7 years", active: true },
   { id: 4, name: "Ms Promila", department: "Special Education", role: "Special Educator", experience: "8 years", active: true },
-  { id: 5, name: "Ms Sonia", department: "Special Education", role: "Special Educator", experience: "6 years", active: true },
+  { id: 5, name: "Ms Sonia", department: "Counselling / Home Programme", role: "Counsellor", experience: "6 years", active: true },
   { id: 6, name: "Ms Sakshi", department: "Speech Therapy", role: "Speech Therapist", experience: "5 years", active: true },
   { id: 7, name: "Mr Atal", department: "Speech Therapy", role: "Speech Therapist", experience: "7 years", active: true },
   { id: 8, name: "Mr Durgesh", department: "Physical Therapy", role: "Physical Therapist", experience: "10 years", active: true },

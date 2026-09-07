@@ -94,14 +94,12 @@ export const CLINIC_ROSTER_BY_DEPARTMENT = {
     ],
     "Special Educator": [
         { name: "Ms. Sobha", role: "Special Educator" },
-        { name: "Ms. Sonia", role: "Special Educator" },
         { name: "Ms. Ranjana", role: "Special Educator" },
     ],
     "Physical Therapy": [
         { name: "Dr. Durgesh", role: "Physical Therapist" },
     ],
     "Academic Support": [
-        { name: "Ms. Sonia", role: "Academic Instructor" },
         { name: "Ms. Sobha", role: "Academic Instructor" },
     ],
     "Counselling": [
