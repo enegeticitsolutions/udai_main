@@ -59,6 +59,15 @@ npm install
 echo "✅ Admin backend dependencies installed"
 cd ../..
 
+# ---- STEP 4b: Build admin-main frontend ----
+echo ""
+echo "📦 Step 4b: Building admin-main frontend..."
+cd admin-main/frontend
+npm install
+npm run build
+echo "✅ Admin frontend built successfully (dist/ ready)"
+cd ../..
+
 # ---- STEP 5: Install dependencies for msg91-bridge-service ----
 echo ""
 echo "📦 Step 5: Installing msg91-bridge-service dependencies..."
