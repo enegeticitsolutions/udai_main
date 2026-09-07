@@ -101,20 +101,23 @@ export function ProjectDetail() {
             {/* Hero Image / Gallery Card */}
             <div className="rounded-3xl bg-white p-2 sm:p-2.5 shadow-md border border-[#e8dfd8] overflow-hidden">
               {project.gallery && project.gallery.length > 0 ? (
-                <div className={`grid grid-cols-2 ${project.gallery.length === 6 ? 'sm:grid-cols-3 lg:grid-cols-3' : project.gallery.length === 4 ? 'sm:grid-cols-4 lg:grid-cols-4' : project.gallery.length === 5 ? 'sm:grid-cols-4 lg:grid-cols-5' : 'sm:grid-cols-3'} gap-2 sm:gap-2.5`}>
-                  {project.gallery.map((imgSrc, index) => (
-                    <div
-                      key={index}
-                      onClick={() => setSelectedImage(imgSrc)}
-                      className="cursor-pointer overflow-hidden rounded-xl bg-white border border-[#f1e7dd] shadow-sm hover:shadow-md transition-transform duration-300 hover:-translate-y-1 p-0.5 group"
-                    >
-                      <ImageWithFallback
-                        src={imgSrc}
-                        alt={`${project.title} Photo ${index + 1}`}
-                        className={`${project.gallery?.length === 6 ? 'h-44 sm:h-52 md:h-56' : project.gallery?.length === 4 ? 'h-32 sm:h-36 md:h-40 lg:h-44' : project.gallery?.length === 5 ? 'h-36 sm:h-44 md:h-48 lg:h-52' : 'h-52 sm:h-64'} w-full object-contain bg-white rounded-lg transition-transform duration-300 group-hover:scale-[1.02]`}
-                      />
-                    </div>
-                  ))}
+                <div className={`grid ${project.gallery.length === 2 ? 'grid-cols-1 md:grid-cols-2' : project.gallery.length === 6 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' : project.gallery.length === 4 ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-4' : project.gallery.length === 5 ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-3'} gap-3`}>
+                  {project.gallery.map((imgSrc, index) => {
+                    const isTherapy1 = imgSrc.includes("therapy1.png");
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => setSelectedImage(imgSrc)}
+                        className="cursor-pointer overflow-hidden rounded-2xl bg-white border border-[#e8dfd8] shadow-sm hover:shadow-md transition-transform duration-300 hover:-translate-y-1 p-1 group flex items-center justify-center"
+                      >
+                        <ImageWithFallback
+                          src={imgSrc}
+                          alt={`${project.title} Photo ${index + 1}`}
+                          className={`${project.gallery?.length === 2 ? 'h-64 sm:h-72 md:h-80 lg:h-80 object-cover object-center' : project.gallery?.length === 6 ? 'h-44 sm:h-52 md:h-56 object-contain' : project.gallery?.length === 4 ? 'h-32 sm:h-36 md:h-40 lg:h-44 object-contain' : project.gallery?.length === 5 ? 'h-36 sm:h-44 md:h-48 lg:h-52 object-contain' : 'h-52 sm:h-64 object-contain'} ${isTherapy1 ? 'scale-[2.95]' : 'group-hover:scale-[1.02]'} w-full bg-white rounded-xl transition-transform duration-300`}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden p-1 bg-white">
@@ -136,11 +139,21 @@ export function ProjectDetail() {
                 <button className="absolute top-6 right-6 text-white p-2 bg-white/10 rounded-full hover:bg-white/20">
                   <X size={24} />
                 </button>
-                <img 
-                  src={selectedImage} 
-                  alt="Full view" 
-                  className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl"
-                />
+                {selectedImage.includes("therapy1.png") ? (
+                  <div className="relative overflow-hidden rounded-2xl bg-white border border-[#e8dfd8] shadow-2xl p-1 flex items-center justify-center max-w-[90vw] max-h-[85vh] w-[460px] h-[340px] sm:w-[560px] sm:h-[400px] md:w-[640px] md:h-[460px]">
+                    <img 
+                      src={selectedImage} 
+                      alt="Full view" 
+                      className="w-full h-full object-contain scale-[2.95]"
+                    />
+                  </div>
+                ) : (
+                  <img 
+                    src={selectedImage} 
+                    alt="Full view" 
+                    className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl"
+                  />
+                )}
               </div>
             )}
 

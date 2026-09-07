@@ -31,6 +31,8 @@ export interface ProjectDetailData {
   impact?: string;
   outcomes?: string[];
   image: string;
+  gallery?: string[];
+  images?: string[];
 }
 
 export const PROJECTS_DATA: ProjectDetailData[] = [
@@ -287,7 +289,11 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       { title: "Parent Advocacy Circles", desc: "Forming support networks where families share resources and legal guidance." }
     ],
     impact: "Promotes early diagnosis, reduces discrimination, and mobilizes community support for disability rights.",
-    image: "https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+    image: "/images/community-outreach-1.jpg",
+    gallery: [
+      "/images/community-outreach-1.jpg",
+      "/images/community-outreach-2.jpg"
+    ]
   },
   {
     slug: "teachers-training",
