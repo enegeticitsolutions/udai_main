@@ -13,7 +13,6 @@ export const CLINIC_THERAPISTS = [
     { department: "Speech Therapy", therapistName: "Atal" },
     { department: "Speech Therapy", therapistName: "Sakshi" },
     { department: "Physical Therapy", therapistName: "Durgesh" },
-    { department: "Academic Support", therapistName: "Sobha" },
     { department: "Counselling", therapistName: "Tanu" },
     { department: "Counselling", therapistName: "Sonia" },
 ];

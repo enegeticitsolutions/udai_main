@@ -137,7 +137,7 @@ The **UDAI Digital Platform** provides an end-to-end healthcare management ecosy
 - **Strict Collision Guard**: `assignTherapist` strictly returns `null` if no clinician is free at the requested time, throwing a `409 / NoSlotsAvailableError` and preventing double-bookings.
 
 ### 3.7 Balanced Alternating (Round-Robin) Doctor Assignment
-- **Multi-Therapist Departments**: Speech Therapy (Atal, Sakshi), OT (Nikki, Harsimran), Special Educator (Sobha, Ranjana), Academic Support (Sobha), Counselling (Tanu, Sonia).
+- **Multi-Therapist Departments**: Speech Therapy (Atal, Sakshi), OT (Nikki, Harsimran), Special Educator (Sobha, Ranjana), Counselling (Tanu, Sonia).
 - **Even Distribution Algorithm**:
   1. Identifies all free clinicians eligible for the requested slot.
   2. Queries MongoDB to count active appointments assigned to each eligible clinician on that specific date.
@@ -179,11 +179,10 @@ The **UDAI Digital Platform** provides an end-to-end healthcare management ecosy
 | 4 | **Special Educator** | Ms. Sobha | Special Educator | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
 | 5 | **Special Educator** | Ms. Ranjana | Special Educator | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
 | 6 | **Physical Therapy** | Dr. Durgesh | Physical Therapist | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 7 | **Academic Support** | Ms. Sobha | Academic Instructor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 8 | **Counselling** | Ms. Tanu | Psychological Counsellor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 9 | **Counselling** | Ms. Sonia | Counsellor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 10 | **OT (Occupational)** | Ms. Nikki | Occupational Therapist | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
-| 11 | **OT (Occupational)** | Ms. Harsimran | Occupational Therapist | `13:00 - 17:15` | No Lunch Break | 6 slots (13:00 to 16:30) |
+| 7 | **Counselling** | Ms. Tanu | Psychological Counsellor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
+| 8 | **Counselling** | Ms. Sonia | Counsellor | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
+| 9 | **OT (Occupational)** | Ms. Nikki | Occupational Therapist | `10:00 - 16:30` | `13:00 - 13:30` (30m) | 8 slots (10:00 to 15:45) |
+| 10 | **OT (Occupational)** | Ms. Harsimran | Occupational Therapist | `13:00 - 17:15` | No Lunch Break | 6 slots (13:00 to 16:30) |
 
 ---
 

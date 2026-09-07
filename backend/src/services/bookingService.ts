@@ -99,9 +99,7 @@ export const CLINIC_ROSTER_BY_DEPARTMENT: Record<string, Array<{ name: string; r
   "Physical Therapy": [
     { name: "Dr. Durgesh", role: "Physical Therapist" },
   ],
-  "Academic Support": [
-    { name: "Ms. Sobha", role: "Academic Instructor" },
-  ],
+  "Academic Support": [],
   "Counselling": [
     { name: "Ms. Tanu", role: "Psychological Counsellor" },
     { name: "Ms. Sonia", role: "Counsellor" },

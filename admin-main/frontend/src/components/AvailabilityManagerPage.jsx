@@ -21,7 +21,6 @@ export const CLINIC_THERAPISTS_ROSTER = [
   { department: "Speech Therapy", therapistName: "Atal", role: "Speech Therapist" },
   { department: "Speech Therapy", therapistName: "Sakshi", role: "Speech Therapist" },
   { department: "Physical Therapy", therapistName: "Durgesh", role: "Physical Therapist" },
-  { department: "Academic Support", therapistName: "Sobha", role: "Academic Instructor" },
   { department: "Counselling", therapistName: "Tanu", role: "Psychological Counsellor" },
   { department: "Counselling", therapistName: "Sonia", role: "Counsellor" },
 ];

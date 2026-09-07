@@ -41,10 +41,10 @@ export const sidebarItems = [
 
 export const therapistDepartments = {
   "Occupational Therapy": ["Ms Harsimran Kaur", "Ms Nikki", "Ms Anamika"],
-  "Special Education": ["Ms Promila"],
+  "Special Education": ["Ms Promila", "Ms Shobha"],
   "Speech Therapy": ["Ms Sakshi", "Mr Atal"],
   "Physical Therapy": ["Mr Durgesh"],
-  "Remedial & Academic Support": ["Ms Shobha"],
+  "Remedial & Academic Support": [],
   "Counselling / Home Programme": ["Ms Tanu Rajput", "Ms Sonia", "Ms Harsimran"],
 };
 
@@ -239,7 +239,7 @@ export const records = [
     parentEmail: "neha@example.com",
     concern: "Reading readiness and classroom focus",
     pastAppointments: 2,
-    department: "Remedial Support",
+    department: "Special Education",
     status: "confirmed",
     previousSlot: "-",
     newSlot: "5 Apr, 10 AM",
@@ -261,7 +261,7 @@ export const records = [
     parentEmail: "rohit@example.com",
     concern: "Occupational support and motor planning",
     pastAppointments: 1,
-    department: "Remedial Support",
+    department: "Special Education",
     status: "cancelled",
     previousSlot: "4 Apr, 11 AM",
     newSlot: "-",
