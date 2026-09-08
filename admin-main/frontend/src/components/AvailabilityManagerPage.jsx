@@ -3,26 +3,151 @@ import Badge from "./Badge";
 import StatCard from "./StatCard";
 import { getAvailability, toggleAvailability } from "../services/adminApi";
 
+/**
+ * Returns the formatted clinical shift window badge text for each therapist.
+ */
 export function getTherapistShiftWindow(therapistName) {
   const name = String(therapistName || "").toLowerCase().trim();
-  if (name.includes("atal")) return "09:15 - 17:15 (Lunch: 1:00-1:30)";
-  if (name.includes("sakshi")) return "10:00 - 14:00 (No Lunch)";
-  if (name.includes("harsimran")) return "13:00 - 17:15 (No Lunch)";
-  return "10:00 - 16:30 (Lunch: 1:00-1:30)";
+  if (name.includes("tanu")) return "Mon-Fri: 11:00 - 17:00 | Sat: Off";
+  if (name.includes("harsimran")) return "Sat: 11:30 - 16:00 | Mon-Fri: Off";
+  if (name.includes("nikki")) return "Mon-Fri: 10:00 - 17:15 | Sat: 10:00 - 15:00";
+  if (name.includes("divya")) return "Mon-Fri: 10:00 - 18:00 | Sat: 10:00 - 15:00";
+  if (name.includes("sonia")) return "Mon-Fri: 09:30 - 16:30 | Sat: 10:00 - 15:00";
+  if (name.includes("shobha") || name.includes("sobha")) return "Mon-Fri: 09:30 - 16:30 | Sat: 10:00 - 15:00";
+  if (name.includes("ranjana")) return "Mon-Fri: 09:30 - 16:30 | Sat: 10:00 - 15:00";
+  if (name.includes("sakshi")) return "Mon, Wed, Fri: 10:00 - 13:00 | Tue, Thu, Sat: Off";
+  if (name.includes("atal")) return "Mon, Tue, Thu, Fri: 10:00 - 18:00 | Wed: 10:00 - 15:45 | 2nd & 4th Sat: 10:00 - 16:30";
+  if (name.includes("durgesh")) return "Mon-Fri: 11:30 - 17:30 | Sat: Off";
+  return "Mon-Fri: 10:00 - 16:30 | Sat: 10:00 - 15:00";
 }
 
-// Configured clinic therapists grouped by department as specified
+/**
+ * Determines whether a therapist has a scheduled working shift on a given calendar day.
+ * Returns false if:
+ *  - Sunday (Clinic completely closed)
+ *  - Ms. Sakshi on Tue, Thu, Sat (Off Duty)
+ *  - Ms. Harsimran on Mon, Tue, Wed, Thu, Fri (Off Duty)
+ *  - Ms. Tanu Rajput on Saturday (Off Duty)
+ *  - Mr. Durgesh on Saturday (Off Duty)
+ *  - Mr. Atal on 1st, 3rd, 5th Saturday (Off Duty)
+ */
+export function isTherapistScheduledWorking(therapistName, dayIso, dayOfWeek) {
+  if (dayOfWeek === 0) return false; // Sunday: Clinic closed
+
+  const name = String(therapistName || "").toLowerCase().trim();
+  const dayOfMonth = dayIso ? parseInt(dayIso.split("-")[2], 10) : 1;
+  const saturdayIndex = Math.ceil(dayOfMonth / 7);
+
+  // Ms. Sakshi: Monday, Wednesday, Friday ONLY. Tue, Thu, Sat: Off
+  if (name.includes("sakshi")) {
+    return dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5;
+  }
+
+  // Ms. Harsimran: Saturday ONLY. Mon-Fri: Off
+  if (name.includes("harsimran")) {
+    return dayOfWeek === 6;
+  }
+
+  // Ms. Tanu Rajput: Mon-Fri. Saturday: Off
+  if (name.includes("tanu")) {
+    return dayOfWeek >= 1 && dayOfWeek <= 5;
+  }
+
+  // Mr. Durgesh: Mon-Fri. Saturday: Off
+  if (name.includes("durgesh")) {
+    return dayOfWeek >= 1 && dayOfWeek <= 5;
+  }
+
+  // Mr. Atal: Mon, Tue, Thu, Fri, Wed; 2nd & 4th Sat. 1st, 3rd, 5th Sat: Off
+  if (name.includes("atal")) {
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) return true;
+    if (dayOfWeek === 6) {
+      return saturdayIndex === 2 || saturdayIndex === 4;
+    }
+    return false;
+  }
+
+  // Ms. Nikki, Ms. Divya, Ms. Sonia, Ms. Shobha, Ms. Ranjana work Mon-Sat
+  if (dayOfWeek >= 1 && dayOfWeek <= 6) {
+    return true;
+  }
+
+  return false;
+}
+
+// Configured official clinic roster with multi-department mappings
 export const CLINIC_THERAPISTS_ROSTER = [
-  { department: "OT", therapistName: "Nikki", role: "Occupational Therapist" },
-  { department: "OT", therapistName: "Harsimran", role: "Occupational Therapist" },
-  { department: "Physiotherapy", therapistName: "Divya", role: "Physiotherapist" },
-  { department: "Special Educator", therapistName: "Sobha", role: "Special Educator" },
-  { department: "Special Educator", therapistName: "Ranjana", role: "Special Educator" },
-  { department: "Speech Therapy", therapistName: "Atal", role: "Speech Therapist" },
-  { department: "Speech Therapy", therapistName: "Sakshi", role: "Speech Therapist" },
-  { department: "Physical Therapy", therapistName: "Durgesh", role: "Physical Therapist" },
-  { department: "Counselling", therapistName: "Tanu", role: "Psychological Counsellor" },
-  { department: "Counselling", therapistName: "Sonia", role: "Counsellor" },
+  {
+    therapistName: "Ms. Tanu Rajput",
+    department: "Counselling",
+    departments: ["Counselling"],
+    role: "Psychological Counsellor",
+  },
+  {
+    therapistName: "Ms. Harsimran",
+    department: "OT / Counselling",
+    departments: ["OT", "Counselling"],
+    role: "Occupational Therapist & Counsellor",
+  },
+  {
+    therapistName: "Ms. Nikki",
+    department: "OT",
+    departments: ["OT"],
+    role: "Occupational Therapist",
+  },
+  {
+    therapistName: "Ms. Divya",
+    department: "Physiotherapy",
+    departments: ["Physiotherapy"],
+    role: "Physiotherapist",
+  },
+  {
+    therapistName: "Ms. Sonia",
+    department: "Special Ed / Academic / Counselling",
+    departments: ["Special Educator", "Academic Support", "Counselling"],
+    role: "Special Educator & Counsellor",
+  },
+  {
+    therapistName: "Ms. Shobha",
+    department: "Special Ed / Academic",
+    departments: ["Special Educator", "Academic Support"],
+    role: "Special Educator & Academic Support",
+  },
+  {
+    therapistName: "Ms. Ranjana",
+    department: "Special Educator",
+    departments: ["Special Educator"],
+    role: "Special Educator",
+  },
+  {
+    therapistName: "Ms. Sakshi",
+    department: "Speech Therapy",
+    departments: ["Speech Therapy"],
+    role: "Speech Therapist",
+  },
+  {
+    therapistName: "Mr. Atal",
+    department: "Speech Therapy",
+    departments: ["Speech Therapy"],
+    role: "Speech Therapist",
+  },
+  {
+    therapistName: "Mr. Durgesh",
+    department: "Physical Therapy",
+    departments: ["Physical Therapy"],
+    role: "Physical Therapist",
+  },
+];
+
+export const DEPARTMENT_FILTERS = [
+  "All",
+  "OT",
+  "Speech Therapy",
+  "Physiotherapy",
+  "Special Educator",
+  "Physical Therapy",
+  "Academic Support",
+  "Counselling",
 ];
 
 export default function AvailabilityManagerPage() {
@@ -89,13 +214,11 @@ export default function AvailabilityManagerPage() {
   // Check availability status for a therapist on a date
   const isAvailable = (therapistName, department, dateIso, isSunday) => {
     if (isSunday) return false;
-    const cleanName = String(therapistName).trim().toLowerCase();
-    const cleanDept = String(department).trim().toLowerCase();
+    const cleanName = String(therapistName || "").trim().toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "");
 
     const record = availabilityRecords.find((r) => {
-      const rName = String(r.therapistName).trim().toLowerCase();
-      const rDept = String(r.department || "").trim().toLowerCase();
-      return rName === cleanName && r.date === dateIso && (!rDept || rDept === cleanDept);
+      const rName = String(r.therapistName || "").trim().toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "");
+      return (rName === cleanName || rName.includes(cleanName) || cleanName.includes(rName)) && r.date === dateIso;
     });
 
     if (record) {
@@ -107,28 +230,26 @@ export default function AvailabilityManagerPage() {
   // Toggle availability handler
   const handleToggle = async (therapist, day) => {
     if (day.isSunday) return;
+    if (!isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek)) return;
 
     const currentStatus = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday);
     const nextStatus = !currentStatus;
-    const key = `${therapist.therapistName}-${therapist.department}-${day.iso}`;
+    const key = `${therapist.therapistName}-${day.iso}`;
 
     setUpdatingKey(key);
 
     // Optimistic UI update
     setAvailabilityRecords((prev) => {
-      const filtered = prev.filter(
-        (r) =>
-          !(
-            r.therapistName.toLowerCase() === therapist.therapistName.toLowerCase() &&
-            r.department.toLowerCase() === therapist.department.toLowerCase() &&
-            r.date === day.iso
-          )
-      );
+      const cleanTName = therapist.therapistName.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+      const filtered = prev.filter((r) => {
+        const rClean = String(r.therapistName || "").toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+        return !(rClean === cleanTName && r.date === day.iso);
+      });
       return [
         ...filtered,
         {
           therapistName: therapist.therapistName,
-          department: therapist.department,
+          department: therapist.departments ? therapist.departments[0] : therapist.department,
           date: day.iso,
           isAvailable: nextStatus,
         },
@@ -138,13 +259,13 @@ export default function AvailabilityManagerPage() {
     try {
       await toggleAvailability({
         therapistName: therapist.therapistName,
-        department: therapist.department,
+        department: therapist.departments ? therapist.departments[0] : therapist.department,
         date: day.iso,
         isAvailable: nextStatus,
       });
 
       showToast(
-        `${therapist.therapistName} (${therapist.department}) marked ${
+        `${therapist.therapistName} marked ${
           nextStatus ? "Available" : "Not Available"
         } on ${day.display}`
       );
@@ -157,32 +278,39 @@ export default function AvailabilityManagerPage() {
     }
   };
 
-  // Filter therapists by department
-  const departments = useMemo(() => {
-    const set = new Set(CLINIC_THERAPISTS_ROSTER.map((t) => t.department));
-    return ["All", ...Array.from(set)];
-  }, []);
-
+  // Filter therapists by department (supporting multi-department clinicians)
   const filteredTherapists = useMemo(() => {
     if (selectedDeptFilter === "All") return CLINIC_THERAPISTS_ROSTER;
-    return CLINIC_THERAPISTS_ROSTER.filter((t) => t.department === selectedDeptFilter);
+    return CLINIC_THERAPISTS_ROSTER.filter((t) => {
+      if (Array.isArray(t.departments)) {
+        return t.departments.includes(selectedDeptFilter);
+      }
+      return t.department === selectedDeptFilter;
+    });
   }, [selectedDeptFilter]);
 
-  // Total stats
-  const totalSlotsTracked = filteredTherapists.length * (days.length - 1); // Exclude Sunday
-  const availableSlotsCount = useMemo(() => {
-    let count = 0;
+  // Total stats based on scheduled working shifts
+  const { totalScheduledSlots, availableSlotsCount, unavailableSlotsCount } = useMemo(() => {
+    let totalScheduled = 0;
+    let availableCount = 0;
+
     filteredTherapists.forEach((t) => {
       days.forEach((d) => {
-        if (!d.isSunday && isAvailable(t.therapistName, t.department, d.iso, d.isSunday)) {
-          count++;
+        if (!d.isSunday && isTherapistScheduledWorking(t.therapistName, d.iso, d.dayOfWeek)) {
+          totalScheduled++;
+          if (isAvailable(t.therapistName, t.department, d.iso, d.isSunday)) {
+            availableCount++;
+          }
         }
       });
     });
-    return count;
-  }, [filteredTherapists, days, availabilityRecords]);
 
-  const unavailableSlotsCount = totalSlotsTracked - availableSlotsCount;
+    return {
+      totalScheduledSlots: totalScheduled,
+      availableSlotsCount: availableCount,
+      unavailableSlotsCount: totalScheduled - availableCount,
+    };
+  }, [filteredTherapists, days, availabilityRecords]);
 
   return (
     <div style={{ padding: 0, position: "relative" }}>
@@ -266,7 +394,7 @@ export default function AvailabilityManagerPage() {
         }}
       >
         <StatCard label="Therapists Listed" value={filteredTherapists.length} hint="Active clinic roster" />
-        <StatCard label="Available Slots" value={availableSlotsCount} hint="Open for booking" />
+        <StatCard label="Available Shifts" value={availableSlotsCount} hint="Open for booking" />
         <StatCard label="Marked Off / Leave" value={unavailableSlotsCount} hint="Blocked from bot flow" />
         <StatCard label="Booking Window" value="Today + 4 Days" hint="5-day rolling schedule" />
       </div>
@@ -281,7 +409,7 @@ export default function AvailabilityManagerPage() {
           paddingBottom: 4,
         }}
       >
-        {departments.map((dept) => (
+        {DEPARTMENT_FILTERS.map((dept) => (
           <button
             key={dept}
             type="button"
@@ -330,7 +458,7 @@ export default function AvailabilityManagerPage() {
                   left: 0,
                   background: "#f8fafc",
                   zIndex: 2,
-                  minWidth: 220,
+                  minWidth: 260,
                 }}
               >
                 Therapist &amp; Department
@@ -347,7 +475,7 @@ export default function AvailabilityManagerPage() {
                     letterSpacing: 0.5,
                     borderBottom: "2px solid #e2e8f0",
                     textAlign: "center",
-                    minWidth: 140,
+                    minWidth: 145,
                     background: day.isToday ? "#eff6ff" : "#f8fafc",
                   }}
                 >
@@ -370,14 +498,14 @@ export default function AvailabilityManagerPage() {
             {filteredTherapists.map((therapist, idx) => {
               return (
                 <tr
-                  key={`${therapist.therapistName}-${therapist.department}-${idx}`}
+                  key={`${therapist.therapistName}-${idx}`}
                   style={{
                     borderBottom: "1px solid #f1f5f9",
                     background: idx % 2 === 0 ? "#ffffff" : "#fafbfc",
                     transition: "background 0.15s",
                   }}
                 >
-                  {/* Sticky Column: Therapist Name & Department */}
+                  {/* Sticky Column: Therapist Name & Department Badges */}
                   <td
                     style={{
                       padding: "14px 18px",
@@ -388,25 +516,28 @@ export default function AvailabilityManagerPage() {
                       borderRight: "1px solid #e2e8f0",
                     }}
                   >
-                    <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>
+                    <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>
                       {therapist.therapistName}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          padding: "1px 6px",
-                          borderRadius: 4,
-                          background: "#e0f2fe",
-                          color: "#0369a1",
-                        }}
-                      >
-                        {therapist.department}
-                      </span>
-                      <span style={{ fontSize: 11, color: "#94a3b8" }}>{therapist.role}</span>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, marginTop: 4 }}>
+                      {(therapist.departments || [therapist.department]).map((dept) => (
+                        <span
+                          key={dept}
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            background: "#e0f2fe",
+                            color: "#0369a1",
+                          }}
+                        >
+                          {dept}
+                        </span>
+                      ))}
+                      <span style={{ fontSize: 11, color: "#94a3b8" }}>• {therapist.role}</span>
                     </div>
-                    <div style={{ marginTop: 5 }}>
+                    <div style={{ marginTop: 6 }}>
                       <span
                         style={{
                           fontSize: 10.5,
@@ -421,7 +552,7 @@ export default function AvailabilityManagerPage() {
                           gap: 4,
                           letterSpacing: 0.1,
                         }}
-                        title="Clinical Shift Window & Lunch"
+                        title="Official Clinical Shift Rules"
                       >
                         <span style={{ fontSize: 10 }}>🕒</span>
                         <span>{getTherapistShiftWindow(therapist.therapistName)}</span>
@@ -431,10 +562,7 @@ export default function AvailabilityManagerPage() {
 
                   {/* Date Cells */}
                   {days.map((day) => {
-                    const available = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday);
-                    const key = `${therapist.therapistName}-${therapist.department}-${day.iso}`;
-                    const isUpdating = updatingKey === key;
-
+                    // 1. Sunday: Completely closed
                     if (day.isSunday) {
                       return (
                         <td key={day.iso} style={{ padding: "10px 14px", textAlign: "center" }}>
@@ -445,15 +573,54 @@ export default function AvailabilityManagerPage() {
                               background: "#f1f5f9",
                               color: "#94a3b8",
                               fontSize: 12,
-                              fontWeight: 500,
+                              fontWeight: 600,
                               border: "1px dashed #cbd5e1",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 5,
                             }}
+                            title="Clinic is closed on Sundays"
                           >
-                            Closed
+                            <span>🔒</span>
+                            <span>Clinic Closed</span>
                           </div>
                         </td>
                       );
                     }
+
+                    // 2. Scheduled Weekly Off
+                    const isScheduled = isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek);
+                    if (!isScheduled) {
+                      return (
+                        <td key={day.iso} style={{ padding: "10px 14px", textAlign: "center" }}>
+                          <div
+                            style={{
+                              padding: "8px 12px",
+                              borderRadius: 8,
+                              background: "#f8fafc",
+                              color: "#94a3b8",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              border: "1px dashed #e2e8f0",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 5,
+                            }}
+                            title="Scheduled Weekly Off according to clinical roster"
+                          >
+                            <span style={{ fontSize: 10 }}>☕</span>
+                            <span>Weekly Off</span>
+                          </div>
+                        </td>
+                      );
+                    }
+
+                    // 3. Active Scheduled Working Day Toggle
+                    const available = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday);
+                    const key = `${therapist.therapistName}-${day.iso}`;
+                    const isUpdating = updatingKey === key;
 
                     return (
                       <td key={day.iso} style={{ padding: "10px 14px", textAlign: "center" }}>

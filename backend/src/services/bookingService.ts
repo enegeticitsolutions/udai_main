@@ -5,12 +5,14 @@
  *
  * Slot rules:
  *  - Duration: 45 minutes
- *  - Working hours: driven by therapist weeklySchedule
- *  - Lunch break: slots overlapping the lunch window are excluded
+ *  - Working hours: driven by therapist day-wise clinical shifts
+ *  - Lunch break: 13:00 - 13:30 strictly excluded
+ *  - Sunday: Clinic completely CLOSED for all
+ *  - Global clinician slot locking across all departments
  *
- * Booking collection: `webhookmessages`
+ * Booking collection: `appointments` / `webhookmessages`
  * Leave collection:   `therapistUnavailability`
- * Schedule source:    `therapists` collection via TherapistModel
+ * Dynamic unavail:    `availabilities`
  */
 
 import { TherapistModel, DEFAULT_WEEKLY_SCHEDULE, type ITherapist, type IWeeklyScheduleEntry } from "../models/Therapist.js";
@@ -52,7 +54,7 @@ function isTherapistUnavailable(name: string, unavailableNames: string[]): boole
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const SLOT_DURATION_MINUTES = 45;
+export const SLOT_DURATION_MINUTES = 45;
 
 // ── Department Normalization ─────────────────────────────────────────────────
 
@@ -64,10 +66,10 @@ export function normalizeDepartment(dept: string): string {
   if (!d) return "OT";
   if (/speech/i.test(d)) return "Speech Therapy";
   if (/physio/i.test(d)) return "Physiotherapy";
-  if (/special.*ed/i.test(d)) return "Special Educator";
-  if (/physical.*th/i.test(d)) return "Physical Therapy";
-  if (/academic/i.test(d)) return "Academic Support";
-  if (/counsel/i.test(d)) return "Counselling";
+  if (/special.*ed/i.test(d) || /special/i.test(d)) return "Special Educator";
+  if (/physical.*th/i.test(d) || /physical/i.test(d)) return "Physical Therapy";
+  if (/academic|remedial/i.test(d)) return "Academic Support";
+  if (/counsel|home\s*programme/i.test(d)) return "Counselling";
   if (/ot|occupational/i.test(d)) return "OT";
 
   // Known roster departments
@@ -84,49 +86,64 @@ export function normalizeDepartment(dept: string): string {
   return exact || d || "OT";
 }
 
+/**
+ * Clinical Roster by Department:
+ * - OT / Occupational Therapy: ["Ms. Nikki", "Ms. Harsimran"]
+ * - Physiotherapy: ["Ms. Divya"]
+ * - Special Educator / Special Education: ["Ms. Sonia", "Ms. Shobha", "Ms. Ranjana"]
+ * - Speech Therapy: ["Ms. Sakshi", "Mr. Atal"]
+ * - Physical Therapy: ["Mr. Durgesh"]
+ * - Academic Support / Remedial and Academics Support: ["Ms. Sonia", "Ms. Shobha"]
+ * - Counselling / Counselling / Home Programme: ["Ms. Tanu Rajput", "Ms. Harsimran", "Ms. Sonia"]
+ */
 export const CLINIC_ROSTER_BY_DEPARTMENT: Record<string, Array<{ name: string; role: string }>> = {
-  "Speech Therapy": [
-    { name: "Mr. Atal", role: "Speech Therapist" },
-    { name: "Dr. Sakshi", role: "Speech Therapist" },
-  ],
-  "Physiotherapy": [
-    { name: "Dr. Divya", role: "Physiotherapist" },
-  ],
-  "Special Educator": [
-    { name: "Ms. Sobha", role: "Special Educator" },
-    { name: "Ms. Ranjana", role: "Special Educator" },
-  ],
-  "Physical Therapy": [
-    { name: "Dr. Durgesh", role: "Physical Therapist" },
-  ],
-  "Academic Support": [],
-  "Counselling": [
-    { name: "Ms. Tanu", role: "Psychological Counsellor" },
-    { name: "Ms. Sonia", role: "Counsellor" },
-  ],
   "OT": [
     { name: "Ms. Nikki", role: "Occupational Therapist" },
     { name: "Ms. Harsimran", role: "Occupational Therapist" },
+  ],
+  "Physiotherapy": [
+    { name: "Ms. Divya", role: "Physiotherapist" },
+  ],
+  "Special Educator": [
+    { name: "Ms. Sonia", role: "Special Educator" },
+    { name: "Ms. Shobha", role: "Special Educator" },
+    { name: "Ms. Ranjana", role: "Special Educator" },
+  ],
+  "Speech Therapy": [
+    { name: "Ms. Sakshi", role: "Speech Therapist" },
+    { name: "Mr. Atal", role: "Speech Therapist" },
+  ],
+  "Physical Therapy": [
+    { name: "Mr. Durgesh", role: "Physical Therapist" },
+  ],
+  "Academic Support": [
+    { name: "Ms. Sonia", role: "Academic Support Specialist" },
+    { name: "Ms. Shobha", role: "Academic Support Specialist" },
+  ],
+  "Counselling": [
+    { name: "Ms. Tanu Rajput", role: "Psychological Counsellor" },
+    { name: "Ms. Harsimran", role: "Counsellor" },
+    { name: "Ms. Sonia", role: "Counsellor" },
   ],
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Convert "HH:MM" to total minutes since midnight */
-function toMinutes(time: string): number {
+export function toMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
 }
 
 /** Convert total minutes since midnight back to "HH:MM" */
-function fromMinutes(mins: number): string {
+export function fromMinutes(mins: number): string {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 /** Format "HH:MM" → "9:00 AM" style label */
-function formatLabel(time: string): string {
+export function formatLabel(time: string): string {
   const [hourStr, minStr] = time.split(":");
   const hour = Number(hourStr);
   const min = Number(minStr);
@@ -136,50 +153,349 @@ function formatLabel(time: string): string {
 }
 
 /**
- * Returns the exact clinical shift schedule for a therapist on working days (Mon-Sat).
+ * Returns the exact clinical shift for a therapist on a given calendar date (YYYY-MM-DD).
+ *
+ * Rules:
+ * - Sunday: Clinic completely CLOSED for all.
+ * - Ms. Tanu Rajput: Mon-Fri 11:00-17:00 (Lunch: 13:00-13:30). Saturday: OFF.
+ * - Ms. Harsimran: Saturday ONLY 11:30-16:00 (No lunch break). Mon-Fri: OFF.
+ * - Ms. Nikki: Mon-Fri 10:00-17:15 (Lunch: 13:00-13:30). Saturday: 10:00-15:00 (Lunch: 13:00-13:30).
+ * - Ms. Divya: Mon-Fri 10:00-18:00 (Lunch: 13:00-13:30). Saturday: 10:00-15:00 (Lunch: 13:00-13:30).
+ * - Ms. Sonia, Ms. Shobha, Ms. Ranjana: Mon-Fri 09:30-16:30 (Lunch: 13:00-13:30). Saturday: 10:00-15:00 (Lunch: 13:00-13:30).
+ * - Ms. Sakshi: Monday, Wednesday, Friday ONLY 10:00-13:00 (No lunch). Tue, Thu, Sat: OFF.
+ * - Mr. Atal:
+ *   * Mon, Tue, Thu, Fri: 10:00-18:00 (Lunch: 13:00-13:30)
+ *   * Wednesday: 10:00-15:45 (Lunch: 13:00-13:30)
+ *   * 2nd & 4th Saturday: 10:00-16:30 (Lunch: 13:00-13:30)
+ *   * 1st, 3rd, 5th Saturday: OFF
+ * - Mr. Durgesh: Mon-Fri 11:30-17:30 (Lunch: 13:00-13:30). Saturday: OFF.
+ */
+export function getTherapistShiftForDate(
+  therapistName: string,
+  date: string
+): IWeeklyScheduleEntry | null {
+  const [yr, mo, dy] = date.split("-").map(Number);
+  const dateObj = new Date(yr, mo - 1, dy);
+  const dayOfWeek = dateObj.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const dayOfMonth = dateObj.getDate();
+
+  // Sunday: Clinic completely CLOSED for all
+  if (dayOfWeek === 0) {
+    return null;
+  }
+
+  const name = String(therapistName || "").toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+
+  // 1. Ms. Tanu Rajput: Mon-Fri 11:00-17:00 (Lunch: 13:00-13:30). Saturday: OFF.
+  if (name.includes("tanu")) {
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      return {
+        day: dayOfWeek,
+        startTime: "11:00",
+        endTime: "17:00",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    return null; // Saturday: OFF
+  }
+
+  // 2. Ms. Harsimran: Saturday ONLY 11:30-16:00 (No lunch break). Mon-Fri: OFF.
+  if (name.includes("harsimran")) {
+    if (dayOfWeek === 6) {
+      return {
+        day: 6,
+        startTime: "11:30",
+        endTime: "16:00",
+        lunchStart: "00:00",
+        lunchEnd: "00:00",
+      };
+    }
+    return null; // Mon-Fri: OFF
+  }
+
+  // 3. Ms. Nikki: Mon-Fri 10:00-17:15 (Lunch: 13:00-13:30). Saturday: 10:00-15:00 (Lunch: 13:00-13:30).
+  if (name.includes("nikki")) {
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      return {
+        day: dayOfWeek,
+        startTime: "10:00",
+        endTime: "17:15",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    if (dayOfWeek === 6) {
+      return {
+        day: 6,
+        startTime: "10:00",
+        endTime: "15:00",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    return null;
+  }
+
+  // 4. Ms. Divya: Mon-Fri 10:00-18:00 (Lunch: 13:00-13:30). Saturday: 10:00-15:00 (Lunch: 13:00-13:30).
+  if (name.includes("divya")) {
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      return {
+        day: dayOfWeek,
+        startTime: "10:00",
+        endTime: "18:00",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    if (dayOfWeek === 6) {
+      return {
+        day: 6,
+        startTime: "10:00",
+        endTime: "15:00",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    return null;
+  }
+
+  // 5. Ms. Sonia, Ms. Shobha, Ms. Ranjana:
+  // Mon-Fri 09:30-16:30 (Lunch: 13:00-13:30). Saturday: 10:00-15:00 (Lunch: 13:00-13:30).
+  if (name.includes("sonia") || name.includes("shobha") || name.includes("sobha") || name.includes("ranjana")) {
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      return {
+        day: dayOfWeek,
+        startTime: "09:30",
+        endTime: "16:30",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    if (dayOfWeek === 6) {
+      return {
+        day: 6,
+        startTime: "10:00",
+        endTime: "15:00",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    return null;
+  }
+
+  // 6. Ms. Sakshi: Monday, Wednesday, Friday ONLY 10:00-13:00 (No lunch). Tue, Thu, Sat: OFF.
+  if (name.includes("sakshi")) {
+    if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) {
+      return {
+        day: dayOfWeek,
+        startTime: "10:00",
+        endTime: "13:00",
+        lunchStart: "00:00",
+        lunchEnd: "00:00",
+      };
+    }
+    return null; // Tue, Thu, Sat: OFF
+  }
+
+  // 7. Mr. Atal:
+  // Mon, Tue, Thu, Fri: 10:00-18:00 (Lunch: 13:00-13:30)
+  // Wednesday: 10:00-15:45 (Lunch: 13:00-13:30)
+  // 2nd & 4th Saturday: 10:00-16:30 (Lunch: 13:00-13:30)
+  // 1st, 3rd, 5th Saturday: OFF
+  if (name.includes("atal")) {
+    if (dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 4 || dayOfWeek === 5) {
+      return {
+        day: dayOfWeek,
+        startTime: "10:00",
+        endTime: "18:00",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    if (dayOfWeek === 3) {
+      return {
+        day: 3,
+        startTime: "10:00",
+        endTime: "15:45",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    if (dayOfWeek === 6) {
+      const saturdayIndex = Math.ceil(dayOfMonth / 7);
+      if (saturdayIndex === 2 || saturdayIndex === 4) {
+        return {
+          day: 6,
+          startTime: "10:00",
+          endTime: "16:30",
+          lunchStart: "13:00",
+          lunchEnd: "13:30",
+        };
+      }
+      return null; // 1st, 3rd, 5th Saturday: OFF
+    }
+    return null;
+  }
+
+  // 8. Mr. Durgesh: Mon-Fri 11:30-17:30 (Lunch: 13:00-13:30). Saturday: OFF.
+  if (name.includes("durgesh")) {
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      return {
+        day: dayOfWeek,
+        startTime: "11:30",
+        endTime: "17:30",
+        lunchStart: "13:00",
+        lunchEnd: "13:30",
+      };
+    }
+    return null; // Saturday: OFF
+  }
+
+  // Fallback default Mon-Fri
+  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+    return {
+      day: dayOfWeek,
+      startTime: "10:00",
+      endTime: "17:00",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Returns the weekly schedule entries across days (Mon-Sat) for a therapist.
  */
 export function getTherapistClinicalSchedule(therapistName: string): IWeeklyScheduleEntry[] {
-  const name = String(therapistName || "").toLowerCase().trim();
-  const workingDays = [1, 2, 3, 4, 5, 6]; // Monday (1) to Saturday (6)
+  const name = String(therapistName || "").toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
 
-  if (name.includes("atal")) {
-    // Atal: 09:15 - 17:15 (Lunch: 13:00 - 13:30)
-    return workingDays.map((day) => ({
+  if (name.includes("tanu")) {
+    return [1, 2, 3, 4, 5].map((day) => ({
       day,
-      startTime: "09:15",
-      endTime: "17:15",
+      startTime: "11:00",
+      endTime: "17:00",
       lunchStart: "13:00",
       lunchEnd: "13:30",
     }));
   }
 
-  if (name.includes("sakshi")) {
-    // Sakshi: 10:00 - 14:00 (No Lunch)
-    return workingDays.map((day) => ({
+  if (name.includes("harsimran")) {
+    return [{
+      day: 6,
+      startTime: "11:30",
+      endTime: "16:00",
+      lunchStart: "00:00",
+      lunchEnd: "00:00",
+    }];
+  }
+
+  if (name.includes("nikki")) {
+    const entries: IWeeklyScheduleEntry[] = [1, 2, 3, 4, 5].map((day) => ({
       day,
       startTime: "10:00",
-      endTime: "14:00",
-      lunchStart: "00:00",
-      lunchEnd: "00:00",
-    }));
-  }
-
-  if (name.includes("harsimran")) {
-    // Harsimran: 13:00 - 17:15 (No Lunch)
-    return workingDays.map((day) => ({
-      day,
-      startTime: "13:00",
       endTime: "17:15",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    }));
+    entries.push({
+      day: 6,
+      startTime: "10:00",
+      endTime: "15:00",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    });
+    return entries;
+  }
+
+  if (name.includes("divya")) {
+    const entries: IWeeklyScheduleEntry[] = [1, 2, 3, 4, 5].map((day) => ({
+      day,
+      startTime: "10:00",
+      endTime: "18:00",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    }));
+    entries.push({
+      day: 6,
+      startTime: "10:00",
+      endTime: "15:00",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    });
+    return entries;
+  }
+
+  if (name.includes("sonia") || name.includes("shobha") || name.includes("sobha") || name.includes("ranjana")) {
+    const entries: IWeeklyScheduleEntry[] = [1, 2, 3, 4, 5].map((day) => ({
+      day,
+      startTime: "09:30",
+      endTime: "16:30",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    }));
+    entries.push({
+      day: 6,
+      startTime: "10:00",
+      endTime: "15:00",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    });
+    return entries;
+  }
+
+  if (name.includes("sakshi")) {
+    return [1, 3, 5].map((day) => ({
+      day,
+      startTime: "10:00",
+      endTime: "13:00",
       lunchStart: "00:00",
       lunchEnd: "00:00",
     }));
   }
 
-  // Standard shift: Nikki, Divya, Sobha, Sonia, Ranjana, Durgesh, Tanu (10:00 - 16:30, Lunch: 13:00 - 13:30)
-  return workingDays.map((day) => ({
+  if (name.includes("atal")) {
+    const entries: IWeeklyScheduleEntry[] = [1, 2, 4, 5].map((day) => ({
+      day,
+      startTime: "10:00",
+      endTime: "18:00",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    }));
+    entries.push({
+      day: 3,
+      startTime: "10:00",
+      endTime: "15:45",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    });
+    // 2nd & 4th Saturday: 10:00-16:30
+    entries.push({
+      day: 6,
+      startTime: "10:00",
+      endTime: "16:30",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    });
+    return entries;
+  }
+
+  if (name.includes("durgesh")) {
+    return [1, 2, 3, 4, 5].map((day) => ({
+      day,
+      startTime: "11:30",
+      endTime: "17:30",
+      lunchStart: "13:00",
+      lunchEnd: "13:30",
+    }));
+  }
+
+  return [1, 2, 3, 4, 5].map((day) => ({
     day,
     startTime: "10:00",
-    endTime: "16:30",
+    endTime: "17:00",
     lunchStart: "13:00",
     lunchEnd: "13:30",
   }));
@@ -207,11 +523,11 @@ function generateSlotsForBlock(startTime: string, endTime: string): string[] {
  * generating slots independently for the morning block (before lunch)
  * and the afternoon block (after lunch).
  */
-function generateSlots(
+export function generateSlots(
   startTime: string,
   endTime: string,
-  lunchStart: string,
-  lunchEnd: string
+  lunchStart?: string,
+  lunchEnd?: string
 ): string[] {
   const hasLunch =
     lunchStart &&
@@ -229,33 +545,38 @@ function generateSlots(
     slots = [...morningSlots, ...afternoonSlots];
   }
 
-  // For 13:00 - 17:15 shift (e.g. Harsimran), ensure 16:30 is included as the final 45m slot
-  if (startTime === "13:00" && endTime === "17:15" && !slots.includes("16:30")) {
-    slots.push("16:30");
-    slots.sort((a, b) => toMinutes(a) - toMinutes(b));
-  }
-
   return slots;
 }
 
 /** Get day-of-week (0=Sunday … 6=Saturday) from YYYY-MM-DD */
-function getDayOfWeek(dateStr: string): number {
+export function getDayOfWeek(dateStr: string): number {
   const [year, month, day] = dateStr.split("-").map(Number);
   return new Date(year, month - 1, day).getDay();
 }
 
 /** Returns true if `time` falls within [blockStart, blockEnd) */
-function timeInRange(time: string, blockStart: string, blockEnd: string): boolean {
+export function timeInRange(time: string, blockStart: string, blockEnd: string): boolean {
   const t = toMinutes(time);
   return t >= toMinutes(blockStart) && t < toMinutes(blockEnd);
 }
 
 /**
  * Checks whether a given slot start time falls within the therapist's working shift hours,
- * taking into account potential lunch breaks.
+ * taking calendar date and strict lunch break exclusion (13:00-13:30) into account.
  */
-function isTimeInTherapistShift(time: string, therapist: ITherapist, dayOfWeek: number): boolean {
-  const schedule = therapist.weeklySchedule.find((s) => s.day === dayOfWeek);
+export function isTimeInTherapistShift(
+  time: string,
+  therapist: ITherapist,
+  dateOrDay: string | number
+): boolean {
+  let schedule: IWeeklyScheduleEntry | null = null;
+
+  if (typeof dateOrDay === "string") {
+    schedule = getTherapistShiftForDate(therapist.name, dateOrDay);
+  } else {
+    schedule = therapist.weeklySchedule?.find((s) => s.day === dateOrDay) || null;
+  }
+
   if (!schedule) return false;
 
   const t = toMinutes(time);
@@ -266,7 +587,7 @@ function isTimeInTherapistShift(time: string, therapist: ITherapist, dayOfWeek: 
   // Must fit within the therapist's shift boundaries
   if (t < start || slotEnd > end) return false;
 
-  // Exclude if it overlaps with lunch
+  // Exclude if it overlaps with lunch (13:00 - 13:30)
   const hasLunch =
     schedule.lunchStart &&
     schedule.lunchEnd &&
@@ -289,22 +610,10 @@ function isTimeInTherapistShift(time: string, therapist: ITherapist, dayOfWeek: 
 /**
  * Load active therapists for a department with clinical shift schedules applied.
  */
-async function loadTherapists(department: string): Promise<ITherapist[]> {
+export async function loadTherapists(department: string): Promise<ITherapist[]> {
   const normalizedDept = normalizeDepartment(department);
 
-  const mongoTherapists = await TherapistModel.find({
-    department: normalizedDept,
-    active: true,
-  }).lean();
-
-  if (mongoTherapists.length > 0) {
-    return mongoTherapists.map((t) => ({
-      ...t,
-      weeklySchedule: getTherapistClinicalSchedule(t.name),
-    })) as ITherapist[];
-  }
-
-  // Use defined clinic roster with clinical shift schedules
+  // 1. Defined clinic roster is the primary source of truth for all 7 departments
   const roster = CLINIC_ROSTER_BY_DEPARTMENT[normalizedDept];
   if (roster && roster.length > 0) {
     return roster.map((m, idx) => ({
@@ -317,7 +626,20 @@ async function loadTherapists(department: string): Promise<ITherapist[]> {
     }));
   }
 
-  // Fallback: JSON-based content service with clinical shift schedules
+  // 2. Fallback to MongoDB therapists collection
+  const mongoTherapists = await TherapistModel.find({
+    department: normalizedDept,
+    active: true,
+  }).lean();
+
+  if (mongoTherapists.length > 0) {
+    return mongoTherapists.map((t) => ({
+      ...t,
+      weeklySchedule: getTherapistClinicalSchedule(t.name),
+    })) as ITherapist[];
+  }
+
+  // 3. Fallback: JSON-based content service with clinical shift schedules
   const { getTherapists } = await import("./contentService.js");
   const allTherapists = await getTherapists();
   return allTherapists
@@ -339,9 +661,13 @@ async function loadTherapists(department: string): Promise<ITherapist[]> {
     }));
 }
 
-// ── Active Appointments Helper ───────────────────────────────────────────────
+// ── Active Appointments & Global Clinician Slot Locking ───────────────────────
 
-async function getActiveAppointmentsForDate(date: string): Promise<any[]> {
+/**
+ * Loads all active (non-cancelled, non-rejected) appointments for a date
+ * across ALL departments in the clinic.
+ */
+export async function getActiveAppointmentsForDate(date: string): Promise<any[]> {
   try {
     if (!isMongoConnected() && mongoose.connection.readyState !== 1) {
       await connectMongoDb();
@@ -360,6 +686,67 @@ async function getActiveAppointmentsForDate(date: string): Promise<any[]> {
   return [];
 }
 
+/**
+ * GLOBAL CLINICIAN-LEVEL SLOT LOCKING:
+ * Checks if a therapist is booked globally across ANY department in the clinic
+ * for active non-cancelled bookings.
+ *
+ * Can optionally accept pre-fetched active appointments for the date to avoid
+ * redundant database queries when evaluating multi-slot capacities.
+ */
+export async function isTherapistOccupiedGlobally(
+  therapistName: string,
+  date: string,
+  time: string,
+  cachedAppointments?: any[]
+): Promise<boolean> {
+  const tClean = therapistName.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+  if (!tClean) return false;
+
+  // In-memory check against preloaded clinic-wide bookings for the date
+  if (cachedAppointments && Array.isArray(cachedAppointments)) {
+    return cachedAppointments.some((appt) => {
+      if (appt.appointmentDate && appt.appointmentDate !== date) return false;
+      if (appt.appointmentTime !== time) return false;
+      const status = String(appt.bookingStatus || "").toLowerCase();
+      if (["cancelled", "rejected"].includes(status)) return false;
+
+      const aName = String(appt.therapistName || appt.assignedTherapist || "")
+        .toLowerCase()
+        .replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "")
+        .trim();
+      return aName && (aName === tClean || aName.includes(tClean) || tClean.includes(aName));
+    });
+  }
+
+  // Direct MongoDB query WITHOUT any department filter
+  try {
+    if (!isMongoConnected() && mongoose.connection.readyState !== 1) {
+      await connectMongoDb();
+    }
+    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+    if (!db) return false;
+
+    const count = await db.collection("appointments").countDocuments({
+      appointmentDate: date,
+      appointmentTime: time,
+      bookingStatus: { $nin: ["cancelled", "rejected"] },
+      $or: [
+        { therapistName: new RegExp(tClean, "i") },
+        { assignedTherapist: new RegExp(tClean, "i") },
+      ],
+    });
+
+    return count > 0;
+  } catch (err: any) {
+    console.warn("[isTherapistOccupiedGlobally] Error checking global occupancy:", err.message);
+    return false;
+  }
+}
+
+/**
+ * Check if a specific therapist is booked for a slot among a list of appointments.
+ */
 export function isTherapistBookedForSlot(
   therapist: ITherapist,
   time: string,
@@ -370,6 +757,9 @@ export function isTherapistBookedForSlot(
 
   return appointments.some((appt) => {
     if (appt.appointmentTime !== time) return false;
+    const status = String(appt.bookingStatus || "").toLowerCase();
+    if (["cancelled", "rejected"].includes(status)) return false;
+
     const aName = String(appt.therapistName || appt.assignedTherapist || "")
       .toLowerCase()
       .replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "")
@@ -395,6 +785,12 @@ export interface SlotInfo {
 
 /**
  * Returns ONLY the available 45-min slots for a department on a given date.
+ * Strictly enforces:
+ *  - Sunday completely closed (0 slots)
+ *  - Individual clinician day-wise shift hours
+ *  - Strict lunch break exclusion (13:00 - 13:30)
+ *  - Global clinician-level slot locking: A slot is ONLY included if at least
+ *    one therapist in that department is globally free at that time.
  */
 export async function getAvailableSlots(
   department: string,
@@ -406,11 +802,9 @@ export async function getAvailableSlots(
   const [yr, mo, dy] = date.split("-").map(Number);
   const dateObj = new Date(yr, mo - 1, dy);
   if (dateObj.getDay() === 0) {
-    console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0 (Sunday: Not Scheduled)`);
+    console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0 (Sunday: Clinic Closed)`);
     return [];
   }
-
-  const dayOfWeek = getDayOfWeek(date);
 
   // 1. Load active therapists for this department
   const therapists = await loadTherapists(normalizedDept);
@@ -419,12 +813,12 @@ export async function getAvailableSlots(
     return [];
   }
 
-  // 2. Filter to those who work on this weekday
+  // 2. Filter to therapists who work on this calendar date
   const workingTherapists = therapists.filter((t) =>
-    t.weeklySchedule.some((s) => s.day === dayOfWeek)
+    getTherapistShiftForDate(t.name, date) !== null
   );
   if (workingTherapists.length === 0) {
-    console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0`);
+    console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0 (No therapists scheduled)`);
     return [];
   }
 
@@ -447,14 +841,14 @@ export async function getAvailableSlots(
     date,
   }).lean();
 
-  // 4. Load confirmed bookings from appointments collection
+  // 4. Load confirmed bookings globally from appointments collection (NO department filter!)
   const activeBookings = await getActiveAppointmentsForDate(date);
 
-  // 5. Generate all possible 45-minute slot times from active working therapists
+  // 5. Generate candidate 45-minute slot times from working therapists on this date
   const slotTimesSet = new Set<string>();
 
   for (const therapist of activeWorkingTherapists) {
-    const sched = therapist.weeklySchedule.find((s) => s.day === dayOfWeek);
+    const sched = getTherapistShiftForDate(therapist.name, date);
     if (!sched) continue;
     const tSlots = generateSlots(sched.startTime, sched.endTime, sched.lunchStart, sched.lunchEnd);
     for (const time of tSlots) {
@@ -467,26 +861,44 @@ export async function getAvailableSlots(
     return toMinutes(a) - toMinutes(b);
   });
 
-  // 6. Evaluate each slot capacity
+  // 6. Evaluate each slot capacity with GLOBAL CLINICIAN-LEVEL LOCKING
   const availableSlots: SlotInfo[] = [];
 
   for (const time of sortedSlotTimes) {
-    const freeTherapistsAtSlot = activeWorkingTherapists.filter((therapist) => {
+    const freeTherapistsAtSlot: ITherapist[] = [];
+
+    for (const therapist of activeWorkingTherapists) {
       // Must fit in shift & not overlap lunch
-      if (!isTimeInTherapistShift(time, therapist, dayOfWeek)) return false;
+      if (!isTimeInTherapistShift(time, therapist, date)) continue;
+
       // Must not be on leave
       const tid = String(therapist._id);
-      if (leaves.some((l) => l.therapistId === tid && l.type === "full")) return false;
-      // Must not be already booked in appointments collection
-      if (isTherapistBookedForSlot(therapist, time, activeBookings)) return false;
-      return true;
-    });
+      if (leaves.some((l) => l.therapistId === tid && l.type === "full")) continue;
+      if (
+        leaves.some(
+          (l) =>
+            l.therapistId === tid &&
+            l.type === "partial" &&
+            l.startTime &&
+            l.endTime &&
+            timeInRange(time, l.startTime, l.endTime)
+        )
+      ) {
+        continue;
+      }
+
+      // GLOBAL LOCK: Must not be occupied in ANY department in the clinic
+      const isOccupied = await isTherapistOccupiedGlobally(therapist.name, date, time, activeBookings);
+      if (isOccupied) continue;
+
+      freeTherapistsAtSlot.push(therapist);
+    }
 
     const availableCount = freeTherapistsAtSlot.length;
-    const totalTherapists = activeWorkingTherapists.filter((t) => isTimeInTherapistShift(time, t, dayOfWeek)).length;
+    const totalTherapists = activeWorkingTherapists.filter((t) => isTimeInTherapistShift(time, t, date)).length;
 
-    // STRICT NON-COLLISION RULE:
-    // If availableCount === 0 (all therapists booked or unavailable), OMIT this slot completely so it cannot be selected on WhatsApp!
+    // GLOBAL SLOT LOCKING RULE:
+    // If availableCount === 0 (all therapists booked globally or off), OMIT this slot completely!
     if (availableCount > 0) {
       availableSlots.push({
         time,
@@ -502,6 +914,9 @@ export async function getAvailableSlots(
   console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [${activeTherapistNames.join(", ")}], Generated Slots: ${availableSlots.length}`);
   return availableSlots;
 }
+
+/** Alias for WhatsApp / bot flow */
+export const getAvailableSlotsForDepartment = getAvailableSlots;
 
 /**
  * Returns dates from today through the next 4 days (5 days total)
@@ -524,6 +939,9 @@ export async function getAvailableDates(
   for (let i = 0; i <= 4; i++) {
     const d = new Date(localDate);
     d.setDate(d.getDate() + i);
+
+    // Skip Sunday immediately
+    if (d.getDay() === 0) continue;
 
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -549,7 +967,7 @@ export async function getAvailableDates(
 
 /**
  * Assigns the best available therapist for a department / date / time
- * using balanced alternating (round-robin) assignment across doctors.
+ * using balanced alternating (round-robin) assignment across globally free doctors.
  */
 export async function assignTherapist(
   department: string,
@@ -557,11 +975,16 @@ export async function assignTherapist(
   time: string
 ): Promise<{ id: string; name: string } | null> {
   const normalizedDept = normalizeDepartment(department);
-  const dayOfWeek = getDayOfWeek(date);
+
+  // Sunday check: clinic closed
+  const [yr, mo, dy] = date.split("-").map(Number);
+  const dateObj = new Date(yr, mo - 1, dy);
+  if (dateObj.getDay() === 0) return null;
+
   const therapists = await loadTherapists(normalizedDept);
 
   const workingTherapists = therapists.filter((t) =>
-    t.weeklySchedule.some((s) => s.day === dayOfWeek)
+    getTherapistShiftForDate(t.name, date) !== null
   );
   if (workingTherapists.length === 0) return null;
 
@@ -580,14 +1003,14 @@ export async function assignTherapist(
 
   const activeBookings = await getActiveAppointmentsForDate(date);
 
-  // Collect all eligible therapists free at this specific slot
+  // Collect all eligible therapists globally free at this specific slot
   const eligibleTherapists: ITherapist[] = [];
 
   for (const therapist of activeWorkingTherapists) {
     const tid = String(therapist._id);
 
     // Verify the slot falls within this therapist's shift hours & not in lunch
-    if (!isTimeInTherapistShift(time, therapist, dayOfWeek)) continue;
+    if (!isTimeInTherapistShift(time, therapist, date)) continue;
 
     // Skip: full-day leave
     if (leaves.some((l) => l.therapistId === tid && l.type === "full")) continue;
@@ -602,11 +1025,13 @@ export async function assignTherapist(
           l.endTime &&
           timeInRange(time, l.startTime, l.endTime)
       )
-    )
+    ) {
       continue;
+    }
 
-    // Skip: already booked in appointments collection for this exact date & time
-    if (isTherapistBookedForSlot(therapist, time, activeBookings)) continue;
+    // Skip: globally occupied across ANY department in the clinic
+    const isOccupied = await isTherapistOccupiedGlobally(therapist.name, date, time, activeBookings);
+    if (isOccupied) continue;
 
     eligibleTherapists.push(therapist);
   }
@@ -629,6 +1054,7 @@ export async function assignTherapist(
       const tClean = tName.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
       let count = 0;
       if (db) {
+        // Query global appointment count for today without department filter
         count = await db.collection("appointments").countDocuments({
           appointmentDate: date,
           bookingStatus: { $nin: ["cancelled", "rejected"] },
@@ -649,7 +1075,7 @@ export async function assignTherapist(
 
   const selected = scoredTherapists[0].therapist;
   console.log(
-    `[Balanced Assignment] Dept: "${normalizedDept}", Date: "${date}", Time: "${time}" -> Assigned to "${selected.name}" (Bookings today: ${scoredTherapists[0].count} vs other candidate counts: ${scoredTherapists.slice(1).map(s => `${s.therapist.name}: ${s.count}`).join(", ")})`
+    `[Balanced Assignment] Dept: "${normalizedDept}", Date: "${date}", Time: "${time}" -> Assigned to "${selected.name}" (Bookings today: ${scoredTherapists[0].count} vs other candidate counts: ${scoredTherapists.slice(1).map((s) => `${s.therapist.name}: ${s.count}`).join(", ")})`
   );
 
   return { id: String(selected._id || ""), name: selected.name };
