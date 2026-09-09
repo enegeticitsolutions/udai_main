@@ -93,27 +93,41 @@ export function ProjectDetail() {
         </div>
 
         {/* Grid Content Layout */}
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-8 lg:grid-cols-3 items-start">
           
           {/* Left Column: Project Details (2 cols) */}
           <main className="lg:col-span-2 space-y-8">
             
             {/* Hero Image / Gallery Card */}
-            <div className="rounded-3xl bg-white p-2 sm:p-2.5 shadow-md border border-[#e8dfd8] overflow-hidden">
+            <div className="h-auto self-start rounded-3xl bg-white p-2.5 sm:p-3.5 shadow-md border border-[#e8dfd8] overflow-hidden">
               {project.gallery && project.gallery.length > 0 ? (
-                <div className={`grid ${project.gallery.length === 2 ? 'grid-cols-1 md:grid-cols-2' : project.gallery.length === 6 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' : project.gallery.length === 4 ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-4' : project.gallery.length === 5 ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-3'} gap-3`}>
+                <div className={`grid ${project.gallery.length === 2 ? 'grid-cols-1 md:grid-cols-2' : project.gallery.length === 6 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' : project.gallery.length === 4 ? 'grid-cols-2' : project.gallery.length === 5 ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5' : project.gallery.length === 3 ? 'grid-cols-1 sm:grid-cols-3 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'} gap-3 sm:gap-4 items-stretch`}>
                   {project.gallery.map((imgSrc, index) => {
                     const isTherapy1 = imgSrc.includes("therapy1.png");
+                    const isSquareCard = project.gallery?.length === 4 || project.gallery?.length === 3;
+                    const cardHeightClass = project.gallery?.length === 2 
+                      ? 'h-64 sm:h-72 md:h-80 lg:h-80' 
+                      : project.gallery?.length === 6 
+                      ? 'h-44 sm:h-52 md:h-56' 
+                      : project.gallery?.length === 5 
+                      ? 'h-36 sm:h-44 md:h-48 lg:h-52' 
+                      : isSquareCard
+                      ? 'aspect-square'
+                      : 'h-52 sm:h-64';
+                    const isCover = project.gallery?.length === 2;
+
                     return (
                       <div
                         key={index}
                         onClick={() => setSelectedImage(imgSrc)}
-                        className="cursor-pointer overflow-hidden rounded-2xl bg-white border border-[#e8dfd8] shadow-sm hover:shadow-md transition-transform duration-300 hover:-translate-y-1 p-1 group flex items-center justify-center"
+                        style={isSquareCard ? { aspectRatio: "1 / 1" } : undefined}
+                        className={`cursor-pointer overflow-hidden rounded-2xl bg-white border border-[#e8dfd8] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 p-2 group flex items-center justify-center ${cardHeightClass} w-full relative`}
                       >
                         <ImageWithFallback
                           src={imgSrc}
                           alt={`${project.title} Photo ${index + 1}`}
-                          className={`${project.gallery?.length === 2 ? 'h-64 sm:h-72 md:h-80 lg:h-80 object-cover object-center' : project.gallery?.length === 6 ? 'h-44 sm:h-52 md:h-56 object-contain' : project.gallery?.length === 4 ? 'h-32 sm:h-36 md:h-40 lg:h-44 object-contain' : project.gallery?.length === 5 ? 'h-36 sm:h-44 md:h-48 lg:h-52 object-contain' : 'h-52 sm:h-64 object-contain'} ${isTherapy1 ? 'scale-[2.95]' : 'group-hover:scale-[1.02]'} w-full bg-white rounded-xl transition-transform duration-300`}
+                          style={{ objectFit: isCover ? 'cover' : 'contain', objectPosition: 'center' }}
+                          className={`w-full h-full ${isCover ? 'object-cover object-center' : 'object-contain object-center'} ${isTherapy1 ? 'scale-[2.95]' : 'group-hover:scale-[1.02]'} bg-white rounded-xl transition-transform duration-300`}
                         />
                       </div>
                     );
