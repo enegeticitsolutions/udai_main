@@ -228,11 +228,12 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       "Micro-entrepreneurship & customer service"
     ],
     impact: "Participants gain vocational competencies, improve self-confidence, achieve financial independence, and successfully transition into employment or self-employment opportunities.",
-    image: "/images/vocation1.png",
+    image: "/images/vocational1.png",
     gallery: [
-      "/images/vocation1.png",
-      "/images/vocation2.png",
-      "/images/vocation3.png"
+      "/images/vocational1.png",
+      "/images/vocational2.png",
+      "/images/vocational3.png",
+      "/images/vocational4.jpg"
     ]
   },
   {
@@ -268,8 +269,7 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
     gallery: [
       "/images/hostel1.png",
       "/images/hostel2.png",
-      "/images/hostel3.png",
-      "/images/hostel4.png"
+      "/images/hostel3.png"
     ]
   },
   {
@@ -315,9 +315,6 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
     image: "/images/teachers1.png",
     gallery: [
       "/images/teachers1.png",
-      "/images/teachers2.png",
-      "/images/teachers3.png",
-      "/images/teachers4.png",
       "/images/teachers5.png",
       "/images/teachers6.png"
     ]

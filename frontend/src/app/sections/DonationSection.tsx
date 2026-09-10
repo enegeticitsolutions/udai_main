@@ -243,11 +243,15 @@ export function DonationSection() {
               className={`group flex flex-col justify-between overflow-hidden rounded-2xl ${cause.bgColor} p-4 sm:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.06)] border ${cause.borderColor} transition hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 cursor-pointer`}
             >
               <div>
-                <div className="relative overflow-hidden rounded-xl">
+                <div className="relative overflow-hidden rounded-xl bg-white">
                   <img
                     src={getImageUrl(cause.image)}
                     alt={cause.title}
-                    className="h-44 w-full object-cover transition duration-500 group-hover:scale-105 shadow-sm"
+                    className={`h-44 w-full transition duration-500 group-hover:scale-105 shadow-sm ${
+                      cause.key === "education" || cause.shortTitle === "Special Education"
+                        ? "object-contain object-center bg-white"
+                        : "object-cover"
+                    }`}
                   />
                   <span
                     className={`absolute top-2.5 right-2.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${cause.tagColor} shadow-sm backdrop-blur-md`}

@@ -86,39 +86,46 @@ export function EducationSection() {
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {programs.map((program, index) => (
-            <motion.div
-              key={program.slug}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="flex h-full flex-col overflow-hidden rounded-[1.1rem] bg-white shadow-[0_12px_24px_rgba(48,32,22,0.12)]"
-            >
-              <div className={`h-6 w-full bg-gradient-to-r ${program.accent}`} />
-              <div className="flex min-h-0 flex-1 flex-col p-5 pb-3 sm:min-h-[238px] sm:p-6 sm:pb-4">
-                <h3 className="max-w-[220px] text-xl font-semibold leading-tight text-[#20325c] sm:text-2xl">
-                  {program.title}
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-[#5a4f4a] sm:mt-5 sm:leading-8">{program.shortDescription}</p>
-              </div>
-              <div className="overflow-hidden">
-                <ImageWithFallback
-                  src={program.heroImage}
-                  alt={program.title}
-                  className="h-44 w-full object-cover object-center"
-                />
-              </div>
-              <div className="mt-auto p-6 pt-4">
-                <Link
-                  to={`/education/${program.slug}`}
-                  className="block w-full rounded-full border border-[#1f1b1a] px-6 py-3 text-center text-lg font-semibold text-[#1f1b1a] transition hover:bg-[#f6f6f4]"
+            {programs.map((program, index) => {
+              const isSpecialEducation = program.slug === "special-education" || program.title.toLowerCase().includes("special education");
+              return (
+                <motion.div
+                  key={program.slug}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="flex h-full flex-col overflow-hidden rounded-[1.1rem] bg-white shadow-[0_12px_24px_rgba(48,32,22,0.12)]"
                 >
-                  Learn More
-                </Link>
-              </div>
-            </motion.div>
-            ))}
+                  <div className={`h-6 w-full bg-gradient-to-r ${program.accent}`} />
+                  <div className="flex min-h-0 flex-1 flex-col p-5 pb-3 sm:min-h-[238px] sm:p-6 sm:pb-4">
+                    <h3 className="max-w-[220px] text-xl font-semibold leading-tight text-[#20325c] sm:text-2xl">
+                      {program.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-6 text-[#5a4f4a] sm:mt-5 sm:leading-8">{program.shortDescription}</p>
+                  </div>
+                  <div className="overflow-hidden bg-white">
+                    <ImageWithFallback
+                      src={program.heroImage}
+                      alt={program.title}
+                      className={
+                        isSpecialEducation
+                          ? "h-44 w-full object-contain object-center bg-white"
+                          : "h-44 w-full object-cover object-center"
+                      }
+                    />
+                  </div>
+                  <div className="mt-auto p-6 pt-4">
+                    <Link
+                      to={`/education/${program.slug}`}
+                      className="block w-full rounded-full border border-[#1f1b1a] px-6 py-3 text-center text-lg font-semibold text-[#1f1b1a] transition hover:bg-[#f6f6f4]"
+                    >
+                      Learn More
+                    </Link>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>
