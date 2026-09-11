@@ -276,16 +276,7 @@ export function CorporateGifting() {
                 {displayGifts.map((product) => (
                   <article
                     key={product.id}
-                    onClick={() => {
-                      setFormData((prev) => ({ ...prev, selectedProduct: product.title }));
-                      setIsInquiryModalOpen(true);
-                      toast.info(`Selected "${product.title}" for your inquiry.`);
-                    }}
-                    className={`flex min-h-[20rem] cursor-pointer flex-col rounded-[0.85rem] bg-white p-2.5 border-2 transition shadow-[0_12px_24px_rgba(48,32,22,0.06)] sm:min-h-[23rem] sm:rounded-[1rem] sm:p-3 ${
-                      formData.selectedProduct === product.title
-                        ? "border-[#2f5597] ring-2 ring-[#2f5597]/25"
-                        : "border-transparent hover:border-[#d9d2cb]"
-                    }`}
+                    className="flex min-h-[20rem] flex-col rounded-[0.85rem] bg-white p-2.5 border border-[#e8dfd8] transition shadow-[0_12px_24px_rgba(48,32,22,0.06)] hover:shadow-[0_16px_32px_rgba(48,32,22,0.1)] sm:min-h-[23rem] sm:rounded-[1rem] sm:p-3"
                   >
                     <div className="aspect-[4/3] overflow-hidden rounded-[0.8rem] bg-[#f0ece7]">
                       <ImageWithFallback
