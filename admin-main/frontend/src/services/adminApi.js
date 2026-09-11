@@ -421,3 +421,20 @@ export function testSmtpEmail(targetEmail) {
   });
 }
 
+export function patchCorporateInquiry(id, updates) {
+  return request(`/corporate-inquiries/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+}
+
+export function deleteCorporateInquiry(id) {
+  return request(`/corporate-inquiries/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function getCorporateInquiries() {
+  return request("/corporate-inquiries");
+}
+

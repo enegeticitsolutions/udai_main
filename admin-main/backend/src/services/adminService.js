@@ -24,6 +24,7 @@ const storageByEntity = {
   therapists: { fileName: "therapists.json", collectionName: "therapists", seed: seedTherapists },
   subscribers: { fileName: "subscribers.json", collectionName: "subscribers", seed: seedSubscribers },
   products: { fileName: "products.json", collectionName: "products", seed: seedProducts },
+  corporateInquiries: { fileName: "corporate-inquiries.json", collectionName: "corporateInquiries", seed: [] },
   careers: { fileName: "careers.json", collectionName: "careers", seed: [] },
   whatsappBookings: { fileName: "whatsapp-bookings.json", collectionName: "chatbotsubmissions", seed: [] },
   notifications: { fileName: "notifications.json", collectionName: "notifications", seed: [] },
@@ -36,7 +37,7 @@ function storagePath(fileName) {
 }
 
 function entityStoragePath(entity, fileName) {
-  if (entity === "careers" || entity === "products" || entity === "therapists") {
+  if (entity === "careers" || entity === "products" || entity === "therapists" || entity === "corporateInquiries" || entity === "contacts") {
     return path.resolve(config.projectRoot, "..", "backend", "storage", fileName);
   }
 
@@ -344,8 +345,9 @@ async function createMongoRecord(entity, record) {
 }
 
 export async function getAdminBootstrap() {
-  const [inquiries, donations, volunteers, contacts, orders, therapists, subscribers, products, careers, whatsappBookings, notifications, broadcasts, settingsList] = await Promise.all([
+  const [inquiries, corporateInquiries, donations, volunteers, contacts, orders, therapists, subscribers, products, careers, whatsappBookings, notifications, broadcasts, settingsList] = await Promise.all([
     readRecords("inquiries"),
+    readRecords("corporateInquiries"),
     readRecords("donations"),
     readRecords("volunteers"),
     readRecords("contacts"),
@@ -374,6 +376,7 @@ export async function getAdminBootstrap() {
 
   return {
     inquiries,
+    corporateInquiries,
     donations,
     orders,
     volunteers,

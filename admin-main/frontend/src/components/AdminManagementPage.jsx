@@ -11,6 +11,7 @@ const ALL_SYSTEM_PAGES = [
   // { id: "WhatsApp Appointments", label: "WhatsApp Appointments", desc: "Patient chatbot bookings", icon: "💬" },
   { id: "WhatsApp Messages", label: "WhatsApp Messages", desc: "Live chat communication", icon: "📱" },
   { id: "Orders / Purchases", label: "Orders / Purchases", desc: "Store transactions & payment links", icon: "🛍️" },
+  { id: "Corporate Inquiries", label: "Corporate Inquiries", desc: "Corporate gifting requests & bulk orders", icon: "🎁" },
   { id: "Donations", label: "Donations", desc: "Donor records, meals & 80G receipts", icon: "💖" },
   { id: "Volunteers", label: "Volunteers", desc: "Community volunteer requests", icon: "🤝" },
   { id: "Therapist Management", label: "Therapist Management", desc: "Doctor profiles & departments", icon: "🩺" },

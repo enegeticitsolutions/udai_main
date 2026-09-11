@@ -61,6 +61,8 @@ import NotificationsPage from "./components/NotificationsPage";
 import BroadcastPage from "./components/BroadcastPage";
 import ReportsPage from "./components/ReportsPage";
 import SettingsPage from "./components/SettingsPage";
+import CorporateInquiriesPage from "./components/CorporateInquiriesPage";
+import { patchCorporateInquiry, deleteCorporateInquiry } from "./services/adminApi";
 
 const tokenKey = "udai_standalone_admin_token";
 
@@ -71,6 +73,7 @@ const roleSections = {
     // "WhatsApp Appointments",
     "WhatsApp Messages",
     "Orders / Purchases",
+    "Corporate Inquiries",
     "Donations",
     "Volunteers",
     "Therapist Management",
@@ -89,6 +92,7 @@ const roleSections = {
     // "WhatsApp Appointments",
     "WhatsApp Messages",
     "Orders / Purchases",
+    "Corporate Inquiries",
     "Donations",
     "Volunteers",
     "Therapist Management",
@@ -105,11 +109,12 @@ const roleSections = {
   editor: [
     // "WhatsApp Appointments",
     "WhatsApp Messages",
+    "Corporate Inquiries",
     "Therapist Management",
     "Availability Manager",
   ],
-  finance: ["Orders / Purchases", "Donations", "Reports / Analytics"],
-  viewer: ["Dashboard", "Orders / Purchases", "Donations", "Reports / Analytics"],
+  finance: ["Orders / Purchases", "Corporate Inquiries", "Donations", "Reports / Analytics"],
+  viewer: ["Dashboard", "Orders / Purchases", "Corporate Inquiries", "Donations", "Reports / Analytics"],
 };
 
 function maskDonorName(name) {
@@ -1660,6 +1665,7 @@ export default function App() {
   const [deactivatedDates, setDeactivatedDates] = useState([]);
   const [subscribers, setSubscribers] = useState([]);
   const [contacts, setContacts] = useState(fallbackContacts);
+  const [corporateInquiries, setCorporateInquiries] = useState([]);
   const [products, setProducts] = useState([]);
   const [careers, setCareers] = useState([]);
   const [whatsappBookings, setWhatsappBookings] = useState([]);
@@ -1718,6 +1724,7 @@ export default function App() {
         setVolunteers(bootstrap?.volunteers ?? fallbackVolunteers);
         setSubscribers(bootstrap?.subscribers ?? []);
         setContacts(bootstrap?.contacts ?? fallbackContacts);
+        setCorporateInquiries(bootstrap?.corporateInquiries ?? []);
         setDeactivatedDates(bootstrap?.deactivatedDates ?? []);
         setProducts(bootstrap?.products ?? []);
         setCareers(bootstrap?.careers ?? []);
@@ -1738,6 +1745,7 @@ export default function App() {
         setVolunteers(fallbackVolunteers);
         setSubscribers([]);
         setContacts([]);
+        setCorporateInquiries([]);
         setDeactivatedDates([]);
         setProducts([]);
         setCareers([]);
@@ -1867,6 +1875,19 @@ export default function App() {
     setContacts((prev) => prev.filter((item) => (item.id || item._id) !== id));
   }
 
+  async function handleCorporateInquiryUpdate(id, updates) {
+    const saved = await patchCorporateInquiry(id, updates);
+    setCorporateInquiries((prev) =>
+      prev.map((item) => ((item.id || item._id) === id ? { ...item, ...updates, ...(saved?.data || saved) } : item))
+    );
+    return saved;
+  }
+
+  async function handleCorporateInquiryDelete(id) {
+    await deleteCorporateInquiry(id);
+    setCorporateInquiries((prev) => prev.filter((item) => (item.id || item._id) !== id));
+  }
+
   async function handleSendNotification(payload) {
     await sendNotification(payload);
   }
@@ -1952,6 +1973,14 @@ export default function App() {
         return <DonationsPage donations={donations} />;
       case "Orders / Purchases":
         return <OrdersPage orders={orders} onUpdateOrder={handleOrderUpdate} />;
+      case "Corporate Inquiries":
+        return (
+          <CorporateInquiriesPage
+            corporateInquiries={corporateInquiries}
+            onUpdateInquiry={handleCorporateInquiryUpdate}
+            onDeleteInquiry={handleCorporateInquiryDelete}
+          />
+        );
       case "Volunteers":
         return <VolunteersPage volunteers={volunteers} onUpdateVolunteer={handleVolunteerUpdate} onApproveVolunteer={handleVolunteerApproval} />;
       case "Therapist Management":
@@ -2048,7 +2077,7 @@ export default function App() {
           />
         );
     }
-  }, [activeSection, careers, contacts, currentUser, dashboard, deactivatedDates, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers, products, whatsappBookings]);
+  }, [activeSection, careers, contacts, corporateInquiries, currentUser, dashboard, deactivatedDates, donations, inquiries, isAddTherapistOpen, isConnected, orders, subscribers, therapistMap, therapists, volunteers, products, whatsappBookings]);
 
   if (!currentUser) {
     return <LoginScreen onLogin={(user) => setCurrentUser(user)} />;

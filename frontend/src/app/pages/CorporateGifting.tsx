@@ -71,20 +71,33 @@ export function CorporateGifting() {
 
     try {
       const payload = {
-        name: formData.name,
-        email: formData.email,
-        message: `Corporate Gift Inquiry:\nCompany: ${formData.companyName}\nPhone: ${formData.phone}\nSelected Product: ${formData.selectedProduct}\nQuantity: ${formData.quantity}\n\nNotes:\n${formData.message}`,
-        subject: `Corporate Gifting Inquiry - ${formData.companyName}`,
+        name: formData.name.trim(),
+        companyName: formData.companyName.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        selectedProduct: formData.selectedProduct.trim() || displayGifts[0]?.title || "Corporate Gift Package",
+        quantity: Number(formData.quantity) || 100,
+        message: formData.message.trim(),
       };
 
+      let saved = false;
       try {
-        await apiPost("/forms/contact", payload);
+        await apiPost("/forms/corporate-inquiries", payload);
+        saved = true;
       } catch (primaryError) {
-        const message = primaryError instanceof Error ? primaryError.message : "";
-        if (!/route not found|404/i.test(message)) {
-          throw primaryError;
+        try {
+          await adminApiPost("/corporate-inquiries", payload);
+          saved = true;
+        } catch (adminError) {
+          const contactFallback = {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            subject: `Corporate Gifting Inquiry - ${formData.companyName.trim()}`,
+            message: `Corporate Gift Inquiry:\nCompany: ${formData.companyName.trim()}\nPhone: ${formData.phone.trim()}\nSelected Product: ${formData.selectedProduct.trim()}\nQuantity: ${formData.quantity}\n\nNotes:\n${formData.message.trim() || "No extra notes"}`,
+          };
+          await apiPost("/forms/contact", contactFallback).catch(() => adminApiPost("/contacts", contactFallback));
+          saved = true;
         }
-        await adminApiPost("/contacts", payload);
       }
 
       setSubmitted(true);
@@ -100,7 +113,8 @@ export function CorporateGifting() {
       });
       window.setTimeout(() => {
         setSubmitted(false);
-      }, 5000);
+        setIsInquiryModalOpen(false);
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to submit inquiry. Please try again.");
     } finally {

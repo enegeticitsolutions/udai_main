@@ -5,7 +5,18 @@ export const contactSchema = z.object({
   email: z.string().trim().email(),
   subject: z.string().trim().min(2).max(120).default("Website Inquiry"),
   website: z.string().trim().max(200).optional().default(""),
-  message: z.string().trim().min(10).max(2000),
+  message: z.string().trim().min(2).max(2000),
+});
+
+export const corporateInquirySchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
+  companyName: z.string().trim().min(1, "Company name is required").max(160),
+  email: z.string().trim().email("Please enter a valid email address"),
+  phone: z.string().trim().min(5, "Phone number is required").max(25),
+  selectedProduct: z.string().trim().min(1).max(200).default("Corporate Gift Package"),
+  quantity: z.coerce.number().int().positive().default(100),
+  message: z.string().trim().max(2000).default(""),
+  status: z.enum(["new", "contacted", "quoted", "closed", "cancelled"]).default("new"),
 });
 
 export const volunteerSchema = z.object({

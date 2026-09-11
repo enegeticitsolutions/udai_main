@@ -2,6 +2,7 @@ import { Router } from "express";
 import { appendRecord } from "../lib/fileStore.js";
 import {
   contactSchema,
+  corporateInquirySchema,
   donationIntentSchema,
   eventRsvpSchema,
   orderSchema,
@@ -18,6 +19,16 @@ formsRouter.post("/contact", async (req, res, next) => {
     const payload = contactSchema.parse(req.body);
     const record = await appendRecord("contacts.json", payload);
     res.status(201).json({ success: true, message: "Contact message received", data: record });
+  } catch (error) {
+    next(error);
+  }
+});
+
+formsRouter.post(["/corporate-inquiries", "/corporate-gifting"], async (req, res, next) => {
+  try {
+    const payload = corporateInquirySchema.parse(req.body);
+    const record = await appendRecord("corporate-inquiries.json", payload);
+    res.status(201).json({ success: true, message: "Corporate gifting inquiry received", data: record });
   } catch (error) {
     next(error);
   }

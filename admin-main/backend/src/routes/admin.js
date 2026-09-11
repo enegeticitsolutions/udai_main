@@ -987,4 +987,59 @@ adminRouter.post("/settings/test-email", async (req, res, next) => {
   }
 });
 
+// ── Corporate Inquiries ────────────────────────────────────
+adminRouter.get("/corporate-inquiries", async (_req, res, next) => {
+  try {
+    const data = await readRecords("corporateInquiries");
+    res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/corporate-inquiries", async (req, res, next) => {
+  try {
+    const payload = req.body ?? {};
+    if (!payload.name || !payload.email) {
+      res.status(400).json({ success: false, message: "Name and email are required" });
+      return;
+    }
+    const record = await createAdminRecord("corporateInquiries", {
+      ...payload,
+      status: payload.status || "new",
+      createdAt: payload.createdAt || new Date().toISOString(),
+    });
+    res.status(201).json({ success: true, data: record, message: "Corporate inquiry saved successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch("/corporate-inquiries/:id", async (req, res, next) => {
+  try {
+    const updated = await updateAdminRecord("corporateInquiries", req.params.id, req.body ?? {});
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Corporate inquiry not found" });
+      return;
+    }
+    res.json({ success: true, data: updated, message: "Corporate inquiry updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/corporate-inquiries/:id", async (req, res, next) => {
+  try {
+    const deleted = await deleteAdminRecord("corporateInquiries", req.params.id);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: "Corporate inquiry not found" });
+      return;
+    }
+    res.json({ success: true, data: deleted, message: "Corporate inquiry removed successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 

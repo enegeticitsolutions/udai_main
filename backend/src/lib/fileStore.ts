@@ -6,11 +6,13 @@ import { connectMongoDb, getMongoDb, isMongoConnected } from "./mongodb.js";
 
 const mongoCollectionByFileName: Record<string, string> = {
   "contacts.json": "contacts",
+  "corporate-inquiries.json": "corporateInquiries",
   "volunteers.json": "volunteers",
   "donations.json": "donations",
   "event-rsvps.json": "eventRegistrations",
   "therapist-inquiries.json": "therapistInquiries",
   "orders.json": "orders",
+  "subscribers.json": "subscribers",
 };
 
 export async function ensureStorageDir() {
