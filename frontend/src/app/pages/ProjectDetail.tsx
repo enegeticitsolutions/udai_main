@@ -101,27 +101,45 @@ export function ProjectDetail() {
             {/* Hero Image / Gallery Card */}
             <div className="h-auto self-start rounded-3xl bg-white p-2.5 sm:p-3.5 shadow-md border border-[#e8dfd8] overflow-hidden">
               {project.gallery && project.gallery.length > 0 ? (
-                <div className={`grid ${project.gallery.length === 2 ? 'grid-cols-1 md:grid-cols-2' : project.gallery.length === 6 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' : project.gallery.length === 4 ? 'grid-cols-2' : project.gallery.length === 5 ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5' : project.gallery.length === 3 ? 'grid-cols-1 sm:grid-cols-3 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'} gap-3 sm:gap-4 items-stretch`}>
+                <div className={`grid ${
+                  project.gallery.length === 2 
+                    ? 'grid-cols-1 md:grid-cols-2' 
+                    : project.gallery.length === 6 
+                    ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' 
+                    : project.gallery.length === 5 
+                    ? 'grid-cols-1 sm:grid-cols-6' 
+                    : project.gallery.length === 4 
+                    ? 'grid-cols-2' 
+                    : project.gallery.length === 3 
+                    ? 'grid-cols-1 sm:grid-cols-3 lg:grid-cols-3' 
+                    : 'grid-cols-2 sm:grid-cols-3'
+                } gap-3 sm:gap-4 items-stretch`}>
                   {project.gallery.map((imgSrc, index) => {
                     const isTherapy1 = imgSrc.includes("therapy1.png");
                     const isSquareCard = project.gallery?.length === 4 || project.gallery?.length === 3;
+                    const isFiveGallery = project.gallery?.length === 5;
                     const cardHeightClass = project.gallery?.length === 2 
                       ? 'h-64 sm:h-72 md:h-80 lg:h-80' 
                       : project.gallery?.length === 6 
                       ? 'h-44 sm:h-52 md:h-56' 
-                      : project.gallery?.length === 5 
-                      ? 'h-36 sm:h-44 md:h-48 lg:h-52' 
+                      : isFiveGallery 
+                      ? 'h-52 sm:h-60 md:h-64' 
                       : isSquareCard
                       ? 'aspect-square'
                       : 'h-52 sm:h-64';
-                    const isCover = project.gallery?.length === 2;
+                    const isCover = project.gallery?.length === 2 || isFiveGallery;
+                    const spanClass = isFiveGallery 
+                      ? index < 3 
+                        ? 'sm:col-span-2' 
+                        : 'sm:col-span-3' 
+                      : '';
 
                     return (
                       <div
                         key={index}
                         onClick={() => setSelectedImage(imgSrc)}
                         style={isSquareCard ? { aspectRatio: "1 / 1" } : undefined}
-                        className={`cursor-pointer overflow-hidden rounded-2xl bg-white border border-[#e8dfd8] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 p-2 group flex items-center justify-center ${cardHeightClass} w-full relative`}
+                        className={`cursor-pointer overflow-hidden rounded-2xl bg-white border border-[#e8dfd8] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 p-2 group flex items-center justify-center ${cardHeightClass} ${spanClass} w-full relative`}
                       >
                         <ImageWithFallback
                           src={imgSrc}

@@ -1,13 +1,13 @@
-import { 
-  Baby, 
-  BookOpenCheck, 
-  Stethoscope, 
-  GraduationCap, 
-  Truck, 
-  Briefcase, 
-  Home, 
-  Users, 
-  UserCheck 
+import {
+  Baby,
+  BookOpenCheck,
+  Stethoscope,
+  GraduationCap,
+  Truck,
+  Briefcase,
+  Home,
+  Users,
+  UserCheck
 } from "lucide-react";
 
 export interface ProjectDetailData {
@@ -176,7 +176,12 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       "National Institute of Open Schooling (NIOS Class 10th & 12th) coaching center for learning disabilities"
     ],
     impact: "Students become more independent, improve functional learning, develop confidence, and participate actively in family, school, and community life.",
-    image: "/images/project4.png"
+    image: "/images/special2.png",
+    gallery: [
+      "/images/special2.png",
+      "/images/special3.png",
+      "/images/special5.png"
+    ]
   },
   {
     slug: "intervention-on-wheels",
@@ -197,7 +202,13 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       { title: "Community-Based Rehabilitation (CBR)", desc: "Empowering local networks and providing referral support to medical centers." }
     ],
     impact: "The programme has improved access to rehabilitation services, increased early identification of disabilities, strengthened family participation, and promoted inclusive community development.",
-    image: "/images/project5.png"
+    image: "/images/project5.png",
+    gallery: [
+      "/images/project5.png",
+      "/images/wheel1.jpg",
+      "/images/wheel2.jpg",
+      "/images/wheel3.jpg"
+    ]
   },
   {
     slug: "vocational-training",
@@ -269,7 +280,10 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
     gallery: [
       "/images/hostel1.png",
       "/images/hostel2.png",
-      "/images/hostel3.png"
+      "/images/hostel3.png",
+      "/images/hostel5.png",
+      "/images/hostel6.png",
+      "/images/hostel7.png"
     ]
   },
   {
@@ -292,7 +306,10 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
     image: "/images/community-outreach-1.jpg",
     gallery: [
       "/images/community-outreach-1.jpg",
-      "/images/community-outreach-2.jpg"
+      "/images/community-outreach-2.jpg",
+      "/images/community-outreach-3.jpg",
+      "/images/community-outreach-4.jpg",
+      "/images/community-outreach-5.jpg"
     ]
   },
   {
