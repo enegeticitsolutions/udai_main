@@ -40,25 +40,31 @@ export function BlogSection() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-3">
-            {featuredPosts.map((post, index) => (
-              <motion.article
-                key={post.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="flex h-full flex-col overflow-hidden rounded-[1.2rem] border border-[#eee7e1] bg-white shadow-[0_12px_24px_rgba(48,32,22,0.06)]"
-              >
-                <div className="relative h-56 overflow-hidden">
-                  <ImageWithFallback
-                    src={post.heroImage}
-                    alt={post.title}
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#2f5597] shadow-sm">
-                    {post.category}
+            {featuredPosts.map((post, index) => {
+              const isArt = post.heroImage?.includes("arteducation.png") || post.slug?.includes("art") || post.title?.toLowerCase().includes("art");
+              return (
+                <motion.article
+                  key={post.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="flex h-full flex-col overflow-hidden rounded-[1.2rem] border border-[#eee7e1] bg-white shadow-[0_12px_24px_rgba(48,32,22,0.06)]"
+                >
+                  <div className="relative aspect-square w-full overflow-hidden bg-white">
+                    <ImageWithFallback
+                      src={post.heroImage}
+                      alt={post.title}
+                      className={
+                        isArt
+                          ? "h-full w-full object-contain object-center bg-white"
+                          : "h-full w-full object-cover object-top"
+                      }
+                    />
+                    <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#2f5597] shadow-sm">
+                      {post.category}
+                    </div>
                   </div>
-                </div>
 
                 <div className="flex h-full flex-1 flex-col p-5">
                   <div className="mb-3 text-xs leading-5 text-[#9a8d86]">
@@ -85,8 +91,9 @@ export function BlogSection() {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
-              </motion.article>
-            ))}
+                </motion.article>
+              );
+            })}
           </div>
         )}
       </div>

@@ -57,11 +57,11 @@ export function BlogStoryDetail() {
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-[1.5rem] shadow-[0_22px_50px_rgba(0,0,0,0.22)]">
+            <div className="overflow-hidden rounded-[1.5rem] bg-white shadow-[0_22px_50px_rgba(0,0,0,0.22)]">
               <ImageWithFallback
                 src={story.heroImage}
                 alt={story.title}
-                className="h-[320px] w-full object-cover sm:h-[400px]"
+                className="h-[320px] w-full object-cover object-top sm:h-[400px]"
               />
             </div>
           </div>
@@ -103,7 +103,7 @@ export function BlogStoryDetail() {
                   <ImageWithFallback
                     src={image}
                     alt={`${story.title} ${index + 1}`}
-                    className="h-[220px] w-full object-cover sm:h-[260px]"
+                    className="h-[220px] w-full object-cover object-top sm:h-[260px]"
                   />
                 </div>
               ))}

@@ -77,8 +77,8 @@
     "slug": "special-education",
     "title": "Special Education",
     "shortDescription": "Providing specialized education and developmental support for children and young adults with special needs, focusing on individualized learning, skill building, and independence.",
-    "heroImage": "/images/arteducation.png",
-    "gallery": ["/images/arteducation.png", "/images/aboutsection.png"],
+    "heroImage": "/images/specialeducation.png",
+    "gallery": ["/images/specialeducation.png", "/images/aboutsection.png"],
     "accent": "from-[#8b20b6] to-[#b85ae8]",
     "overview": [
       "Our Special Education program is dedicated to nurturing the unique abilities of children and young adults with special needs. We offer individualized education plans (IEPs) designed to meet cognitive, social, emotional, and physical development goals.",

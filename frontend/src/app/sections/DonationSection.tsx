@@ -52,7 +52,7 @@ const CAUSES: CauseOption[] = [
     shortTitle: "Empower a Child",
     defaultPurpose: "Empower a Child: Future Support",
     description: "Your donation provides immediate relief and long term support for children in need.",
-    image: "/images/involved.png",
+    image: "/images/empowerchild.png",
     badge: "Holistic Development",
     color: "#df4d4d",
     bgColor: "bg-[#dceffd]",
