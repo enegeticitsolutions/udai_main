@@ -14,7 +14,7 @@ export async function getBlogPosts() {
     return readJsonFile(contentPath("blog.json"));
 }
 export async function getEvents() {
-    return readJsonFile(contentPath("events.json"));
+    return readStoredEvents();
 }
 export async function getProducts() {
     return readStoredProducts();
@@ -391,5 +391,123 @@ export async function deleteCareer(id) {
     if (careers.length === nextCareers.length)
         return false;
     await writeJsonFile(storedCareersPath(), nextCareers);
+    return true;
+}
+function storedEventsPath() {
+    return path.join(config.storageDir, "events.json");
+}
+function normalizeEventDocument(doc) {
+    const { _id, ...event } = doc;
+    return {
+        ...event,
+        id: event.id ?? _id?.toString(),
+        image: normalizeUploadUrl(event.image, "/images/project2.png"),
+        isRoadmap: Boolean(event.isRoadmap),
+    };
+}
+function eventMongoFilter(id) {
+    const stringId = String(id);
+    const numericId = Number(stringId);
+    const filters = [{ id: stringId }];
+    if (!Number.isNaN(numericId)) {
+        filters.push({ id: numericId });
+    }
+    if (ObjectId.isValid(stringId)) {
+        filters.unshift({ _id: new ObjectId(stringId) });
+    }
+    return { $or: filters };
+}
+export async function readStoredEvents() {
+    await connectMongoDb();
+    if (isMongoConnected()) {
+        const db = getMongoDb();
+        const collection = db.collection("events");
+        try {
+            const docs = await collection.find({}).sort({ date: 1, createdAt: -1 }).toArray();
+            if (docs.length > 0) {
+                return docs.map((doc) => normalizeEventDocument(doc));
+            }
+            // If MongoDB collection is empty, seed from contentPath("events.json")
+            try {
+                const seedEvents = await readJsonFile(contentPath("events.json"));
+                if (seedEvents.length > 0) {
+                    const now = new Date().toISOString();
+                    await collection.insertMany(seedEvents.map((item) => ({
+                        ...item,
+                        isRoadmap: Boolean(item.isRoadmap),
+                        createdAt: item.createdAt ?? now,
+                        updatedAt: item.updatedAt ?? now,
+                    })));
+                    return seedEvents.map((ev) => normalizeEventDocument(ev));
+                }
+            }
+            catch { }
+        }
+        catch (e) {
+            console.warn("Failed to query MongoDB events collection, falling back:", e);
+        }
+    }
+    try {
+        const stored = await readJsonFile(storedEventsPath());
+        if (stored && stored.length > 0) {
+            return stored.map((e) => normalizeEventDocument(e));
+        }
+    }
+    catch { }
+    try {
+        const seed = await readJsonFile(contentPath("events.json"));
+        return (seed || []).map((e) => normalizeEventDocument(e));
+    }
+    catch {
+        return [];
+    }
+}
+export async function addEvent(event) {
+    const events = await readStoredEvents();
+    await connectMongoDb();
+    const now = new Date().toISOString();
+    const nextEvent = {
+        ...event,
+        isRoadmap: Boolean(event.isRoadmap),
+        createdAt: now,
+        updatedAt: now,
+    };
+    if (isMongoConnected()) {
+        const result = await getMongoDb().collection("events").insertOne(nextEvent);
+        return { id: result.insertedId.toString(), ...nextEvent };
+    }
+    const record = { id: `EVT-${Date.now()}`, ...nextEvent };
+    await writeJsonFile(storedEventsPath(), [record, ...events]);
+    return record;
+}
+export async function updateEvent(id, updates) {
+    await connectMongoDb();
+    const nextUpdates = { ...updates, updatedAt: new Date().toISOString() };
+    if (isMongoConnected()) {
+        const collection = getMongoDb().collection("events");
+        const filter = eventMongoFilter(id);
+        await collection.updateOne(filter, { $set: nextUpdates });
+        const updated = await collection.findOne(filter);
+        return updated ? normalizeEventDocument(updated) : null;
+    }
+    const events = await readStoredEvents();
+    const index = events.findIndex((e) => String(e.id) === String(id));
+    if (index === -1)
+        return null;
+    events[index] = { ...events[index], ...nextUpdates };
+    await writeJsonFile(storedEventsPath(), events);
+    return events[index];
+}
+export async function deleteEvent(id) {
+    await connectMongoDb();
+    if (isMongoConnected()) {
+        const result = await getMongoDb().collection("events").deleteOne(eventMongoFilter(id));
+        return result.deletedCount > 0;
+    }
+    const events = await readStoredEvents();
+    const nextEvents = events.filter((e) => String(e.id) !== String(id));
+    if (events.length === nextEvents.length)
+        return false;
+    await writeJsonFile(storedEventsPath(), nextEvents);
     return true;
 }

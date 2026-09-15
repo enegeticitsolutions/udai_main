@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
 import { PROJECTS_DATA } from "../data/projectsData";
-import { 
-  Sparkles, 
-  ArrowRight, 
-  Heart, 
-  ShieldCheck, 
-  Users, 
+import {
+  Sparkles,
+  ArrowRight,
+  Heart,
+  ShieldCheck,
+  Users,
   Building,
   CheckCircle2
 } from "lucide-react";
@@ -20,7 +20,7 @@ export function Projects() {
   return (
     <div className="bg-[#f7f4ef] text-[#2c221e] min-h-screen py-10 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-12">
-        
+
         {/* Hero Banner */}
         <header className="rounded-3xl bg-[#24396f] p-8 sm:p-14 text-white shadow-xl relative overflow-hidden">
           <div className="absolute -right-16 -bottom-16 opacity-10 pointer-events-none">
@@ -40,7 +40,7 @@ export function Projects() {
             <p className="text-base sm:text-lg text-white/85 leading-relaxed">
               At <strong>UDAI – Working Together Works</strong>, we believe that every individual with a disability deserves the opportunity to learn, grow, become independent, and participate fully in society. Our programmes provide a continuum of care beginning with early childhood intervention through education, therapy, vocational training, community inclusion, and independent living.
             </p>
-            
+
             <div className="grid sm:grid-cols-3 gap-4 pt-6 border-t border-white/15 text-xs sm:text-sm text-white/80">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={18} className="text-[#ef3c32]" />
@@ -71,44 +71,46 @@ export function Projects() {
             {PROJECTS_DATA.map((project) => (
               <article
                 key={project.slug}
-                className="group flex flex-col justify-between rounded-3xl bg-white p-5 shadow-sm border border-[#e8dfd8] hover:shadow-xl hover:border-[#24396f]/30 transition-all duration-300"
+                className="group flex flex-col justify-between overflow-hidden rounded-3xl bg-white shadow-sm border border-[#e8dfd8] hover:shadow-xl hover:border-[#24396f]/30 transition-all duration-300"
               >
-                <div className="space-y-4">
-                  {/* Card Image */}
-                  <div className="relative h-48 rounded-2xl overflow-hidden">
+                <div>
+                  {/* Top Image - Edge-to-edge with card top */}
+                  <div className="relative h-60 sm:h-68 w-full overflow-hidden bg-gray-100">
                     <ImageWithFallback
                       src={project.image}
                       alt={project.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
                     />
-                    <div className="absolute top-3 left-3 bg-[#24396f]/90 text-white backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider">
+                    <div className="absolute top-3 left-3 bg-[#24396f]/90 text-white backdrop-blur-md px-3.5 py-1 rounded-full text-[11px] font-semibold tracking-wide shadow-sm">
                       {project.category}
                     </div>
                   </div>
 
-                  {/* Card Title & Summary */}
-                  <div>
+                  {/* Card Content */}
+                  <div className="p-6 space-y-3">
                     <h3 className="text-xl font-bold text-[#24396f] group-hover:text-[#ef3c32] transition-colors">
                       {project.title}
                     </h3>
-                    <p className="text-xs font-semibold text-[#ef3c32] mt-1 mb-2">
+                    <p className="text-xs font-semibold text-[#ef3c32]">
                       {project.tagline}
                     </p>
-                    <p className="text-xs text-[#5f534c] leading-relaxed line-clamp-3">
+                    <p className="text-xs sm:text-sm text-[#5f534c] leading-relaxed line-clamp-3">
                       {project.summary}
                     </p>
                   </div>
                 </div>
 
                 {/* Card Action Link */}
-                <div className="pt-6 border-t border-[#f0e8e2] mt-4">
-                  <Link
-                    to={`/projects/${project.slug}`}
-                    className="inline-flex w-full items-center justify-between rounded-xl bg-[#f8f6f2] px-4 py-2.5 text-xs font-bold text-[#24396f] group-hover:bg-[#24396f] group-hover:text-white transition-all duration-300"
-                  >
-                    <span>View Project Details</span>
-                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                <div className="p-6 pt-0">
+                  <div className="pt-4 border-t border-[#f0e8e2]">
+                    <Link
+                      to={`/projects/${project.slug}`}
+                      className="inline-flex w-full items-center justify-between rounded-xl bg-[#f8f6f2] px-4 py-3 text-xs font-bold text-[#24396f] group-hover:bg-[#24396f] group-hover:text-white transition-all duration-300"
+                    >
+                      <span>View Project Details</span>
+                      <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </div>
                 </div>
               </article>
             ))}

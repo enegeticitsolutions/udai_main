@@ -4,19 +4,6 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 export function Programs() {
   const programs = [
     {
-      icon: Heart,
-      title: "Healthcare & Rehabilitation",
-      description:
-        "We are committed to improving the physical, mental, and emotional well-being of individuals through holistic healthcare and rehabilitation services. Our programs focus on enabling individuals with special needs and health challenges to lead independent and dignified lives.",
-      image: "/images/healthcare.png",
-      services: [
-        "Personalized therapy programs (physical, occupational, behavioral)",
-        "Mental health support and counseling",
-        "Rehabilitation for differently-abled individuals",
-        "Long-term care and independent living training",
-      ],
-    },
-    {
       icon: GraduationCap,
       title: "Education & Skills Training",
       description:
@@ -43,8 +30,8 @@ export function Programs() {
       ],
     },
     {
-      icon: Users, // Can use a more appropriate icon like Baby if available, but Users works
-      title: "Mom and Me",
+      icon: Users,
+      title: "Mommy & Me",
       description:
         "A specialized program designed to strengthen the bond between mothers and their children through interactive and developmental activities.",
       image: "/images/mom-and-me-1.jpg",
@@ -83,6 +70,19 @@ export function Programs() {
         "Community outreach and education programs",
         "Promoting inclusivity and reducing stigma",
         "Policy advocacy and social impact initiatives",
+      ],
+    },
+    {
+      icon: Heart,
+      title: "Healthcare & Rehabilitation",
+      description:
+        "We are committed to improving the physical, mental, and emotional well-being of individuals through holistic healthcare and rehabilitation services. Our programs focus on enabling individuals with special needs and health challenges to lead independent and dignified lives.",
+      image: "/images/healthcare.png",
+      services: [
+        "Personalized therapy programs (physical, occupational, behavioral)",
+        "Mental health support and counseling",
+        "Rehabilitation for differently-abled individuals",
+        "Long-term care and independent living training",
       ],
     },
   ];
@@ -125,15 +125,15 @@ export function Programs() {
                       ))}
                     </div>
                   </div>
-                  <div className={`relative ${program.images && program.images.length > 1 ? 'min-h-[240px] sm:min-h-[300px] flex items-center' : 'h-80 sm:h-[480px]'} rounded-2xl overflow-hidden bg-white p-2 sm:p-3 border border-[#ece4dd] shadow-lg ${!isEven ? 'md:col-start-1 md:row-start-1' : ''}`}>
+                  <div className={`relative ${program.images && program.images.length > 1 ? 'min-h-[240px] sm:min-h-[300px] flex items-center' : 'h-80 sm:h-[460px]'} rounded-2xl overflow-hidden shadow-md ${!isEven ? 'md:col-start-1 md:row-start-1' : ''}`}>
                     {program.images && program.images.length > 1 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full items-center">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full items-center">
                         {program.images.map((imgSrc, imgIdx) => (
-                          <div key={imgIdx} className="relative w-full rounded-xl overflow-hidden bg-white border border-[#ece4dd] shadow-sm flex items-center justify-center p-0.5">
+                          <div key={imgIdx} className="relative w-full h-60 sm:h-72 rounded-2xl overflow-hidden shadow-sm">
                             <ImageWithFallback
                               src={imgSrc}
                               alt={`${program.title} photo ${imgIdx + 1}`}
-                              className="w-full h-auto object-contain rounded-lg block"
+                              className="w-full h-full object-cover rounded-2xl block"
                             />
                           </div>
                         ))}
@@ -142,7 +142,7 @@ export function Programs() {
                       <ImageWithFallback
                         src={program.image}
                         alt={program.title}
-                        className="w-full h-full object-contain bg-white rounded-xl"
+                        className="w-full h-full object-cover rounded-2xl"
                       />
                     )}
                   </div>

@@ -212,6 +212,30 @@ export function deleteCareer(id) {
   });
 }
 
+export function getEvents() {
+  return request("/events");
+}
+
+export function createEvent(event) {
+  return request("/events", {
+    method: "POST",
+    body: JSON.stringify(event),
+  });
+}
+
+export function patchEvent(id, updates) {
+  return request(`/events/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+}
+
+export function deleteEvent(id) {
+  return request(`/events/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export function getAppointments(params = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {

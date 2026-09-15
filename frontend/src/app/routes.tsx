@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import { HomePage } from "./pages/HomePage";
 import { About } from "./pages/About";
 import { Programs } from "./pages/Programs";
+import { Gallery } from "./pages/Gallery";
 import { Projects } from "./pages/Projects";
 import { Contact } from "./pages/Contact";
 import { GetInvolved } from "./pages/GetInvolved";
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { index: true, Component: HomePage },
       { path: "about", Component: About },
       { path: "programs", Component: Programs },
+      { path: "gallery", Component: Gallery },
       { path: "projects", Component: Projects },
       { path: "projects/:slug", Component: ProjectDetail },
       { path: "products", Component: Products },

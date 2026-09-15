@@ -27,8 +27,8 @@ export async function getBlogPosts() {
   return readJsonFile<BlogPost[]>(contentPath("blog.json"));
 }
 
-export async function getEvents() {
-  return readJsonFile<EventItem[]>(contentPath("events.json"));
+export async function getEvents(): Promise<EventItem[]> {
+  return readStoredEvents();
 }
 
 export async function getProducts() {
@@ -462,6 +462,141 @@ export async function deleteCareer(id: string | number): Promise<boolean> {
   const nextCareers = careers.filter((career) => String(career.id) !== String(id));
   if (careers.length === nextCareers.length) return false;
   await writeJsonFile(storedCareersPath(), nextCareers);
+  return true;
+}
+
+function storedEventsPath() {
+  return path.join(config.storageDir, "events.json");
+}
+
+function normalizeEventDocument(doc: Record<string, any>): EventItem {
+  const { _id, ...event } = doc;
+  return {
+    ...event,
+    id: event.id ?? _id?.toString(),
+    image: normalizeUploadUrl(event.image, "/images/project2.png"),
+    isRoadmap: Boolean(event.isRoadmap),
+  } as EventItem;
+}
+
+function eventMongoFilter(id: string | number) {
+  const stringId = String(id);
+  const numericId = Number(stringId);
+  const filters: Record<string, unknown>[] = [{ id: stringId }];
+
+  if (!Number.isNaN(numericId)) {
+    filters.push({ id: numericId });
+  }
+
+  if (ObjectId.isValid(stringId)) {
+    filters.unshift({ _id: new ObjectId(stringId) });
+  }
+
+  return { $or: filters };
+}
+
+export async function readStoredEvents(): Promise<EventItem[]> {
+  await connectMongoDb();
+
+  if (isMongoConnected()) {
+    const db = getMongoDb();
+    const collection = db.collection("events");
+
+    try {
+      const docs = await collection.find({}).sort({ date: 1, createdAt: -1 }).toArray();
+      if (docs.length > 0) {
+        return docs.map((doc) => normalizeEventDocument(doc));
+      }
+
+      // If MongoDB collection is empty, seed from contentPath("events.json")
+      try {
+        const seedEvents = await readJsonFile<EventItem[]>(contentPath("events.json"));
+        if (seedEvents.length > 0) {
+          const now = new Date().toISOString();
+          await collection.insertMany(
+            seedEvents.map((item) => ({
+              ...item,
+              isRoadmap: Boolean(item.isRoadmap),
+              createdAt: item.createdAt ?? now,
+              updatedAt: item.updatedAt ?? now,
+            }))
+          );
+          return seedEvents.map((ev) => normalizeEventDocument(ev as Record<string, any>));
+        }
+      } catch {}
+    } catch (e) {
+      console.warn("Failed to query MongoDB events collection, falling back:", e);
+    }
+  }
+
+  try {
+    const stored = await readJsonFile<EventItem[]>(storedEventsPath());
+    if (stored && stored.length > 0) {
+      return stored.map((e) => normalizeEventDocument(e as Record<string, any>));
+    }
+  } catch {}
+
+  try {
+    const seed = await readJsonFile<EventItem[]>(contentPath("events.json"));
+    return (seed || []).map((e) => normalizeEventDocument(e as Record<string, any>));
+  } catch {
+    return [];
+  }
+}
+
+export async function addEvent(event: Omit<EventItem, "id">): Promise<EventItem> {
+  const events = await readStoredEvents();
+  await connectMongoDb();
+  const now = new Date().toISOString();
+  const nextEvent = {
+    ...event,
+    isRoadmap: Boolean(event.isRoadmap),
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  if (isMongoConnected()) {
+    const result = await getMongoDb().collection("events").insertOne(nextEvent);
+    return { id: result.insertedId.toString(), ...nextEvent } as EventItem;
+  }
+
+  const record = { id: `EVT-${Date.now()}`, ...nextEvent } as EventItem;
+  await writeJsonFile(storedEventsPath(), [record, ...events]);
+  return record;
+}
+
+export async function updateEvent(id: string | number, updates: Partial<EventItem>): Promise<EventItem | null> {
+  await connectMongoDb();
+  const nextUpdates = { ...updates, updatedAt: new Date().toISOString() };
+
+  if (isMongoConnected()) {
+    const collection = getMongoDb().collection("events");
+    const filter = eventMongoFilter(id);
+    await collection.updateOne(filter, { $set: nextUpdates });
+    const updated = await collection.findOne(filter);
+    return updated ? normalizeEventDocument(updated) : null;
+  }
+
+  const events = await readStoredEvents();
+  const index = events.findIndex((e) => String(e.id) === String(id));
+  if (index === -1) return null;
+  events[index] = { ...events[index], ...nextUpdates };
+  await writeJsonFile(storedEventsPath(), events);
+  return events[index];
+}
+
+export async function deleteEvent(id: string | number): Promise<boolean> {
+  await connectMongoDb();
+
+  if (isMongoConnected()) {
+    const result = await getMongoDb().collection("events").deleteOne(eventMongoFilter(id));
+    return result.deletedCount > 0;
+  }
+
+  const events = await readStoredEvents();
+  const nextEvents = events.filter((e) => String(e.id) !== String(id));
+  if (events.length === nextEvents.length) return false;
+  await writeJsonFile(storedEventsPath(), nextEvents);
   return true;
 }
 

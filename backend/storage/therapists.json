@@ -1,5 +1,15 @@
 [
   {
+    "id": "THE-1788767336404",
+    "createdAt": "2026-09-07T07:48:56.404Z",
+    "name": "Nikki Bhati",
+    "department": "Occupational Therapist",
+    "role": "Occupational Therapist",
+    "experience": "4+ years",
+    "image": "/uploads/image-1788767336223-970852187.jpeg",
+    "active": true
+  },
+  {
     "id": "THE-1788012012714",
     "createdAt": "2026-08-29T14:00:12.714Z",
     "name": "Vaishali",
@@ -10,17 +20,6 @@
     "active": true
   },
   {
-    "id": "nikki-01",
-    "name": "Ms. Nikki",
-    "role": "Occupational Therapist",
-    "department": "OT",
-    "image": "/uploads/image-1788270561338-292715892.png",
-    "active": true,
-    "createdAt": "2026-08-27T15:38:01.893Z",
-    "updatedAt": "2026-09-01T13:49:21.442Z",
-    "experience": ""
-  },
-  {
     "id": "shobha-01",
     "name": "Ms. Shobha",
     "role": "Special Educator",
@@ -28,7 +27,7 @@
     "image": "/images/shobha.jpg",
     "active": true,
     "createdAt": "2026-08-27T15:38:01.893Z",
-    "updatedAt": "2026-08-27T15:38:01.893Z"
+    "updatedAt": "2026-09-07T09:19:51.418Z"
   },
   {
     "id": "harsimran-01",
@@ -87,10 +86,10 @@
     "name": "Ms. Ranjana",
     "role": "Special Educator",
     "department": "Special Education",
-    "image": "/uploads/image-1788011862093-685344979.jpeg",
+    "image": "/uploads/image-1789208016436-537454108.jpeg",
     "active": true,
     "createdAt": "2026-08-27T15:38:01.893Z",
-    "updatedAt": "2026-08-29T13:57:42.202Z",
+    "updatedAt": "2026-09-12T10:13:36.486Z",
     "experience": ""
   },
   {
@@ -111,6 +110,6 @@
     "image": "/images/sonia.jpg",
     "active": true,
     "createdAt": "2026-08-27T15:38:01.893Z",
-    "updatedAt": "2026-08-27T15:38:01.893Z"
+    "updatedAt": "2026-09-07T08:58:27.234Z"
   }
 ]

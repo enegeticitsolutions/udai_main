@@ -63,7 +63,7 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       { title: "Occupational Therapy & Sensory Integration", desc: "Develops fine motor skills, sensory processing, and adaptive reflexes." },
       { title: "Physiotherapy & Behaviour Therapy", desc: "Improves posture, mobility, muscle tone, and emotional regulation." },
       { title: "Parent Counselling & Guidance", desc: "Continuous guidance, emotional support, and home-based training for families." },
-      { title: "Developmental Play Sessions", desc: "Play-based learning activities that promote cognitive development and peer interaction." }
+      { title: "Play Therapy", desc: "Play-based learning and therapeutic activities that promote cognitive development, emotional expression, and peer interaction." }
     ],
     whoCanBenefit: [
       "Infants with developmental delays",
@@ -118,12 +118,13 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
     tagline: "Multidisciplinary Therapy for Holistic Development",
     category: "Outpatient & Clinical Care",
     iconName: "Stethoscope",
-    summary: "Integrated Speech, Occupational, Physio, and Behaviour therapy tailored to each child's functional needs.",
+    summary: "Integrated Special Education, Speech, Occupational, Physio, and Behaviour therapy tailored to each child's functional needs.",
     description: [
       "Every child has unique strengths and challenges. UDAI provides comprehensive therapy services designed to maximise each child's functional abilities and independence.",
       "Our integrated therapy model combines clinical expertise with child-friendly interventions in a supportive environment."
     ],
     services: [
+      { title: "Special Education", desc: "Offers customized learning plans (IEPs), functional academics, cognitive development, and adaptive educational strategies tailored to individual abilities." },
       { title: "Speech & Language Therapy", desc: "Improves communication, speech clarity, feeding skills, and social interaction." },
       { title: "Occupational Therapy", desc: "Enhances fine motor skills, sensory processing, self-care abilities, handwriting, attention, and daily living skills." },
       { title: "Physiotherapy", desc: "Focuses on posture, balance, mobility, muscle strength, coordination, gait training, and physical independence." },
@@ -148,7 +149,7 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
   },
   {
     slug: "special-education",
-    title: "Special Education & Life-Skills Development",
+    title: "Special School and Life Skill Development",
     tagline: "Education Beyond the Classroom",
     category: "Special School (Janakpuri)",
     iconName: "GraduationCap",
@@ -229,7 +230,9 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
       "Jewellery making",
       "Home décor products",
       "Computer applications & digital literacy",
-      "Product packaging & finishing"
+      "Product packaging & finishing",
+      "Chef Assistant and Bakery Unit",
+      "E-commerce Amazon Training"
     ],
     employabilitySkills: [
       "Workplace etiquette & professional discipline",

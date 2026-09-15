@@ -6,47 +6,47 @@ export function AffiliationsSection() {
     {
       id: "pwd",
       title: "Rights of Persons with Disabilities Act 2016",
-      image: "/images/affiliations/pwd-act-2016.png",
+      image: "/images/A1.png",
     },
     {
       id: "trust",
       title: "Indian Trust Act 1882",
-      image: "/images/affiliations/indian-trust-act.png",
+      image: "/images/A2.png",
     },
     {
       id: "12a-80g",
       title: "Income Tax 12A & 80G Exemption",
-      image: "/images/affiliations/12a-80g.png",
+      image: "/images/A3.png",
     },
     {
       id: "national-trust",
       title: "The National Trust 1999",
-      image: "/images/affiliations/national-trust.png",
+      image: "/images/A4.png",
     },
     {
       id: "niti-aayog",
       title: "NITI Aayog",
-      image: "/images/affiliations/niti-aayog.png",
+      image: "/images/A5.png",
     },
     {
       id: "mca",
       title: "Ministry of Corporate Affairs",
-      image: "/images/affiliations/mca-gov.png",
+      image: "/images/A6.png",
     },
     {
       id: "scert",
       title: "SCERT Delhi",
-      image: "/images/affiliations/scert-delhi.png",
+      image: "/images/A7.png",
     },
     {
       id: "msme",
       title: "MSME",
-      image: "/images/affiliations/msme.png",
+      image: "/images/A8.png",
     },
     {
       id: "fcra",
       title: "FCRA",
-      image: "/images/affiliations/fcra.png",
+      image: "/images/A9.png",
     },
   ];
 
@@ -94,13 +94,13 @@ export function AffiliationsSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                className="group relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl border border-[#e2d9d0] bg-white shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
+                className="group relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl border border-[#e2d9d0] bg-white p-2 sm:p-3 shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
               >
                 <img
                   src={getImageUrl(item.image)}
                   alt={item.title}
                   title={item.title}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="h-full w-full object-contain"
                 />
               </motion.div>
             ))}
@@ -121,13 +121,13 @@ export function AffiliationsSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: (index + 5) * 0.05 }}
-                className="group relative flex aspect-[4/3] w-[calc(50%-8px)] min-[480px]:w-[calc(33.333%-11px)] md:w-[calc((100%-4*1rem)/5)] lg:w-[calc((100%-4*1.5rem)/5)] items-center justify-center overflow-hidden rounded-2xl border border-[#e2d9d0] bg-white shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
+                className="group relative flex aspect-[4/3] w-[calc(50%-8px)] min-[480px]:w-[calc(33.333%-11px)] md:w-[calc((100%-4*1rem)/5)] lg:w-[calc((100%-4*1.5rem)/5)] items-center justify-center overflow-hidden rounded-2xl border border-[#e2d9d0] bg-white p-2 sm:p-3 shadow-[0_4px_14px_rgba(40,28,19,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c95b38]/40 hover:shadow-[0_12px_24px_rgba(40,28,19,0.1)]"
               >
                 <img
                   src={getImageUrl(item.image)}
                   alt={item.title}
                   title={item.title}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="h-full w-full object-contain"
                 />
               </motion.div>
             ))}

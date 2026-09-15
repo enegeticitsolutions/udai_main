@@ -31,14 +31,15 @@ export function NewLayout() {
   const navigation = [
     { name: "About", href: "/about" },
     { name: "Programs", href: "/programs" },
+    { name: "Gallery", href: "/gallery" },
     {
-      name: "Projects",
+      name: "Services",
       type: "dropdown" as const,
       children: [
         { name: "Early Intervention Programme", href: "/projects#early-intervention-programme" },
         { name: "School Readiness Programme", href: "/projects#school-readiness-programme" },
         { name: "Therapy Services", href: "/projects#therapy-services" },
-        { name: "Special Education and Life-Skills Development", href: "/projects#special-education-life-skills" },
+        { name: "Special School and Life Skill Development", href: "/projects#special-education-life-skills" },
         { name: "Ek Prayas – Intervention on Wheels", href: "/projects#ek-prayas-intervention-on-wheels" },
         { name: "Ek Prayas – Vocational Training and Employability Support", href: "/projects#ek-prayas-vocational-training" },
         { name: "Assistive Living Hostel for Boys", href: "/projects#assistive-living-hostel" },
@@ -222,7 +223,7 @@ export function NewLayout() {
                 <Link
                   to="/#donate"
                   onClick={closeMenus}
-                  className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg text-center hover:from-emerald-700 hover:to-emerald-800 transition-all font-medium shadow-lg"
+                  className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg text-center hover:from-emerald-700 hover:to-emerald-800 transition-all font-medium shadow-lg animate-donate-blink"
                 >
                   Donate Now
                 </Link>

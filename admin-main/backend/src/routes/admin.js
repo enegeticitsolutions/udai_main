@@ -451,27 +451,37 @@ function slugify(text) {
     .replace(/ +/g, "-");
 }
 
-adminRouter.post("/upload", upload.single("image"), async (req, res, next) => {
-  try {
-    if (!req.file) {
-      res.status(400).json({ success: false, message: "No file uploaded" });
-      return;
+adminRouter.post("/upload", (req, res, next) => {
+  upload.single("image")(req, res, async (err) => {
+    if (err) {
+      console.error("❌ Image upload middleware error:", err?.message || err);
+      return res.status(400).json({
+        success: false,
+        message: err?.message || "Failed to upload image",
+      });
     }
-    let fileUrl = "";
+
     try {
-      if (config.supabaseUrl && (config.supabaseServiceRole || config.supabaseAnon)) {
-        fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
-      } else {
+      if (!req.file) {
+        res.status(400).json({ success: false, message: "No file uploaded" });
+        return;
+      }
+      let fileUrl = "";
+      try {
+        if (config.supabaseUrl && (config.supabaseServiceRole || config.supabaseAnon)) {
+          fileUrl = await uploadToSupabase(req.file.path, req.file.originalname, req.file.mimetype);
+        } else {
+          fileUrl = `/uploads/${req.file.filename}`;
+        }
+      } catch (supabaseErr) {
+        console.warn("⚠️ Supabase upload failed, falling back to local file storage:", supabaseErr?.message || supabaseErr);
         fileUrl = `/uploads/${req.file.filename}`;
       }
-    } catch (supabaseErr) {
-      console.warn("⚠️ Supabase upload failed, falling back to local file storage:", supabaseErr?.message || supabaseErr);
-      fileUrl = `/uploads/${req.file.filename}`;
+      res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
+    } catch (error) {
+      next(error);
     }
-    res.json({ success: true, url: fileUrl, message: "File uploaded successfully" });
-  } catch (error) {
-    next(error);
-  }
+  });
 });
 
 adminRouter.post("/products", async (req, res, next) => {
@@ -584,6 +594,70 @@ adminRouter.delete("/careers/:id", async (req, res, next) => {
       return;
     }
     res.json({ success: true, data: deleted, message: "Career removed successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+function normalizeEventPayload(body) {
+  return {
+    title: String(body?.title ?? "").trim(),
+    date: String(body?.date ?? "").trim(),
+    time: String(body?.time ?? "").trim(),
+    location: String(body?.location ?? "").trim(),
+    description: String(body?.description ?? "").trim(),
+    image: String(body?.image ?? "").trim() || "/images/project2.png",
+    category: String(body?.category ?? "").trim() || "Community",
+    attendees: Number(body?.attendees ?? 0) || 0,
+    isRoadmap: Boolean(body?.isRoadmap),
+  };
+}
+
+adminRouter.get("/events", async (_req, res, next) => {
+  try {
+    const events = await readRecords("events");
+    res.json({ success: true, data: events });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/events", async (req, res, next) => {
+  try {
+    const payload = normalizeEventPayload(req.body);
+    if (!payload.title || !payload.date) {
+      res.status(400).json({ success: false, message: "Title and date are required" });
+      return;
+    }
+
+    const record = await createAdminRecord("events", payload);
+    res.status(201).json({ success: true, data: record, message: "Event created successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch("/events/:id", async (req, res, next) => {
+  try {
+    const updated = await updateAdminRecord("events", req.params.id, normalizeEventPayload(req.body));
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Event not found" });
+      return;
+    }
+    res.json({ success: true, data: updated, message: "Event updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/events/:id", async (req, res, next) => {
+  try {
+    const deleted = await deleteAdminRecord("events", req.params.id);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: "Event not found" });
+      return;
+    }
+    res.json({ success: true, data: deleted, message: "Event removed successfully" });
   } catch (error) {
     next(error);
   }

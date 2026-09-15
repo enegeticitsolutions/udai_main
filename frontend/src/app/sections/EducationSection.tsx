@@ -7,7 +7,7 @@ import type { EducationProgramDetail } from "../types/api";
 const defaultPrograms: EducationProgramDetail[] = [
   {
     slug: "after-school-tutoring",
-    title: "After-School Tutoring",
+    title: "After-School Program",
     shortDescription: "Providing personalized academic support to help students master core subjects and build confidence in their abilities.",
     heroImage: "/images/afterschool.png",
     gallery: ["/images/afterschool.png", "/images/arteducation.png"],

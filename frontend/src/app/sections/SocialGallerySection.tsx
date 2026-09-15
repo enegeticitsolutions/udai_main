@@ -58,7 +58,7 @@ export function SocialGallerySection() {
               <ImageWithFallback
                 src={image.url}
                 alt={`Gallery image ${image.id}`}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                className="h-full w-full object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition group-hover:opacity-100">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-black/20 text-white backdrop-blur-sm">

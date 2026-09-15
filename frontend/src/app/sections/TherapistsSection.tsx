@@ -184,7 +184,7 @@ export function TherapistsSection() {
                     src={item.image || "/images/doctor2.png"}
                     fallbackImage="/images/doctor2.png"
                     alt={item.name}
-                    className="h-full w-full object-cover object-[center_top] transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover object-[center_top]"
                   />
                 </div>
                 <div className="flex flex-1 flex-col justify-between p-3.5 bg-white">

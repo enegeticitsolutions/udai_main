@@ -1,15 +1,116 @@
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { Quote } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Volume2, VolumeX, Play } from "lucide-react";
 import { motion } from "motion/react";
-import { useApiData } from "../hooks/useApiData";
-import type { Testimonial } from "../types/api";
+import { getImageUrl } from "../lib/imageUtils";
+
+const VIDEOS = [
+  {
+    id: "voice-1",
+    src: "/images/voice_of_changes1.mp4",
+  },
+  {
+    id: "voice-2",
+    src: "/images/voice_of_changes2.mp4",
+  },
+  {
+    id: "voice-3",
+    src: "/images/voice_of_changes3.mp4",
+  },
+];
+
+function VoiceVideoCard({
+  src,
+  isMuted,
+  onToggleMute,
+}: {
+  src: string;
+  isMuted: boolean;
+  onToggleMute: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {
+        setIsPlaying(false);
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch(() => {});
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  };
+
+  return (
+    <div
+      onClick={togglePlay}
+      className="relative aspect-[9/16] w-full overflow-hidden rounded-2xl bg-black cursor-pointer select-none group/video"
+    >
+      <video
+        ref={videoRef}
+        src={getImageUrl(src)}
+        autoPlay
+        loop
+        muted
+        playsInline
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        className="h-full w-full object-cover"
+      />
+
+      {/* Center Play Indicator when Paused */}
+      {!isPlaying && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/35 backdrop-blur-[2px] transition-all">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-[#17120f] shadow-2xl transition hover:scale-110"
+          >
+            <Play className="h-7 w-7 fill-current translate-x-0.5" />
+          </motion.div>
+        </div>
+      )}
+
+      {/* Floating Mute/Unmute button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleMute();
+        }}
+        aria-label={isMuted ? "Unmute video" : "Mute video"}
+        className="absolute bottom-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/85 hover:scale-110 active:scale-95 cursor-pointer shadow-lg"
+      >
+        {isMuted ? (
+          <VolumeX className="h-5 w-5" />
+        ) : (
+          <Volume2 className="h-5 w-5" />
+        )}
+      </button>
+    </div>
+  );
+}
 
 export function TestimonialsSection() {
-  const { data: testimonials, isLoading, error } = useApiData<Testimonial[]>(
-    "/content/testimonials",
-    [],
-  );
-  const featuredTestimonials = testimonials.slice(0, 3);
+  const [unmutedId, setUnmutedId] = useState<string | null>(null);
+
+  const handleToggleMute = (id: string) => {
+    setUnmutedId((prev) => (prev === id ? null : id));
+  };
 
   return (
     <section className="bg-[#f3f3f1] py-16 sm:py-20">
@@ -19,7 +120,7 @@ export function TestimonialsSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mx-auto mb-14 max-w-3xl text-center"
+          className="mx-auto mb-12 max-w-3xl text-center"
         >
           <h2 className="mb-4 text-4xl font-semibold tracking-tight text-[#2b1b15] sm:text-5xl">
             Voices of <span className="text-[#2f5597]">Change</span>
@@ -29,51 +130,27 @@ export function TestimonialsSection() {
           </p>
         </motion.div>
 
-        {isLoading ? (
-          <div className="rounded-[1.2rem] border border-dashed border-[#d7cfc8] bg-white/70 p-10 text-center text-sm text-[#776a66]">
-            Loading testimonials...
-          </div>
-        ) : error ? (
-          <div className="rounded-[1.2rem] border border-[#f1c8bc] bg-[#fff4f1] p-6 text-center text-sm text-[#b04d2f]">
-            {error}
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {featuredTestimonials.map((testimonial, index) => (
-              <motion.div
-                key={testimonial.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="relative rounded-[1.2rem] border border-[#eee7e1] bg-white p-6 shadow-[0_12px_24px_rgba(48,32,22,0.05)]"
-              >
-                <Quote className="absolute right-6 top-5 h-8 w-8 text-[#f0d5ca]" />
-
-                <p className="mb-8 pr-8 text-lg leading-10 text-[#4d413b]">
-                  "{testimonial.quote}"
-                </p>
-
-                <div className="flex items-center gap-3">
-                  {testimonial.avatar ? (
-                    <div className="h-11 w-11 flex-shrink-0 overflow-hidden rounded-full border border-[#eee7e1] shadow-xs">
-                      <ImageWithFallback
-                        src={testimonial.avatar}
-                        alt={testimonial.name}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ) : null}
-                  <div>
-                    <div className="font-semibold text-[#2b1b15]">{testimonial.name}</div>
-                    <div className="text-sm text-[#d66943]">{testimonial.role}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
+        <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {VIDEOS.map((video, index) => (
+            <motion.div
+              key={video.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              className="group relative flex flex-col overflow-hidden rounded-3xl border border-[#e6ded7] bg-white p-3 shadow-[0_12px_28px_rgba(48,32,22,0.05)] transition hover:-translate-y-1 hover:shadow-[0_20px_36px_rgba(48,32,22,0.12)]"
+            >
+              <VoiceVideoCard
+                src={video.src}
+                isMuted={unmutedId !== video.id}
+                onToggleMute={() => handleToggleMute(video.id)}
+              />
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
+
+

@@ -14,6 +14,7 @@ import {
   Target, 
   Heart, 
   Users, 
+  ZoomIn,
   X
 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
@@ -42,7 +43,7 @@ export function ProjectDetail() {
             to="/projects"
             className="inline-flex items-center gap-2 rounded-xl bg-[#24396f] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#1a2b56] transition"
           >
-            <ArrowLeft size={14} /> Back to All Projects
+            <ArrowLeft size={14} /> Back to All Services
           </Link>
         </div>
       </div>
@@ -62,7 +63,7 @@ export function ProjectDetail() {
         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#7a6e67]">
           <Link to="/" className="hover:text-[#24396f] transition">Home</Link>
           <ChevronRight size={12} />
-          <Link to="/projects" className="hover:text-[#24396f] transition">Projects</Link>
+          <Link to="/projects" className="hover:text-[#24396f] transition">Services</Link>
           <ChevronRight size={12} />
           <span className="text-[#24396f] font-bold">{project.title}</span>
         </div>
@@ -72,7 +73,7 @@ export function ProjectDetail() {
           <div className="relative z-10 space-y-3 max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-[#ef3c32] px-3.5 py-1 text-xs font-bold text-white uppercase tracking-wider shadow-sm">
               <Link to="/projects" className="hover:underline flex items-center gap-1">
-                <ArrowLeft size={12} /> Back to Projects
+                <ArrowLeft size={12} /> Back to Services
               </Link>
               <span>•</span>
               <span>{project.category}</span>
@@ -98,94 +99,66 @@ export function ProjectDetail() {
           {/* Left Column: Project Details (2 cols) */}
           <main className="lg:col-span-2 space-y-8">
             
-            {/* Hero Image / Gallery Card */}
-            <div className="h-auto self-start rounded-3xl bg-white p-2.5 sm:p-3.5 shadow-md border border-[#e8dfd8] overflow-hidden">
-              {project.gallery && project.gallery.length > 0 ? (
-                <div className={`grid ${
-                  project.gallery.length === 2 
-                    ? 'grid-cols-1 md:grid-cols-2' 
-                    : project.gallery.length === 6 
-                    ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3' 
-                    : project.gallery.length === 5 
-                    ? 'grid-cols-1 sm:grid-cols-6' 
-                    : project.gallery.length === 4 
-                    ? 'grid-cols-2' 
-                    : project.gallery.length === 3 
-                    ? 'grid-cols-1 sm:grid-cols-3 lg:grid-cols-3' 
-                    : 'grid-cols-2 sm:grid-cols-3'
-                } gap-3 sm:gap-4 items-stretch`}>
-                  {project.gallery.map((imgSrc, index) => {
-                    const isTherapy1 = imgSrc.includes("therapy1.png");
-                    const isSquareCard = project.gallery?.length === 4 || project.gallery?.length === 3;
-                    const isFiveGallery = project.gallery?.length === 5;
-                    const cardHeightClass = project.gallery?.length === 2 
-                      ? 'h-64 sm:h-72 md:h-80 lg:h-80' 
-                      : project.gallery?.length === 6 
-                      ? 'h-44 sm:h-52 md:h-56' 
-                      : isFiveGallery 
-                      ? 'h-52 sm:h-60 md:h-64' 
-                      : isSquareCard
-                      ? 'aspect-square'
-                      : 'h-52 sm:h-64';
-                    const isCover = project.gallery?.length === 2 || isFiveGallery;
-                    const spanClass = isFiveGallery 
-                      ? index < 3 
-                        ? 'sm:col-span-2' 
-                        : 'sm:col-span-3' 
-                      : '';
-
-                    return (
-                      <div
-                        key={index}
-                        onClick={() => setSelectedImage(imgSrc)}
-                        style={isSquareCard ? { aspectRatio: "1 / 1" } : undefined}
-                        className={`cursor-pointer overflow-hidden rounded-2xl bg-white border border-[#e8dfd8] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 p-2 group flex items-center justify-center ${cardHeightClass} ${spanClass} w-full relative`}
-                      >
-                        <ImageWithFallback
-                          src={imgSrc}
-                          alt={`${project.title} Photo ${index + 1}`}
-                          style={{ objectFit: isCover ? 'cover' : 'contain', objectPosition: 'center' }}
-                          className={`w-full h-full ${isCover ? 'object-cover object-center' : 'object-contain object-center'} ${isTherapy1 ? 'scale-[2.95]' : 'group-hover:scale-[1.02]'} bg-white rounded-xl transition-transform duration-300`}
-                        />
+            {/* Hero Image / Gallery Section */}
+            {project.gallery && project.gallery.length > 0 ? (
+              <div
+                className={`grid ${
+                  project.gallery.length === 2
+                    ? "grid-cols-1 sm:grid-cols-2"
+                    : project.gallery.length === 3
+                    ? "grid-cols-1 sm:grid-cols-3"
+                    : project.gallery.length === 4
+                    ? "grid-cols-2"
+                    : "grid-cols-2 sm:grid-cols-3"
+                } gap-4 sm:gap-6`}
+              >
+                {project.gallery.map((imgSrc, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setSelectedImage(imgSrc)}
+                    className="group relative h-64 sm:h-80 md:h-96 w-full cursor-pointer overflow-hidden rounded-3xl bg-gray-100 shadow-sm border border-[#e8dfd8] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <ImageWithFallback
+                      src={imgSrc}
+                      alt={`${project.title} Photo ${index + 1}`}
+                      className="h-full w-full object-cover object-center"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[1px] transition-opacity duration-300 group-hover:opacity-100">
+                      <div className="flex size-12 items-center justify-center rounded-full bg-white/95 text-[#24396f] shadow-lg">
+                        <ZoomIn size={22} />
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="relative h-64 sm:h-96 rounded-2xl overflow-hidden p-1 bg-white">
-                  <ImageWithFallback
-                    src={project.image}
-                    alt={project.title}
-                    className="w-full h-full object-contain bg-white rounded-xl"
-                  />
-                </div>
-              )}
-            </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="relative h-80 sm:h-[460px] w-full overflow-hidden rounded-3xl bg-gray-100 shadow-sm border border-[#e8dfd8]">
+                <ImageWithFallback
+                  src={project.image}
+                  alt={project.title}
+                  className="h-full w-full object-cover object-center"
+                />
+              </div>
+            )}
 
             {/* Lightbox Modal */}
             {selectedImage && (
-              <div 
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-black/85 backdrop-blur-md transition-all duration-300"
                 onClick={() => setSelectedImage(null)}
               >
-                <button className="absolute top-6 right-6 text-white p-2 bg-white/10 rounded-full hover:bg-white/20">
+                <button
+                  className="absolute top-5 right-5 z-10 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
+                  onClick={() => setSelectedImage(null)}
+                >
                   <X size={24} />
                 </button>
-                {selectedImage.includes("therapy1.png") ? (
-                  <div className="relative overflow-hidden rounded-2xl bg-white border border-[#e8dfd8] shadow-2xl p-1 flex items-center justify-center max-w-[90vw] max-h-[85vh] w-[460px] h-[340px] sm:w-[560px] sm:h-[400px] md:w-[640px] md:h-[460px]">
-                    <img 
-                      src={selectedImage} 
-                      alt="Full view" 
-                      className="w-full h-full object-contain scale-[2.95]"
-                    />
-                  </div>
-                ) : (
-                  <img 
-                    src={selectedImage} 
-                    alt="Full view" 
-                    className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl"
-                  />
-                )}
+                <img
+                  src={selectedImage}
+                  alt="Full view"
+                  className="max-h-[88vh] max-w-[95vw] rounded-2xl object-contain shadow-2xl transition-all"
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
             )}
 
@@ -332,7 +305,7 @@ export function ProjectDetail() {
             
             {/* Quick Projects Links Menu */}
             <div className="rounded-3xl bg-white p-6 shadow-sm border border-[#e8dfd8] space-y-4">
-              <h3 className="text-base font-bold text-[#24396f]">All UDAI Projects</h3>
+              <h3 className="text-base font-bold text-[#24396f]">All UDAI Services</h3>
               <div className="space-y-1.5 text-xs font-medium">
                 {PROJECTS_DATA.map((item) => {
                   const isActive = item.slug === project.slug;

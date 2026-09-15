@@ -1,4 +1,4 @@
-import { HeartPulse, BookOpen, Palette, PartyPopper, Users, Building2 } from "lucide-react";
+import { HeartPulse, Activity, Palette, Users, GraduationCap, Building2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 
@@ -25,44 +25,44 @@ function CountUp({ end, duration = 2000 }: { end: number; duration?: number }) {
     return () => cancelAnimationFrame(animationFrame);
   }, [end, duration]);
 
-  return <span>{count.toLocaleString()}</span>;
+  return <span>{count.toLocaleString("en-IN")}</span>;
 }
 
 export function ImpactSection() {
   const stats = [
     {
       icon: HeartPulse,
-      value: 100,
+      value: 10000,
       suffix: "+",
-      label: "Children Benefited Through Health Initiatives",
+      label: "Specially Abled Children Benefit",
     },
     {
-      icon: BookOpen,
-      value: 200,
+      icon: Activity,
+      value: 350000,
       suffix: "+",
-      label: "Life Skills Sessions Conducted",
+      label: "Rehabilitation Session Delivered",
     },
     {
       icon: Palette,
-      value: 150,
+      value: 1000,
       suffix: "+",
-      label: "Creative & Recreational Sessions",
-    },
-    {
-      icon: PartyPopper,
-      value: 20,
-      suffix: "+",
-      label: "Social Events & Celebrations",
+      label: "Creative Social & Celebrations Events",
     },
     {
       icon: Users,
-      value: 500,
+      value: 20000,
       suffix: "+",
-      label: "Participation Instances",
+      label: "Parents Counselled",
+    },
+    {
+      icon: GraduationCap,
+      value: 3000,
+      suffix: "+",
+      label: "Teacher's Trained",
     },
     {
       icon: Building2,
-      value: 100,
+      value: 50,
       suffix: "+",
       label: "Partner Organizations",
     },

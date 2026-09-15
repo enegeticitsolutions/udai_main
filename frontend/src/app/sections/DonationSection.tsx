@@ -62,12 +62,12 @@ const CAUSES: CauseOption[] = [
   },
   {
     key: "healthcare",
-    title: "Heal & Care: Therapy & Healthcare",
-    shortTitle: "Therapy & Health",
-    defaultPurpose: "Therapy & Healthcare Support",
-    description: "Fund specialized therapy, rehabilitation, and long-term medical care for children.",
-    image: "/images/healthcare.png",
-    badge: "Rehabilitation",
+    title: "Corrective Surgeries",
+    shortTitle: "Corrective Surgeries",
+    defaultPurpose: "Corrective Surgeries Support",
+    description: "Fund corrective surgeries, specialized healthcare, and vital medical treatment for children.",
+    image: "/images/surgery.png",
+    badge: "Corrective Surgeries",
     color: "#2e7d32",
     bgColor: "bg-[#e6f4ea]",
     accentBg: "bg-[#2e7d32] hover:bg-[#1b5e20]",
@@ -76,12 +76,12 @@ const CAUSES: CauseOption[] = [
   },
   {
     key: "education",
-    title: "Build Skills: Digital & Special Education",
-    shortTitle: "Special Education",
-    defaultPurpose: "Digital & Special Education Support",
-    description: "Empower students with practical technology skills, tools, and vocational training.",
-    image: "/images/digital.png",
-    badge: "Vocational Skills",
+    title: "Assistive Living Hostel for Boys",
+    shortTitle: "Assistive Living",
+    defaultPurpose: "Assistive Living Hostel for Boys Support",
+    description: "Provide safe residential accommodation, daily life skills training, nutrition, and 24/7 supervision for boys with special needs.",
+    image: "/images/hostel7.png",
+    badge: "Residential Care",
     color: "#7b1fa2",
     bgColor: "bg-[#f3e5f5]",
     accentBg: "bg-[#7b1fa2] hover:bg-[#4a148c]",
@@ -220,7 +220,7 @@ export function DonationSection() {
             <button
               type="button"
               onClick={() => openDonationModal()}
-              className="inline-flex items-center justify-center gap-2.5 rounded-full bg-[#c95b38] px-7 py-3.5 text-base font-semibold text-white shadow-[0_12px_24px_rgba(201,91,56,0.28)] transition hover:bg-[#b94e30] hover:scale-105 active:scale-95 cursor-pointer"
+              className="inline-flex items-center justify-center gap-2.5 rounded-full bg-[#c95b38] px-7 py-3.5 text-base font-semibold text-white shadow-[0_12px_24px_rgba(201,91,56,0.28)] transition hover:bg-[#b94e30] hover:scale-105 active:scale-95 cursor-pointer animate-donate-blink"
             >
               <Heart className="h-5 w-5 fill-white text-white" />
               <span>Donate Now</span>
@@ -247,11 +247,7 @@ export function DonationSection() {
                   <img
                     src={getImageUrl(cause.image)}
                     alt={cause.title}
-                    className={`h-44 w-full transition duration-500 group-hover:scale-105 shadow-sm ${
-                      cause.key === "education" || cause.shortTitle === "Special Education"
-                        ? "object-contain object-center bg-white"
-                        : "object-cover"
-                    }`}
+                    className="h-44 w-full shadow-sm object-cover"
                   />
                   <span
                     className={`absolute top-2.5 right-2.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${cause.tagColor} shadow-sm backdrop-blur-md`}

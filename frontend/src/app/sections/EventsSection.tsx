@@ -30,18 +30,32 @@ export function EventsSection() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const upcomingEvents = events.slice(0, 3);
-  const futureRoadmap = events.slice(3);
+  const upcomingEvents = events.some((e) => e.isRoadmap !== undefined)
+    ? events.filter((e) => !e.isRoadmap)
+    : events.slice(0, 3);
 
-  const formatDay = (date: string) =>
-    new Date(date).toLocaleDateString("en-US", { day: "2-digit" });
+  const futureRoadmap = events.some((e) => e.isRoadmap !== undefined)
+    ? events.filter((e) => Boolean(e.isRoadmap))
+    : events.slice(3);
 
-  const formatMonth = (date: string) =>
-    new Date(date).toLocaleDateString("en-US", { month: "short" });
+  const formatDay = (date: string) => {
+    if (!date) return "--";
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? date.slice(8, 10) || date : d.toLocaleDateString("en-US", { day: "2-digit" });
+  };
+
+  const formatMonth = (date: string) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? date : d.toLocaleDateString("en-US", { month: "short" });
+  };
 
   const formatQuarter = (date: string) => {
-    const month = new Date(date).getMonth();
-    return `Q${Math.floor(month / 3) + 1} ${new Date(date).getFullYear()}`;
+    if (!date) return "Future";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return date;
+    const month = d.getMonth();
+    return `Q${Math.floor(month / 3) + 1} ${d.getFullYear()}`;
   };
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {

@@ -10,15 +10,18 @@ export interface BlogPost {
 }
 
 export interface EventItem {
-  id: number;
+  id: number | string;
   title: string;
   date: string;
   time: string;
   location: string;
   description: string;
-  image: string;
-  category: string;
-  attendees: number;
+  image?: string;
+  category?: string;
+  attendees?: number;
+  isRoadmap?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Product {

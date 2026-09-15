@@ -2,25 +2,90 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "../config.js";
 import { readJsonFile, writeJsonFile } from "../lib/fileStore.js";
+import { getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 import { adminUsers as seedAdminUsers } from "../data/seedData.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function adminUsersPath() {
+function primaryAdminUsersPath() {
   return path.resolve(__dirname, "..", "data", "admin-users.json");
 }
 
+function fallbackAdminUsersPath() {
+  return path.resolve(config.storageDir, "admin-users.json");
+}
+
 export async function readAdminUsers() {
+  // 1. Try MongoDB if connected
+  if (isMongoConnected()) {
+    try {
+      const db = getMongoDb();
+      const users = await db.collection("adminUsers").find({}).toArray();
+      if (users && users.length > 0) {
+        return users.map(({ _id, ...u }) => ({
+          id: u.id || String(_id),
+          ...u,
+        }));
+      }
+    } catch (err) {
+      console.warn("⚠️ MongoDB read error for adminUsers:", err?.message);
+    }
+  }
+
+  // 2. Try primary JSON file
   try {
-    return await readJsonFile(adminUsersPath());
+    return await readJsonFile(primaryAdminUsersPath());
   } catch {
-    return seedAdminUsers;
+    // 3. Try storage fallback JSON file
+    try {
+      return await readJsonFile(fallbackAdminUsersPath());
+    } catch {
+      return seedAdminUsers;
+    }
   }
 }
 
 export async function saveAdminUsers(users) {
-  await writeJsonFile(adminUsersPath(), users);
+  let mongoSaved = false;
+
+  // 1. Save to MongoDB if connected
+  if (isMongoConnected()) {
+    try {
+      const db = getMongoDb();
+      const collection = db.collection("adminUsers");
+
+      for (const user of users) {
+        await collection.updateOne(
+          { email: user.email.toLowerCase() },
+          { $set: { ...user, email: user.email.toLowerCase() } },
+          { upsert: true }
+        );
+      }
+
+      const activeEmails = users.map((u) => u.email.toLowerCase());
+      await collection.deleteMany({ email: { $nin: activeEmails } });
+      mongoSaved = true;
+    } catch (err) {
+      console.warn("⚠️ MongoDB save error for adminUsers:", err?.message);
+    }
+  }
+
+  // 2. Save to local JSON files for local/offline persistence
+  try {
+    await writeJsonFile(primaryAdminUsersPath(), users);
+  } catch (err) {
+    console.warn("⚠️ Could not write to primary admin-users.json:", err?.message);
+    try {
+      await writeJsonFile(fallbackAdminUsersPath(), users);
+    } catch (fallbackErr) {
+      console.warn("⚠️ Could not write to fallback admin-users.json:", fallbackErr?.message);
+      if (!mongoSaved) {
+        throw err;
+      }
+    }
+  }
+
   return users;
 }
 

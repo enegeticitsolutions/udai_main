@@ -13,6 +13,7 @@ import {
   therapists as seedTherapists,
   volunteers as seedVolunteers,
   products as seedProducts,
+  events as seedEvents,
 } from "../data/seedData.js";
 
 const storageByEntity = {
@@ -24,6 +25,7 @@ const storageByEntity = {
   therapists: { fileName: "therapists.json", collectionName: "therapists", seed: seedTherapists },
   subscribers: { fileName: "subscribers.json", collectionName: "subscribers", seed: seedSubscribers },
   products: { fileName: "products.json", collectionName: "products", seed: seedProducts },
+  events: { fileName: "events.json", collectionName: "events", seed: seedEvents },
   corporateInquiries: { fileName: "corporate-inquiries.json", collectionName: "corporateInquiries", seed: [] },
   careers: { fileName: "careers.json", collectionName: "careers", seed: [] },
   whatsappBookings: { fileName: "whatsapp-bookings.json", collectionName: "chatbotsubmissions", seed: [] },
@@ -37,7 +39,7 @@ function storagePath(fileName) {
 }
 
 function entityStoragePath(entity, fileName) {
-  if (entity === "careers" || entity === "products" || entity === "therapists" || entity === "corporateInquiries" || entity === "contacts") {
+  if (entity === "careers" || entity === "products" || entity === "therapists" || entity === "corporateInquiries" || entity === "contacts" || entity === "events") {
     return path.resolve(config.projectRoot, "..", "backend", "storage", fileName);
   }
 
@@ -227,7 +229,7 @@ async function updateMongoRecord(entity, id, updates) {
   };
 
   await collection.updateOne(filter, { $set: merged });
-  if (entity === "careers" || entity === "products" || entity === "therapists") {
+  if (entity === "careers" || entity === "products" || entity === "therapists" || entity === "events") {
     await writeEntityStorageSnapshot(entity, collection);
   }
 
@@ -237,17 +239,18 @@ async function updateMongoRecord(entity, id, updates) {
 async function deleteStorageRecord(entity, id) {
   const { fileName } = storageByEntity[entity];
   const records = await readStorageRecords(entity);
-  const existing = records.find((record) => String(record.id) === String(id));
+  const targetId = String(id).trim();
+  const existing = records.find((record) => String(record.id).trim() === targetId || String(record._id).trim() === targetId);
 
   if (!existing) {
     return null;
   }
 
   const isSeedTherapist =
-    entity === "therapists" && storageByEntity.therapists.seed.some((record) => String(record.id) === String(id));
+    entity === "therapists" && storageByEntity.therapists.seed.some((record) => String(record.id).trim() === targetId);
   const nextRecords = isSeedTherapist
-    ? records.map((record) => (String(record.id) === String(id) ? { ...record, active: false, updatedAt: new Date().toISOString() } : record))
-    : records.filter((record) => String(record.id) !== String(id));
+    ? records.map((record) => (String(record.id).trim() === targetId ? { ...record, active: false, updatedAt: new Date().toISOString() } : record))
+    : records.filter((record) => String(record.id).trim() !== targetId && String(record._id).trim() !== targetId);
 
   const targetPath = entityStoragePath(entity, fileName);
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
@@ -276,7 +279,7 @@ async function deleteMongoRecord(entity, id) {
     return null;
   }
 
-  if (entity === "careers" || entity === "products" || entity === "therapists") {
+  if (entity === "careers" || entity === "products" || entity === "therapists" || entity === "events") {
     await writeEntityStorageSnapshot(entity, collection);
   }
 
@@ -338,14 +341,30 @@ async function createMongoRecord(entity, record) {
   };
 
   await collection.insertOne(nextRecord);
-  if (entity === "careers" || entity === "products" || entity === "therapists") {
+  if (entity === "careers" || entity === "products" || entity === "therapists" || entity === "events") {
     await writeEntityStorageSnapshot(entity, collection);
   }
   return normalizeMongoDocument(nextRecord);
 }
 
 export async function getAdminBootstrap() {
-  const [inquiries, corporateInquiries, donations, volunteers, contacts, orders, therapists, subscribers, products, careers, whatsappBookings, notifications, broadcasts, settingsList] = await Promise.all([
+  const [
+    inquiries,
+    corporateInquiries,
+    donations,
+    volunteers,
+    contacts,
+    orders,
+    therapists,
+    subscribers,
+    products,
+    careers,
+    whatsappBookings,
+    notifications,
+    broadcasts,
+    settingsList,
+    events,
+  ] = await Promise.all([
     readRecords("inquiries"),
     readRecords("corporateInquiries"),
     readRecords("donations"),
@@ -360,6 +379,7 @@ export async function getAdminBootstrap() {
     readRecords("notifications"),
     readRecords("broadcasts"),
     readRecords("settings"),
+    readRecords("events"),
   ]);
 
   const totalDonations = donations.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
@@ -385,6 +405,7 @@ export async function getAdminBootstrap() {
     subscribers,
     products,
     careers,
+    events,
     whatsappBookings,
     notifications,
     broadcasts,

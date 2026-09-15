@@ -10,6 +10,8 @@ const storageByEntity = {
     volunteers: { fileName: "volunteers.json", collectionName: "volunteers" },
     donations: { fileName: "donations.json", collectionName: "donations" },
     contacts: { fileName: "contacts.json", collectionName: "contacts" },
+    corporateInquiries: { fileName: "corporate-inquiries.json", collectionName: "corporateInquiries" },
+    subscribers: { fileName: "subscribers.json", collectionName: "subscribers" },
     orders: { fileName: "orders.json", collectionName: "orders" },
     therapists: { fileName: "therapists.json", collectionName: "therapists" },
     deactivatedDates: { fileName: "deactivated-dates.json", collectionName: "deactivatedDates" },
@@ -222,8 +224,37 @@ async function updateMongoRecord(entity, id, updates) {
         ...updates,
     };
 }
+async function deleteStorageRecord(entity, id) {
+    const { fileName } = storageByEntity[entity];
+    const fileRecords = await readStorageRecords(entity);
+    const nextRecords = fileRecords.filter((record) => record.id !== id);
+    await fs.mkdir(config.storageDir, { recursive: true });
+    await writeJsonFile(storagePath(fileName), nextRecords);
+    return { id };
+}
+async function deleteMongoRecord(entity, id) {
+    const { collectionName } = storageByEntity[entity];
+    await connectMongoDb();
+    if (!isMongoConnected()) {
+        return null;
+    }
+    const collection = getMongoDb().collection(collectionName);
+    const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };
+    const result = await collection.deleteOne(filter);
+    return result.deletedCount > 0 ? { id } : null;
+}
+export async function deleteAdminRecord(entity, id) {
+    if (entity === "therapists") {
+        return deleteTherapistRecord(id);
+    }
+    const mongoDeleted = await deleteMongoRecord(entity, id);
+    if (mongoDeleted) {
+        return mongoDeleted;
+    }
+    return deleteStorageRecord(entity, id);
+}
 export async function getAdminBootstrap() {
-    const [inquiries, donations, volunteers, orders, therapists, deactivatedDates, notifications, products, careers] = await Promise.all([
+    const [inquiries, donations, volunteers, orders, therapists, deactivatedDates, notifications, products, careers, contacts, corporateInquiries, subscribers,] = await Promise.all([
         readRecords("inquiries"),
         readRecords("donations"),
         readRecords("volunteers"),
@@ -233,6 +264,9 @@ export async function getAdminBootstrap() {
         readRecords("notifications"),
         getProducts(),
         getCareers(),
+        readRecords("contacts"),
+        readRecords("corporateInquiries"),
+        readRecords("subscribers"),
     ]);
     const totalDonations = donations.reduce((sum, item) => {
         const amount = Number(item.amount ?? 0);
@@ -259,6 +293,9 @@ export async function getAdminBootstrap() {
         notifications,
         products,
         careers,
+        contacts,
+        corporateInquiries,
+        subscribers,
         dashboard: {
             totalRequests: inquiries.length,
             pendingRequests,
@@ -269,6 +306,8 @@ export async function getAdminBootstrap() {
             paidOrders,
             pendingOrderPayments: pendingOrders,
             orderRevenue,
+            corporateInquiriesTotal: corporateInquiries.length,
+            corporateInquiriesNew: corporateInquiries.filter((item) => item.status === "new" || !item.status).length,
         },
     };
 }

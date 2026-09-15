@@ -3,19 +3,44 @@ import path from "node:path";
 import fs from "node:fs";
 import { config } from "../config.js";
 
-const uploadDir = config.sharedUploadDir;
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+import os from "node:os";
+
+export function getUploadDir() {
+  const candidateDirs = [
+    config.sharedUploadDir,
+    path.resolve(config.projectRoot, "backend-storage", "uploads"),
+    path.resolve(config.projectRoot, "uploads"),
+    path.resolve(os.tmpdir(), "udai-uploads"),
+  ];
+
+  for (const dir of candidateDirs) {
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true, mode: 0o775 });
+      }
+      fs.accessSync(dir, fs.constants.W_OK);
+      return dir;
+    } catch {
+      // Try next directory
+    }
+  }
+
+  return config.sharedUploadDir;
 }
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, uploadDir);
+    try {
+      const dest = getUploadDir();
+      cb(null, dest);
+    } catch (err) {
+      cb(err, config.sharedUploadDir);
+    }
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+    cb(null, (file.fieldname || "image") + "-" + uniqueSuffix + ext);
   },
 });
 

@@ -195,7 +195,7 @@ export function RecognitionSection() {
                       <img
                         src={getImageUrl(item.image)}
                         alt={item.title}
-                        className="h-full w-full rounded-[0.25rem] object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        className="h-full w-full rounded-[0.25rem] object-cover"
                       />
                       <div className="absolute inset-2 flex flex-col items-center justify-center rounded-[0.25rem] bg-black/40 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
                         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-stone-800 shadow-md transition-transform duration-300 group-hover:scale-110">

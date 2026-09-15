@@ -1,13 +1,13 @@
 [
   {
     "slug": "after-school-tutoring",
-    "title": "After-School Tutoring",
+    "title": "After-School Program",
     "shortDescription": "Providing personalized academic support to help students master core subjects and build confidence in their abilities.",
     "heroImage": "/images/afterschool.png",
     "gallery": ["/images/afterschool.png", "/images/arteducation.png"],
     "accent": "from-[#2046b6] to-[#5a9ae8]",
     "overview": [
-      "Our After-School Tutoring program provides personalised academic support in a structured, nurturing environment beyond school hours. Through individualised instruction, we help students strengthen reading, writing, mathematics, homework skills, and classroom readiness while building confidence, independence, and a love for learning.",
+      "Our After-School Program provides personalised academic support in a structured, nurturing environment beyond school hours. Through individualised instruction, we help students strengthen reading, writing, mathematics, homework skills, and classroom readiness while building confidence, independence, and a love for learning.",
       "Sessions are offered one-to-one or in small groups and are tailored to each child's unique learning needs. By working closely with families, we promote consistent progress, stronger routines, and greater success both at school and at home."
     ],
     "highlights": [

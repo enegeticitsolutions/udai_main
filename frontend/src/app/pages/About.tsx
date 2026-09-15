@@ -1,40 +1,69 @@
-import { Heart, Eye, Target, Award } from "lucide-react";
+import { Heart, Sparkles, Users, HeartHandshake, GraduationCap, Smile, ShieldCheck } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { AffiliationsSection } from "../sections/AffiliationsSection";
 
 export function About() {
   const values = [
     {
+      number: "01",
+      icon: HeartHandshake,
+      title: "Inclusion with Heart",
+      description: "We believe in a world where every individual is embraced, not judged, where abilities are celebrated and inclusion is a lived reality.",
+      color: "bg-rose-50 text-rose-600 border-rose-200/60",
+    },
+    {
+      number: "02",
+      icon: Sparkles,
+      title: "Empowerment with Purpose",
+      description: "We strive to unlock every person's potential by nurturing confidence, independence, and a sense of purpose through meaningful opportunities.",
+      color: "bg-amber-50 text-amber-600 border-amber-200/60",
+    },
+    {
+      number: "03",
+      icon: Users,
+      title: "Respectful Relationships",
+      description: "We build lasting, trust-based relationships with children, families, caregivers, and communities rooted in love, respect, and mutual growth.",
+      color: "bg-blue-50 text-blue-600 border-blue-200/60",
+    },
+    {
+      number: "04",
       icon: Heart,
-      title: "Compassion",
-      description: "We approach every individual and community with empathy, understanding, and genuine care.",
+      title: "Compassionate Care",
+      description: "At the core of our work lies deep empathy. We walk with families on their journeys, sharing their struggles, joys, and hopes as our own.",
+      color: "bg-emerald-50 text-emerald-600 border-emerald-200/60",
     },
     {
-      icon: Eye,
-      title: "Transparency",
-      description: "We maintain open communication and accountability in all our operations and programs.",
+      number: "05",
+      icon: GraduationCap,
+      title: "Lifelong Learning",
+      description: "We foster a culture of continuous learning and growth for our team, our students, and their families adapting and evolving together.",
+      color: "bg-purple-50 text-purple-600 border-purple-200/60",
     },
     {
-      icon: Target,
-      title: "Impact",
-      description: "We focus on creating measurable, sustainable change that transforms lives and communities.",
+      number: "06",
+      icon: Smile,
+      title: "Emotional Connection & Belonging",
+      description: "We create safe, nurturing spaces where everyone feels seen, heard, and valued because emotional well-being is essential to true inclusion.",
+      color: "bg-orange-50 text-orange-600 border-orange-200/60",
     },
     {
-      icon: Award,
-      title: "Excellence",
-      description: "We strive for the highest standards in program delivery and community engagement.",
+      number: "07",
+      icon: ShieldCheck,
+      title: "Commitment to Long-Term Support",
+      description: "We are here for the long haul walking alongside individuals and families through every life stage, offering unwavering care and connection.",
+      color: "bg-teal-50 text-teal-600 border-teal-200/60",
     },
   ];
 
   const governingBody = [
     {
       name: "Smt. Tanu Rajput",
-      role: "Business | Chairman",
+      role: "Sr. Counselor & Educator | Chairman",
       image: "/images/tanu.jpeg",
     },
     {
       name: "Dr. Kanchan Sharma",
-      role: "Sr. Consultant & Educator | Vice Chairman",
+      role: "Psychologist | Vice Chairman",
       image: "/images/kanchan.png",
     },
     {
@@ -44,7 +73,7 @@ export function About() {
     },
     {
       name: "Sh. Praveen Kumar",
-      role: "Rtd. Civil Engineer | Treasurer",
+      role: "Civil Engineer | Treasurer",
       image: "/images/praveen.png",
     },
     {
@@ -153,25 +182,81 @@ export function About() {
       </section>
 
       {/* Values Section */}
-      <section className="py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl mb-4">Our Core Values</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              These principles guide everything we do and shape our approach to community development and service delivery.
+      <section className="relative overflow-hidden bg-[linear-gradient(180deg,#faf7f2_0%,#f4eee6_100%)] py-20 sm:py-28">
+        <div className="pointer-events-none absolute -left-20 top-20 h-72 w-72 rounded-full bg-emerald-100/40 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 bottom-20 h-72 w-72 rounded-full bg-amber-100/40 blur-3xl" />
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-14 max-w-3xl text-center sm:mb-18">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#e4d7ca] bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-[#d97706] shadow-sm">
+              Our Guiding Principles
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-[#20325c] sm:text-5xl">
+              Core Values of UDAI
+            </h2>
+            <p className="mt-2 text-lg font-medium text-[#c88a2e] sm:text-xl">
+              Working Together Works
+            </p>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#6e6057]">
+              These core principles guide everything we do and shape our approach to rehabilitation, special education, and community empowerment.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {values.map((value, index) => {
+          {/* Top Row: 4 Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {values.slice(0, 4).map((value, index) => {
               const Icon = value.icon;
               return (
-                <div key={index} className="text-center">
-                  <div className="size-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Icon className="size-8 text-emerald-600" />
+                <div
+                  key={index}
+                  className="group relative flex flex-col justify-between rounded-[1.4rem] border border-[#e8dfd6] bg-white p-6 sm:p-7 shadow-[0_8px_24px_rgba(40,30,20,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#dbcac0] hover:shadow-[0_16px_34px_rgba(40,30,20,0.08)]"
+                >
+                  <div>
+                    <div className="mb-5 flex items-center justify-between">
+                      <div className={`flex size-12 sm:size-13 items-center justify-center rounded-2xl border ${value.color} transition-transform duration-300 group-hover:scale-105`}>
+                        <Icon className="size-6" />
+                      </div>
+                      <span className="rounded-full bg-[#f6f1ea] px-2.5 py-1 text-xs font-bold tracking-widest text-[#8c7e73]">
+                        {value.number}
+                      </span>
+                    </div>
+                    <h3 className="mb-2.5 text-lg font-bold tracking-tight text-[#20325c]">
+                      {value.title}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-[#685b54]">
+                      {value.description}
+                    </p>
                   </div>
-                  <h3 className="text-xl mb-3">{value.title}</h3>
-                  <p className="text-gray-600 text-sm">{value.description}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bottom Row: 3 Cards Centered */}
+          <div className="mt-6 flex flex-wrap justify-center gap-6">
+            {values.slice(4).map((value, index) => {
+              const Icon = value.icon;
+              return (
+                <div
+                  key={index}
+                  className="group relative w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] flex flex-col justify-between rounded-[1.4rem] border border-[#e8dfd6] bg-white p-6 sm:p-7 shadow-[0_8px_24px_rgba(40,30,20,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#dbcac0] hover:shadow-[0_16px_34px_rgba(40,30,20,0.08)]"
+                >
+                  <div>
+                    <div className="mb-5 flex items-center justify-between">
+                      <div className={`flex size-12 sm:size-13 items-center justify-center rounded-2xl border ${value.color} transition-transform duration-300 group-hover:scale-105`}>
+                        <Icon className="size-6" />
+                      </div>
+                      <span className="rounded-full bg-[#f6f1ea] px-2.5 py-1 text-xs font-bold tracking-widest text-[#8c7e73]">
+                        {value.number}
+                      </span>
+                    </div>
+                    <h3 className="mb-2.5 text-lg font-bold tracking-tight text-[#20325c]">
+                      {value.title}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-[#685b54]">
+                      {value.description}
+                    </p>
+                  </div>
                 </div>
               );
             })}

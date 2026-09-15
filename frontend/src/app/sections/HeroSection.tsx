@@ -7,11 +7,13 @@ import { ArrowRight } from "lucide-react";
 const heroImages = [
   {
     src: "/images/section.png",
-    alt: "UDAI children celebrating at Skill Centre with Indian flags"
+    alt: "UDAI children celebrating at Skill Centre with Indian flags",
+    position: "object-top"
   },
   {
     src: "/images/hero-independence.jpg",
-    alt: "Children and teachers celebrating with Autism awareness backdrop"
+    alt: "Children and teachers celebrating with Autism awareness backdrop",
+    position: "object-top"
   }
 ];
 
@@ -26,29 +28,29 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section className="relative isolate overflow-hidden">
+    <section className="relative isolate overflow-hidden bg-slate-950">
       {/* Background Image Slider Carousel */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={currentIndex}
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.2, ease: "easeInOut" }}
+            transition={{ duration: 1.0, ease: "easeInOut" }}
             className="absolute inset-0 h-full w-full"
           >
             <ImageWithFallback
               src={heroImages[currentIndex].src}
               alt={heroImages[currentIndex].alt}
-              className="h-full w-full object-cover object-center"
+              className={`h-full w-full object-cover ${heroImages[currentIndex].position}`}
             />
           </motion.div>
         </AnimatePresence>
 
-        {/* Dark Gradient Overlay */}
-        <div className="absolute inset-0 bg-black/25 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-slate-950/35 pointer-events-none" />
+        {/* Dark Gradient Overlay for optimal text readability */}
+        <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/20 to-slate-950/45 pointer-events-none" />
 
         {/* Slide Indicator Dots */}
         <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
@@ -65,7 +67,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      <div className="relative min-h-[380px] w-full min-[390px]:min-h-[420px] sm:h-auto sm:min-h-[480px] lg:min-h-[540px] sm:aspect-[1530/547] flex items-center">
+      <div className="relative min-h-[440px] w-full min-[390px]:min-h-[480px] sm:min-h-[520px] lg:min-h-[580px] xl:min-h-[620px] flex items-center">
         <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl items-center justify-center px-4 py-8 text-center sm:px-6 sm:py-12 lg:px-8 lg:py-16">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -93,7 +95,7 @@ export function HeroSection() {
                     }
                   }
                 }}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-red-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-red-500/25 transition hover:bg-red-600 sm:min-w-[220px] sm:w-auto sm:px-8 sm:py-4 sm:text-lg"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-red-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-red-500/25 transition hover:bg-red-600 sm:min-w-[220px] sm:w-auto sm:px-8 sm:py-4 sm:text-lg animate-donate-blink"
               >
                 Donate Now
                 <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />

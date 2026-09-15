@@ -30,6 +30,8 @@ export function createApp() {
   app.use(express.json());
   app.use(morgan("dev"));
   app.use("/uploads", express.static(config.sharedUploadDir));
+  app.use("/uploads", express.static(path.resolve(config.projectRoot, "backend-storage", "uploads")));
+  app.use("/uploads", express.static(path.resolve(config.projectRoot, "uploads")));
 
   app.get("/", (_req, res) => {
     res.json({

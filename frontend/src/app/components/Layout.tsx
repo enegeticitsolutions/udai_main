@@ -49,14 +49,15 @@ export function Layout() {
   const navigation = [
     { name: "About", href: "/about", type: "route" as const },
     { name: "Programs", href: "/programs", type: "route" as const },
+    { name: "Gallery", href: "/gallery", type: "route" as const },
     {
-      name: "Projects",
+      name: "Services",
       type: "dropdown" as const,
       children: [
         { name: "Early Intervention Programme", href: "/projects/early-intervention" },
         { name: "School Readiness Programme", href: "/projects/school-readiness" },
         { name: "Therapy Services", href: "/projects/therapy-services" },
-        { name: "Special Education and Life-Skills Development", href: "/projects/special-education" },
+        { name: "Special School and Life Skill Development", href: "/projects/special-education" },
         { name: "Ek Prayas – Intervention on Wheels", href: "/projects/intervention-on-wheels" },
         { name: "Ek Prayas – Vocational Training and Employability Support", href: "/projects/vocational-training" },
         { name: "Assistive Living Hostel for Boys", href: "/projects/assistive-living" },
@@ -177,7 +178,7 @@ export function Layout() {
                 <Link
                   to="/#donate"
                   onClick={(e) => handleHashLink(e, "/#donate")}
-                  className="rounded-full bg-[#ef3c32] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(239,60,50,0.28)] transition hover:bg-[#da2f26]"
+                  className="rounded-full bg-[#ef3c32] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(239,60,50,0.28)] transition hover:bg-[#da2f26] animate-donate-blink"
                 >
                   Donate Now
                 </Link>
@@ -254,7 +255,7 @@ export function Layout() {
                   <Link
                     to="/#donate"
                     onClick={(e) => handleHashLink(e, "/#donate")}
-                    className="rounded-full bg-[#ef3c32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#da2f26]"
+                    className="rounded-full bg-[#ef3c32] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#da2f26] animate-donate-blink"
                   >
                     Donate Now
                   </Link>
@@ -315,6 +316,7 @@ export function Layout() {
                 <li><Link to="/about">Our Mission</Link></li>
                 <li><Link to="/about">Board of Trustees</Link></li>
                 <li><Link to="/about">Leadership Team</Link></li>
+                <li><Link to="/gallery">Photo Gallery</Link></li>
                 <li><Link to="/careers">Career</Link></li>
               </ul>
             </div>

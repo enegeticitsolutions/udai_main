@@ -1,22 +1,22 @@
-import { Palette, Music, Camera } from "lucide-react";
+import { Palette, Drama, Monitor } from "lucide-react";
 import { motion } from "motion/react";
 
 export function ArtsSection() {
   const programs = [
     {
       icon: Palette,
-      title: "Art Workshops",
-      description: "Painting, drawing, and craft activities encourage imagination, self-expression, and fine motor development while fostering creativity in a supportive environment.",
+      title: "Art Therapy",
+      description: "Painting, drawing, and tactile crafts that encourage sensory integration, emotional healing, self-expression, and fine motor development in a supportive environment.",
     },
     {
-      icon: Music,
-      title: "Music & Dance",
-      description: "Music and movement sessions promote confidence, coordination, teamwork, and cultural appreciation, encouraging children to express themselves through rhythm and performance.",
+      icon: Drama,
+      title: "Movement Therapy / Theatre",
+      description: "Expressive movement, rhythm, and theatrical activities designed to foster self-confidence, body coordination, emotional release, and meaningful social interaction.",
     },
     {
-      icon: Camera,
-      title: "Media Arts",
-      description: "Photography, storytelling, and digital media activities help learners strengthen communication skills, explore their perspectives, and build confidence through creative expression.",
+      icon: Monitor,
+      title: "Computer Graphics",
+      description: "Digital design, illustration, and creative technology training that equips learners with modern digital skills, visual communication abilities, and pathways to vocational growth.",
     },
   ];
 

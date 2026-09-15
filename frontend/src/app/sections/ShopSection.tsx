@@ -70,7 +70,7 @@ export function ShopSection() {
                   <ImageWithFallback
                     src={product.image}
                     alt={product.title}
-                    className="h-64 w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    className="h-64 w-full object-cover"
                   />
                 </div>
 

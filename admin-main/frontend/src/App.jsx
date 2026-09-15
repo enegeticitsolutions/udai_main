@@ -43,9 +43,9 @@ import {
   addTherapistLeave,
   deleteTherapistLeave,
 } from "./services/adminApi";
-import { adminLogin } from "./services/adminApi";
 import ProductsPage from "./components/ProductsPage";
 import CareersPage from "./components/CareersPage";
+import EventsPage from "./components/EventsPage";
 import AppointmentsPage from "./components/AppointmentsPage";
 import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
 import WhatsAppMessagesPage from "./components/WhatsAppMessagesPage";
@@ -62,7 +62,13 @@ import BroadcastPage from "./components/BroadcastPage";
 import ReportsPage from "./components/ReportsPage";
 import SettingsPage from "./components/SettingsPage";
 import CorporateInquiriesPage from "./components/CorporateInquiriesPage";
-import { patchCorporateInquiry, deleteCorporateInquiry } from "./services/adminApi";
+import {
+  patchCorporateInquiry,
+  deleteCorporateInquiry,
+  createEvent,
+  patchEvent,
+  deleteEvent,
+} from "./services/adminApi";
 
 const tokenKey = "udai_standalone_admin_token";
 
@@ -80,6 +86,7 @@ const roleSections = {
     "Availability Manager",
     "Products",
     "Career Management",
+    "Upcoming Events",
     "Subscribe",
     "Contacts",
     "Notifications Center",
@@ -99,6 +106,7 @@ const roleSections = {
     "Availability Manager",
     "Products",
     "Career Management",
+    "Upcoming Events",
     "Subscribe",
     "Contacts",
     "Notifications Center",
@@ -1668,6 +1676,7 @@ export default function App() {
   const [corporateInquiries, setCorporateInquiries] = useState([]);
   const [products, setProducts] = useState([]);
   const [careers, setCareers] = useState([]);
+  const [events, setEvents] = useState([]);
   const [whatsappBookings, setWhatsappBookings] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [backendStatus, setBackendStatus] = useState("loading");
@@ -1728,6 +1737,7 @@ export default function App() {
         setDeactivatedDates(bootstrap?.deactivatedDates ?? []);
         setProducts(bootstrap?.products ?? []);
         setCareers(bootstrap?.careers ?? []);
+        setEvents(bootstrap?.events ?? []);
         setWhatsappBookings(bootstrap?.whatsappBookings ?? []);
         setDashboard(bootstrap?.dashboard ?? null);
         setIsConnected(true);
@@ -1749,6 +1759,7 @@ export default function App() {
         setDeactivatedDates([]);
         setProducts([]);
         setCareers([]);
+        setEvents([]);
         setWhatsappBookings([]);
         setDashboard(null);
       }
@@ -1940,6 +1951,30 @@ export default function App() {
     return success;
   }
 
+  async function handleEventAdd(eventData) {
+    const saved = await createEvent(eventData);
+    if (saved) {
+      setEvents((prev) => [saved, ...prev]);
+    }
+    return saved;
+  }
+
+  async function handleEventUpdate(id, updates) {
+    const saved = await patchEvent(id, updates);
+    if (saved) {
+      setEvents((prev) => prev.map((item) => (String(item.id) === String(id) ? { ...item, ...saved } : item)));
+    }
+    return saved;
+  }
+
+  async function handleEventRemove(id) {
+    const success = await deleteEvent(id);
+    if (success) {
+      setEvents((prev) => prev.filter((item) => String(item.id) !== String(id) && String(item._id) !== String(id)));
+    }
+    return success;
+  }
+
   const page = useMemo(() => {
     switch (activeSection) {
       case "Dashboard":
@@ -2012,6 +2047,15 @@ export default function App() {
             onAddCareer={handleCareerAdd}
             onUpdateCareer={handleCareerUpdate}
             onDeleteCareer={handleCareerRemove}
+          />
+        );
+      case "Upcoming Events":
+        return (
+          <EventsPage
+            events={events}
+            onAddEvent={handleEventAdd}
+            onUpdateEvent={handleEventUpdate}
+            onDeleteEvent={handleEventRemove}
           />
         );
       // case "WhatsApp Appointments":

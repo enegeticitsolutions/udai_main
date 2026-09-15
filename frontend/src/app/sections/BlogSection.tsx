@@ -57,7 +57,7 @@ export function BlogSection() {
                       alt={post.title}
                       className={
                         isArt
-                          ? "h-full w-full object-contain object-center bg-white"
+                          ? "h-full w-full object-contain object-center scale-[1.18] transition-transform duration-300"
                           : "h-full w-full object-cover object-top"
                       }
                     />

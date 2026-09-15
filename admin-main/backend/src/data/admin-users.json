@@ -108,5 +108,32 @@
     ],
     "isActive": true,
     "createdAt": "2026-09-05T18:30:43.099Z"
+  },
+  {
+    "id": "user_1789207851002",
+    "name": "dimple",
+    "email": "vermadimple825@gmail.com",
+    "password": "123456",
+    "role": "admin",
+    "permissions": [
+      "Dashboard",
+      "WhatsApp Messages",
+      "Orders / Purchases",
+      "Corporate Inquiries",
+      "Donations",
+      "Volunteers",
+      "Therapist Management",
+      "Availability Manager",
+      "Products",
+      "Career Management",
+      "Subscribe",
+      "Contacts",
+      "Notifications Center",
+      "Message Broadcast",
+      "Reports / Analytics",
+      "Settings"
+    ],
+    "isActive": true,
+    "createdAt": "2026-09-12T10:10:51.002Z"
   }
 ]
