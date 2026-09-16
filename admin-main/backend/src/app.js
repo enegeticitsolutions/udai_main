@@ -51,5 +51,15 @@ export function createApp() {
     res.status(404).json({ success: false, message: "Route not found" });
   });
 
+  // Global error handler
+  app.use((err, req, res, _next) => {
+    console.error(`❌ [Admin API Error] ${req.method} ${req.originalUrl}:`, err);
+    res.status(err.status || err.statusCode || 500).json({
+      success: false,
+      message: err?.message || "Internal server error",
+    });
+  });
+
   return app;
 }
+

@@ -287,28 +287,38 @@ export async function addProduct(product) {
     await writeJsonFile(storedProductsPath(), storedProducts);
     return nextProduct;
 }
+function productMongoFilter(id) {
+    const stringId = String(id);
+    const numericId = Number(stringId);
+    const filters = [{ id: stringId }];
+    if (!Number.isNaN(numericId)) {
+        filters.push({ id: numericId });
+    }
+    if (ObjectId.isValid(stringId)) {
+        filters.unshift({ _id: new ObjectId(stringId) });
+    }
+    return { $or: filters };
+}
 export async function updateProduct(id, updates) {
     await connectMongoDb();
     if (updates.title && !updates.slug) {
         updates.slug = slugify(updates.title);
     }
+    const { _id, ...cleanUpdates } = updates;
     if (isMongoConnected()) {
         const db = getMongoDb();
-        const filter = ObjectId.isValid(String(id)) ? { _id: new ObjectId(String(id)) } : { id };
+        const filter = productMongoFilter(id);
         const now = new Date().toISOString();
         await db.collection("products").updateOne(filter, {
             $set: {
-                ...updates,
+                ...cleanUpdates,
                 updatedAt: now,
             },
         });
         const updated = await db.collection("products").findOne(filter);
         if (!updated)
             return null;
-        return {
-            ...updated,
-            id: updated._id.toString(),
-        };
+        return normalizeProductDocument(updated);
     }
     const storedProducts = await readStoredProducts();
     const productIndex = storedProducts.findIndex((p) => String(p.id) === String(id));
@@ -320,7 +330,7 @@ export async function updateProduct(id, updates) {
             return null;
         const nextProduct = {
             ...seedProduct,
-            ...updates,
+            ...cleanUpdates,
         };
         storedProducts.push(nextProduct);
         await writeJsonFile(storedProductsPath(), storedProducts);
@@ -328,7 +338,7 @@ export async function updateProduct(id, updates) {
     }
     storedProducts[productIndex] = {
         ...storedProducts[productIndex],
-        ...updates,
+        ...cleanUpdates,
     };
     await writeJsonFile(storedProductsPath(), storedProducts);
     return storedProducts[productIndex];
@@ -337,7 +347,7 @@ export async function deleteProduct(id) {
     await connectMongoDb();
     if (isMongoConnected()) {
         const db = getMongoDb();
-        const filter = ObjectId.isValid(String(id)) ? { _id: new ObjectId(String(id)) } : { id };
+        const filter = productMongoFilter(id);
         const result = await db.collection("products").deleteOne(filter);
         return result.deletedCount > 0;
     }

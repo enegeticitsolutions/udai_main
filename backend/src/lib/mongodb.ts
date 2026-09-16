@@ -29,8 +29,8 @@ export async function connectMongoDb() {
     console.log("SUCCESS: Connected to MongoDB database:", config.mongoDbName);
     return db;
   } catch (error) {
-    console.error("FAILED to connect to MongoDB:", error);
-    throw error;
+    console.error("FAILED to connect to MongoDB, will use fallback storage:", error);
+    return null;
   }
 }
 

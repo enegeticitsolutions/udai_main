@@ -487,9 +487,14 @@ adminRouter.post("/upload", (req, res, next) => {
 adminRouter.post("/products", async (req, res, next) => {
   try {
     const payload = req.body ?? {};
-    if (!payload.title || !payload.price || !payload.image) {
+    if (!payload.title || payload.price === undefined || payload.price === null || payload.price === "" || !payload.image) {
       res.status(400).json({ success: false, message: "Title, price, and image are required" });
       return;
+    }
+
+    payload.price = Number(payload.price) || 0;
+    if (payload.originalPrice !== undefined && payload.originalPrice !== null && payload.originalPrice !== "") {
+      payload.originalPrice = Number(payload.originalPrice);
     }
 
     if (!payload.slug) {

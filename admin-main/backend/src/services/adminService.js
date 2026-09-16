@@ -63,11 +63,15 @@ function normalizeMongoDocument(document) {
 }
 
 async function writeEntityStorageSnapshot(entity, collection) {
-  const { fileName } = storageByEntity[entity];
-  const records = (await collection.find({}).sort({ createdAt: -1 }).toArray()).map((doc) => normalizeMongoDocument(doc));
-  const targetPath = entityStoragePath(entity, fileName);
-  await fs.mkdir(path.dirname(targetPath), { recursive: true });
-  await writeJsonFile(targetPath, records);
+  try {
+    const { fileName } = storageByEntity[entity];
+    const records = (await collection.find({}).sort({ createdAt: -1 }).toArray()).map((doc) => normalizeMongoDocument(doc));
+    const targetPath = entityStoragePath(entity, fileName);
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    await writeJsonFile(targetPath, records);
+  } catch (err) {
+    console.warn(`⚠️ Failed to write entity storage snapshot for ${entity}:`, err?.message || err);
+  }
 }
 
 function mongoRecordFilter(id) {
@@ -195,9 +199,20 @@ async function updateStorageRecord(entity, id, updates) {
     return null;
   }
 
-  const targetPath = entityStoragePath(entity, fileName);
-  await fs.mkdir(path.dirname(targetPath), { recursive: true });
-  await writeJsonFile(targetPath, nextRecords);
+  try {
+    const targetPath = entityStoragePath(entity, fileName);
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    await writeJsonFile(targetPath, nextRecords);
+  } catch (err) {
+    console.warn(`⚠️ updateStorageRecord entityStoragePath failed for ${entity}, falling back to local:`, err?.message || err);
+    try {
+      const fallbackPath = storagePath(fileName);
+      await fs.mkdir(path.dirname(fallbackPath), { recursive: true });
+      await writeJsonFile(fallbackPath, nextRecords);
+    } catch (fallbackErr) {
+      console.warn(`⚠️ updateStorageRecord fallback failed for ${entity}:`, fallbackErr?.message || fallbackErr);
+    }
+  }
 
   return nextRecords.find((record) => String(record.id) === String(id)) ?? null;
 }
@@ -222,9 +237,10 @@ async function updateMongoRecord(entity, id, updates) {
     return null;
   }
 
+  const { _id, ...cleanUpdates } = updates ?? {};
   const merged = {
     ...existing,
-    ...updates,
+    ...cleanUpdates,
     updatedAt: new Date().toISOString(),
   };
 
@@ -252,9 +268,20 @@ async function deleteStorageRecord(entity, id) {
     ? records.map((record) => (String(record.id).trim() === targetId ? { ...record, active: false, updatedAt: new Date().toISOString() } : record))
     : records.filter((record) => String(record.id).trim() !== targetId && String(record._id).trim() !== targetId);
 
-  const targetPath = entityStoragePath(entity, fileName);
-  await fs.mkdir(path.dirname(targetPath), { recursive: true });
-  await writeJsonFile(targetPath, nextRecords);
+  try {
+    const targetPath = entityStoragePath(entity, fileName);
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    await writeJsonFile(targetPath, nextRecords);
+  } catch (err) {
+    console.warn(`⚠️ deleteStorageRecord entityStoragePath failed for ${entity}, falling back to local:`, err?.message || err);
+    try {
+      const fallbackPath = storagePath(fileName);
+      await fs.mkdir(path.dirname(fallbackPath), { recursive: true });
+      await writeJsonFile(fallbackPath, nextRecords);
+    } catch (fallbackErr) {
+      console.warn(`⚠️ deleteStorageRecord fallback failed for ${entity}:`, fallbackErr?.message || fallbackErr);
+    }
+  }
 
   return { id };
 }
@@ -296,16 +323,28 @@ async function createStorageRecord(entity, record) {
       return existing;
     }
   }
+  const { _id, ...cleanRecord } = record ?? {};
   const nextRecord = {
-    id: `${entity.slice(0, 3).toUpperCase()}-${Date.now()}`,
+    id: cleanRecord.id || `${entity.slice(0, 3).toUpperCase()}-${Date.now()}`,
     createdAt: new Date().toISOString(),
-    ...record,
+    ...cleanRecord,
   };
   const nextRecords = [nextRecord, ...records];
 
-  const targetPath = entityStoragePath(entity, fileName);
-  await fs.mkdir(path.dirname(targetPath), { recursive: true });
-  await writeJsonFile(targetPath, nextRecords);
+  try {
+    const targetPath = entityStoragePath(entity, fileName);
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    await writeJsonFile(targetPath, nextRecords);
+  } catch (err) {
+    console.warn(`⚠️ createStorageRecord entityStoragePath failed for ${entity}, falling back to local:`, err?.message || err);
+    try {
+      const fallbackPath = storagePath(fileName);
+      await fs.mkdir(path.dirname(fallbackPath), { recursive: true });
+      await writeJsonFile(fallbackPath, nextRecords);
+    } catch (fallbackErr) {
+      console.warn(`⚠️ createStorageRecord fallback failed for ${entity}:`, fallbackErr?.message || fallbackErr);
+    }
+  }
 
   return nextRecord;
 }
@@ -334,10 +373,11 @@ async function createMongoRecord(entity, record) {
       return normalizeMongoDocument(existing);
     }
   }
+  const { _id, ...cleanRecord } = record ?? {};
   const nextRecord = {
-    id: `${entity.slice(0, 3).toUpperCase()}-${Date.now()}`,
+    id: cleanRecord.id || `${entity.slice(0, 3).toUpperCase()}-${Date.now()}`,
     createdAt: new Date().toISOString(),
-    ...record,
+    ...cleanRecord,
   };
 
   await collection.insertOne(nextRecord);
