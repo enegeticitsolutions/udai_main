@@ -12,6 +12,8 @@ import type { Order } from "../types.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
 import { razorpay, getRazorpayInstance } from "../lib/razorpay.js";
 import { getDonationConfirmationTemplate, getOrderConfirmationTemplate, sendEmail } from "../services/emailService.js";
+import { processEnviaShipmentForOrder } from "../services/enviaService.js";
+
 
 async function triggerConfirmationEmailIfPaid(record: {
   customerEmail?: string;
@@ -90,6 +92,24 @@ async function triggerConfirmationEmailIfPaid(record: {
     }
   } catch (emailErr) {
     console.error("🚨 Failed to send confirmation email:", emailErr);
+  }
+}
+
+async function triggerPostPaymentActions(record: any) {
+  if (!record) return;
+
+  if (!record.emailSent) {
+    try {
+      await triggerConfirmationEmailIfPaid(record);
+    } catch (emailErr) {
+      console.error("🚨 Email trigger error in post-payment actions:", emailErr);
+    }
+  }
+
+  try {
+    await processEnviaShipmentForOrder(record);
+  } catch (enviaErr) {
+    console.error("🚨 Envia shipment trigger error in post-payment actions:", enviaErr);
   }
 }
 
@@ -208,31 +228,38 @@ function getAuthenticatedUserId(req: Request) {
 }
 
 async function persistUserOrder(userId: string | undefined, order: Order) {
-  if (!userId || !isMongoConnected()) return;
+  if (!isMongoConnected()) return;
 
   const { _id, ...orderWithoutMongoId } = order as unknown as Record<string, unknown> & { _id?: ObjectId };
   const localOrderId = String(order.id);
   const orderPatch = {
     ...orderWithoutMongoId,
     localOrderId,
-    userId,
+    ...(userId ? { userId } : {}),
     updatedAt: new Date().toISOString(),
   };
 
   const collection = getMongoDb().collection("orders");
 
   if (_id instanceof ObjectId) {
-    await collection.updateOne({ _id }, { $set: orderPatch });
+    await collection.updateOne({ _id }, { $set: orderPatch }, { upsert: true });
     return;
   }
 
   if (ObjectId.isValid(localOrderId)) {
-    await collection.updateOne({ _id: new ObjectId(localOrderId) }, { $set: orderPatch });
+    await collection.updateOne({ _id: new ObjectId(localOrderId) }, { $set: orderPatch }, { upsert: true });
     return;
   }
 
   await collection.updateOne(
-    { id: localOrderId },
+    {
+      $or: [
+        { id: localOrderId },
+        { localOrderId },
+        ...(order.orderNumber ? [{ orderNumber: order.orderNumber }] : []),
+        ...(order.razorpayPaymentLinkId ? [{ razorpayPaymentLinkId: order.razorpayPaymentLinkId }] : []),
+      ],
+    },
     {
       $set: orderPatch,
       $setOnInsert: { createdAt: order.createdAt ?? new Date().toISOString() },
@@ -413,6 +440,11 @@ paymentsRouter.post("/razorpay/verify", async (req, res, next) => {
       });
       return;
     }
+
+    // Trigger confirmation email and Envia automated shipment
+    triggerPostPaymentActions(updatedOrder).catch((err) =>
+      console.error("🚨 Error in post-payment actions:", err)
+    );
 
     res.json({
       success: true,
@@ -730,16 +762,18 @@ async function verifyLinkStatusHandler(req: Request, res: Response, next: NextFu
           (await getMongoDb().collection("orders").findOne(query)) ||
           (await getMongoDb().collection("donations").findOne(query));
 
-        if (record && !record.emailSent) {
-          triggerConfirmationEmailIfPaid(record);
-        } else if (!record && linkData?.customer?.email) {
+        if (record) {
+          triggerPostPaymentActions(record).catch((err) =>
+            console.error("🚨 Error in post-payment actions:", err)
+          );
+        } else if (linkData?.customer?.email) {
           triggerConfirmationEmailIfPaid({
             customerEmail: linkData.customer.email,
             customerName: linkData.customer.name,
             totalAmount: linkData.amount ? linkData.amount / 100 : 0,
             razorpayPaymentLinkId: paymentLinkId,
             razorpayPaymentId: paymentId,
-          });
+          }).catch((err) => console.error("🚨 Error sending confirmation email:", err));
         }
       }
     }
@@ -813,8 +847,10 @@ async function webhookHandler(req: Request, res: Response) {
             (await getMongoDb().collection("orders").findOne(query)) ||
             (await getMongoDb().collection("donations").findOne(query));
 
-          if (record && !record.emailSent) {
-            triggerConfirmationEmailIfPaid(record);
+          if (record) {
+            triggerPostPaymentActions(record).catch((err) =>
+              console.error("🚨 Error in post-payment actions from webhook:", err)
+            );
           }
         }
 
@@ -1012,6 +1048,33 @@ async function qrStatusHandler(req: Request, res: Response, next: NextFunction) 
             .createHmac("sha256", config.razorpayKeySecret)
             .update(`${razorpayOrderId}|${razorpayPaymentId}`)
             .digest("hex");
+
+          const patch = {
+            paymentStatus: "paid",
+            orderStatus: "confirmed",
+            razorpayOrderId,
+            razorpayPaymentId,
+            razorpaySignature: expectedSignature,
+            razorpayStatus: "paid",
+            updatedAt: new Date().toISOString(),
+          };
+
+          if (isMongoConnected()) {
+            const query = {
+              $or: [
+                ...(localOrderId ? [{ localOrderId }] : []),
+                ...(ObjectId.isValid(localOrderId) ? [{ _id: new ObjectId(localOrderId) }] : []),
+                { razorpayQrCodeId: qrCodeId },
+              ],
+            };
+            await getMongoDb().collection("orders").updateMany(query, { $set: patch });
+            const record = await getMongoDb().collection("orders").findOne(query);
+            if (record) {
+              triggerPostPaymentActions(record).catch((err) =>
+                console.error("🚨 Error in post-payment actions from QR poll:", err)
+              );
+            }
+          }
 
           res.json({
             success: true,

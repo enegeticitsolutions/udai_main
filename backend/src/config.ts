@@ -80,4 +80,6 @@ export const config = {
   supabaseAnon: process.env.SUPABASE_ANON ?? "",
   supabaseServiceRole: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
   supabaseBucketName: "product",
+  enviaApiKey: process.env.ENVIA_API_KEY ?? "",
+  enviaApiUrl: process.env.ENVIA_API_URL ?? "https://api.envia.com/ship/generate",
 };

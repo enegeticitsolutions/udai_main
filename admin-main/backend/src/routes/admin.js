@@ -378,6 +378,46 @@ adminRouter.post("/approve-volunteer", async (req, res, next) => {
   }
 });
 
+adminRouter.get("/orders", async (_req, res, next) => {
+  try {
+    const data = await readRecords("orders");
+    res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get("/orders/:id", async (req, res, next) => {
+  try {
+    const records = await readRecords("orders");
+    const targetId = String(req.params.id).trim();
+    const order = records.find(
+      (r) => String(r.id).trim() === targetId || String(r.orderNumber).trim() === targetId || String(r._id).trim() === targetId
+    );
+    if (!order) {
+      res.status(404).json({ success: false, message: "Order not found" });
+      return;
+    }
+    res.json({ success: true, data: order });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/orders", async (req, res, next) => {
+  try {
+    const payload = req.body ?? {};
+    const record = await createAdminRecord("orders", {
+      ...payload,
+      createdAt: payload.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    res.status(201).json({ success: true, data: record, message: "Order created successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 adminRouter.patch("/orders/:id", async (req, res, next) => {
   try {
     const updated = await updateAdminRecord("orders", req.params.id, req.body ?? {});
@@ -387,6 +427,19 @@ adminRouter.patch("/orders/:id", async (req, res, next) => {
     }
 
     res.json({ success: true, data: updated, message: "Order updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/orders/:id", async (req, res, next) => {
+  try {
+    const deleted = await deleteAdminRecord("orders", req.params.id);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: "Order not found" });
+      return;
+    }
+    res.json({ success: true, data: deleted, message: "Order removed successfully" });
   } catch (error) {
     next(error);
   }

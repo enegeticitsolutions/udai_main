@@ -120,11 +120,11 @@ export interface ShippingAddress {
   pincode: string;
   house: string;
   area: string;
-  landmark: string;
+  landmark?: string;
   city: string;
   state: string;
-  instructions: string;
-  defaultAddress: boolean;
+  instructions?: string;
+  defaultAddress?: boolean;
   email?: string;
 }
 
@@ -146,11 +146,17 @@ export interface Order {
   notes: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  razorpayPaymentLinkId?: string;
+  razorpayPaymentLinkUrl?: string;
   razorpaySignature?: string;
   razorpayAmount?: number;
   razorpayCurrency?: string;
   razorpayReceipt?: string;
   razorpayStatus?: string;
+  trackingNumber?: string;
+  shippingLabelUrl?: string;
+  carrier?: string;
+  shippingStatus?: string;
   createdAt: string;
   updatedAt?: string;
 }

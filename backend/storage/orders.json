@@ -1,0 +1,132 @@
+[
+  {
+    "id": "ord_mock_1789584129655",
+    "orderNumber": "ORD-1789584129655",
+    "customerName": "Aarav Sharma",
+    "customerEmail": "aarav.sharma@example.com",
+    "customerPhone": "9876543210",
+    "shippingAddress": {
+      "fullName": "Aarav Sharma",
+      "mobile": "9876543210",
+      "house": "Flat 304, Green Palms Residency",
+      "area": "Indiranagar",
+      "landmark": "Near BDA Complex",
+      "city": "Bengaluru",
+      "state": "KA",
+      "country": "India",
+      "pincode": "560038",
+      "instructions": "Please call before delivery",
+      "defaultAddress": true,
+      "email": "aarav.sharma@example.com"
+    },
+    "items": [
+      {
+        "productId": "prod_mock_01",
+        "title": "Handcrafted Ceramic Mug - Earth Edition",
+        "price": 499,
+        "quantity": 2,
+        "image": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=60",
+        "category": "Ceramics"
+      },
+      {
+        "productId": "prod_mock_02",
+        "title": "Organic Cotton Tote Bag - UDAI Pride",
+        "price": 350,
+        "quantity": 1,
+        "image": "https://images.unsplash.com/photo-1597484661643-2f5fef640dd1?w=500&auto=format&fit=crop&q=60",
+        "category": "Handmade"
+      }
+    ],
+    "subtotal": 1348,
+    "shippingAmount": 0,
+    "totalAmount": 1348,
+    "currency": "INR",
+    "paymentMethod": "card",
+    "paymentStatus": "paid",
+    "orderStatus": "confirmed",
+    "trackingNumber": "ENV-IND-8829104",
+    "shippingLabelUrl": "https://api.envia.com/files/labels/sample_label.pdf",
+    "carrier": "delhivery",
+    "shippingStatus": "label_created",
+    "shippingProcessed": true,
+    "notes": "Express delivery requested",
+    "createdAt": "2026-09-16T18:42:09.655Z",
+    "updatedAt": "2026-09-16T18:42:09.655Z"
+  },
+  {
+    "id": "ord_past_1789584100000",
+    "orderNumber": "ORD-1789584100000",
+    "customerName": "Priya Patel",
+    "customerEmail": "priya.patel@example.com",
+    "customerPhone": "9812345678",
+    "shippingAddress": {
+      "fullName": "Priya Patel",
+      "mobile": "9812345678",
+      "house": "B-12, Sector 15",
+      "area": "Noida",
+      "city": "Noida",
+      "state": "UP",
+      "country": "India",
+      "pincode": "201301"
+    },
+    "items": [
+      {
+        "productId": "prod_02",
+        "title": "Handmade Scented Soy Candle Set",
+        "price": 650,
+        "quantity": 1,
+        "image": "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=500&auto=format&fit=crop&q=60"
+      }
+    ],
+    "subtotal": 650,
+    "shippingAmount": 0,
+    "totalAmount": 650,
+    "currency": "INR",
+    "paymentMethod": "upi",
+    "paymentStatus": "paid",
+    "orderStatus": "shipped",
+    "trackingNumber": "DEL-8492019482",
+    "shippingLabelUrl": "https://api.envia.com/files/labels/label_delhivery_01.pdf",
+    "carrier": "delhivery",
+    "shippingStatus": "in_transit",
+    "createdAt": "2026-09-15T10:30:00.000Z"
+  },
+  {
+    "id": "ord_past_1789497700000",
+    "orderNumber": "ORD-1789497700000",
+    "customerName": "Vikram Sengupta",
+    "customerEmail": "vikram.s@example.com",
+    "customerPhone": "9732109876",
+    "shippingAddress": {
+      "fullName": "Vikram Sengupta",
+      "mobile": "9732109876",
+      "house": "House No 54, Lake Gardens",
+      "area": "South Kolkata",
+      "city": "Kolkata",
+      "state": "WB",
+      "country": "India",
+      "pincode": "700045"
+    },
+    "items": [
+      {
+        "productId": "prod_03",
+        "title": "Special Needs Sensory Wooden Toy Set",
+        "price": 1200,
+        "quantity": 1,
+        "image": "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=500&auto=format&fit=crop&q=60"
+      }
+    ],
+    "subtotal": 1200,
+    "shippingAmount": 0,
+    "totalAmount": 1200,
+    "currency": "INR",
+    "paymentMethod": "payment_link",
+    "paymentStatus": "paid",
+    "orderStatus": "delivered",
+    "trackingNumber": "DEL-7391048291",
+    "shippingLabelUrl": "https://api.envia.com/files/labels/label_delhivery_02.pdf",
+    "carrier": "delhivery",
+    "shippingStatus": "delivered",
+    "createdAt": "2026-09-14T09:15:00.000Z"
+  }
+]

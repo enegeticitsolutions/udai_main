@@ -198,11 +198,11 @@ export interface ShippingAddress {
   pincode: string;
   house: string;
   area: string;
-  landmark: string;
+  landmark?: string;
   city: string;
   state: string;
-  instructions: string;
-  defaultAddress: boolean;
+  instructions?: string;
+  defaultAddress?: boolean;
   email?: string;
 }
 
@@ -224,6 +224,8 @@ export interface Order {
   notes: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  razorpayPaymentLinkId?: string;
+  razorpayPaymentLinkUrl?: string;
   razorpaySignature?: string;
   razorpayAmount?: number;
   razorpayCurrency?: string;
@@ -232,6 +234,13 @@ export interface Order {
   razorpayQrCodeId?: string;
   razorpayQrImageUrl?: string;
   razorpayQrImageContent?: string;
+  trackingNumber?: string;
+  shippingLabelUrl?: string;
+  enviaShipmentId?: string | number;
+  carrier?: string;
+  shippingStatus?: string;
+  shippingProcessed?: boolean;
+  enviaCreatedAt?: string;
   createdAt: string;
   updatedAt?: string;
 }

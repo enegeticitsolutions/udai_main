@@ -152,17 +152,27 @@ export default function OrdersPage({ orders = [], onUpdateOrder }) {
 
   // Export CSV
   function exportCSV() {
-    const headers = ["Order ID", "Customer Name", "Email", "Phone", "Amount (INR)", "Payment Status", "Payment Method", "Date"];
-    const rows = sortedOrders.map((o) => [
-      `"${(o.orderNumber || o.id || "").replace(/"/g, '""')}"`,
-      `"${(o.customerName || "").replace(/"/g, '""')}"`,
-      `"${(o.customerEmail || "").replace(/"/g, '""')}"`,
-      `"${(o.customerPhone || "").replace(/"/g, '""')}"`,
-      o.totalAmount || o.subtotal || o.amount || 0,
-      `"${(o.paymentStatus || "initiated").replace(/"/g, '""')}"`,
-      `"${formatPaymentMethod(o.paymentMethod).replace(/"/g, '""')}"`,
-      `"${o.createdAt ? new Date(o.createdAt).toISOString() : ""}"`,
-    ]);
+    const headers = ["Order ID", "Customer Name", "Email", "Phone", "Delivery Address", "Amount (INR)", "Payment Status", "Payment Method", "Tracking Number", "Date"];
+    const rows = sortedOrders.map((o) => {
+      const addr = o.shippingAddress
+        ? [o.shippingAddress.house, o.shippingAddress.area, o.shippingAddress.landmark, o.shippingAddress.city, o.shippingAddress.state, o.shippingAddress.pincode, o.shippingAddress.country]
+            .filter(Boolean)
+            .join(", ")
+        : "";
+
+      return [
+        `"${(o.orderNumber || o.id || "").replace(/"/g, '""')}"`,
+        `"${(o.customerName || (o.shippingAddress && o.shippingAddress.fullName) || "").replace(/"/g, '""')}"`,
+        `"${(o.customerEmail || (o.shippingAddress && o.shippingAddress.email) || "").replace(/"/g, '""')}"`,
+        `"${(o.customerPhone || (o.shippingAddress && o.shippingAddress.mobile) || "").replace(/"/g, '""')}"`,
+        `"${addr.replace(/"/g, '""')}"`,
+        o.totalAmount || o.subtotal || o.amount || 0,
+        `"${(o.paymentStatus || "initiated").replace(/"/g, '""')}"`,
+        `"${formatPaymentMethod(o.paymentMethod).replace(/"/g, '""')}"`,
+        `"${(o.trackingNumber || "").replace(/"/g, '""')}"`,
+        `"${o.createdAt ? new Date(o.createdAt).toISOString() : ""}"`,
+      ];
+    });
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -510,7 +520,8 @@ export default function OrdersPage({ orders = [], onUpdateOrder }) {
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
                 <th style={{ padding: "14px 16px", fontWeight: 600, color: "#475569", whiteSpace: "nowrap", minWidth: "190px" }}>Order Reference</th>
-                <th style={{ padding: "14px 16px", fontWeight: 600, color: "#475569", whiteSpace: "nowrap", minWidth: "270px" }}>Customer</th>
+                <th style={{ padding: "14px 16px", fontWeight: 600, color: "#475569", whiteSpace: "nowrap", minWidth: "250px" }}>Customer</th>
+                <th style={{ padding: "14px 16px", fontWeight: 600, color: "#475569", whiteSpace: "nowrap", minWidth: "220px" }}>Delivery Address</th>
                 <th style={{ padding: "14px 16px", fontWeight: 600, color: "#475569", whiteSpace: "nowrap", minWidth: "180px" }}>Items Purchased</th>
                 <th style={{ padding: "14px 16px", fontWeight: 600, color: "#475569", whiteSpace: "nowrap", minWidth: "130px" }}>Payment Mode</th>
                 <th style={{ padding: "14px 16px", fontWeight: 600, color: "#475569", whiteSpace: "nowrap", minWidth: "110px" }}>Status</th>
@@ -522,7 +533,7 @@ export default function OrdersPage({ orders = [], onUpdateOrder }) {
             <tbody>
               {paginatedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: "48px 16px", textAlign: "center", color: "#64748b" }}>
+                  <td colSpan={9} style={{ padding: "48px 16px", textAlign: "center", color: "#64748b" }}>
                     <div style={{ fontSize: "2rem", marginBottom: "8px" }}>📦</div>
                     <div style={{ fontWeight: 600, color: "#334155" }}>No orders found</div>
                     <div style={{ fontSize: "0.82rem", color: "#94a3b8" }}>Try adjusting your search query or status filter</div>
@@ -531,7 +542,7 @@ export default function OrdersPage({ orders = [], onUpdateOrder }) {
               ) : (
                 paginatedOrders.map((order, idx) => {
                   const orderId = order.orderNumber || order.id || `ORD-${idx}`;
-                  const customerName = order.customerName || "Customer";
+                  const customerName = order.customerName || (order.shippingAddress && order.shippingAddress.fullName) || "Customer";
                   const avatarColor = getAvatarColor(customerName);
                   const initials = getInitials(customerName);
                   const amount = Number(order.totalAmount ?? order.subtotal ?? order.amount ?? 0);
@@ -593,8 +604,8 @@ export default function OrdersPage({ orders = [], onUpdateOrder }) {
                       </td>
 
                       {/* Customer Details */}
-                      <td style={{ padding: "14px 16px", verticalAlign: "middle", minWidth: "270px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: "250px" }}>
+                      <td style={{ padding: "14px 16px", verticalAlign: "middle", minWidth: "250px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: "230px" }}>
                           <div
                             style={{
                               width: "38px",
@@ -618,15 +629,51 @@ export default function OrdersPage({ orders = [], onUpdateOrder }) {
                               {customerName}
                             </div>
                             <div style={{ fontSize: "0.78rem", color: "#64748b", marginTop: "2px", whiteSpace: "nowrap" }}>
-                              {order.customerEmail || "—"}
+                              {order.customerEmail || (order.shippingAddress && order.shippingAddress.email) || "—"}
                             </div>
-                            {order.customerPhone && (
+                            {(order.customerPhone || (order.shippingAddress && order.shippingAddress.mobile)) && (
                               <div style={{ fontSize: "0.74rem", color: "#94a3b8", marginTop: "1px", whiteSpace: "nowrap" }}>
-                                📞 +91 {order.customerPhone}
+                                📞 +91 {order.customerPhone || (order.shippingAddress && order.shippingAddress.mobile)}
                               </div>
                             )}
                           </div>
                         </div>
+                      </td>
+
+                      {/* Delivery Address */}
+                      <td style={{ padding: "14px 16px", verticalAlign: "middle", maxWidth: "240px" }}>
+                        {order.shippingAddress ? (
+                          <div style={{ fontSize: "0.82rem", color: "#334155", lineHeight: 1.35 }}>
+                            <div style={{ fontWeight: 600, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              📍 {order.shippingAddress.city || "—"}{order.shippingAddress.state ? `, ${order.shippingAddress.state}` : ""} {order.shippingAddress.pincode ? `(${order.shippingAddress.pincode})` : ""}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "0.76rem",
+                                color: "#64748b",
+                                marginTop: "2px",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                              title={[
+                                order.shippingAddress.house,
+                                order.shippingAddress.area,
+                                order.shippingAddress.landmark,
+                                order.shippingAddress.city,
+                                order.shippingAddress.state,
+                                order.shippingAddress.pincode,
+                                order.shippingAddress.country,
+                              ]
+                                .filter(Boolean)
+                                .join(", ")}
+                            >
+                              {[order.shippingAddress.house, order.shippingAddress.area, order.shippingAddress.landmark].filter(Boolean).join(", ") || "—"}
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: "0.78rem", color: "#94a3b8" }}>—</span>
+                        )}
                       </td>
 
                       {/* Items */}
@@ -894,17 +941,118 @@ export default function OrdersPage({ orders = [], onUpdateOrder }) {
                 Customer Information
               </div>
               <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.95rem" }}>
-                {selectedOrder.customerName || "Customer"}
+                {selectedOrder.customerName || selectedOrder.shippingAddress?.fullName || "Customer"}
               </div>
               <div style={{ fontSize: "0.84rem", color: "#475569", marginTop: "2px" }}>
-                📧 {selectedOrder.customerEmail || "No email"}
+                📧 {selectedOrder.customerEmail || selectedOrder.shippingAddress?.email || "No email"}
               </div>
-              {selectedOrder.customerPhone && (
+              {(selectedOrder.customerPhone || selectedOrder.shippingAddress?.mobile) && (
                 <div style={{ fontSize: "0.84rem", color: "#475569", marginTop: "2px" }}>
-                  📞 +91 {selectedOrder.customerPhone}
+                  📞 +91 {selectedOrder.customerPhone || selectedOrder.shippingAddress?.mobile}
                 </div>
               )}
             </div>
+
+            {/* Delivery / Shipping Address Section */}
+            <div style={{ background: "#f0fdf4", padding: "16px 18px", borderRadius: "14px", border: "1px solid #bbf7d0", marginBottom: "16px" }}>
+              <div style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", color: "#15803d", marginBottom: "10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span>📍 Customer Delivery Address</span>
+                </span>
+                <span style={{ fontSize: "0.72rem", background: "#dcfce7", color: "#166534", padding: "2px 8px", borderRadius: "6px", fontWeight: 600 }}>
+                  Verified Address
+                </span>
+              </div>
+
+              {selectedOrder.shippingAddress || selectedOrder.address || selectedOrder.deliveryAddress || selectedOrder.fullAddress ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "0.85rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", background: "#ffffff", padding: "10px 12px", borderRadius: "8px", border: "1px solid #dcfce7" }}>
+                    <div>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b", textTransform: "uppercase", fontWeight: 600, display: "block" }}>Recipient Name</span>
+                      <span style={{ fontWeight: 600, color: "#0f172a" }}>
+                        {selectedOrder.shippingAddress?.fullName || selectedOrder.customerName || "Customer"}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b", textTransform: "uppercase", fontWeight: 600, display: "block" }}>Contact Number</span>
+                      <span style={{ fontWeight: 600, color: "#0f172a" }}>
+                        📞 +91 {selectedOrder.shippingAddress?.mobile || selectedOrder.customerPhone || "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: "#ffffff", padding: "10px 12px", borderRadius: "8px", border: "1px solid #dcfce7" }}>
+                    <span style={{ fontSize: "0.72rem", color: "#64748b", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "2px" }}>Full Street Address</span>
+                    <div style={{ color: "#1e293b", fontWeight: 500, lineHeight: 1.4 }}>
+                      {typeof selectedOrder.shippingAddress === "object" ? (
+                        <>
+                          {selectedOrder.shippingAddress.house && <div><strong>House/Flat:</strong> {selectedOrder.shippingAddress.house}</div>}
+                          {selectedOrder.shippingAddress.area && <div><strong>Area/Locality:</strong> {selectedOrder.shippingAddress.area}</div>}
+                          {selectedOrder.shippingAddress.landmark && <div><strong>Landmark:</strong> {selectedOrder.shippingAddress.landmark}</div>}
+                          <div style={{ marginTop: "2px" }}>
+                            <strong>City & PIN:</strong> {selectedOrder.shippingAddress.city || "—"}, {selectedOrder.shippingAddress.state || "—"} - {selectedOrder.shippingAddress.pincode || "—"} ({selectedOrder.shippingAddress.country || "India"})
+                          </div>
+                        </>
+                      ) : (
+                        <div>{String(selectedOrder.shippingAddress || selectedOrder.address || selectedOrder.deliveryAddress || selectedOrder.fullAddress)}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedOrder.shippingAddress?.instructions && (
+                    <div style={{ background: "#fefce8", padding: "8px 12px", borderRadius: "8px", border: "1px solid #fef08a", fontSize: "0.8rem", color: "#854d0e" }}>
+                      <strong>📝 Delivery Note:</strong> {selectedOrder.shippingAddress.instructions}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ background: "#ffffff", padding: "12px", borderRadius: "8px", color: "#64748b", fontSize: "0.85rem", fontStyle: "italic" }}>
+                  No delivery address was recorded for this order.
+                </div>
+              )}
+            </div>
+
+            {/* Envia Shipping & Tracking Info */}
+            {(selectedOrder.trackingNumber || selectedOrder.shippingLabelUrl || selectedOrder.carrier) && (
+              <div style={{ background: "#eff6ff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #bfdbfe", marginBottom: "16px" }}>
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#1d4ed8", marginBottom: "6px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span>📦 Envia Shipping & Tracking</span>
+                  {selectedOrder.carrier && (
+                    <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 8px", borderRadius: "6px", fontSize: "0.72rem", textTransform: "uppercase" }}>
+                      {selectedOrder.carrier}
+                    </span>
+                  )}
+                </div>
+                {selectedOrder.trackingNumber && (
+                  <div style={{ fontSize: "0.85rem", color: "#1e3a8a", marginTop: "2px" }}>
+                    <strong>Tracking No:</strong> <span style={{ fontFamily: "monospace", fontWeight: 700 }}>{selectedOrder.trackingNumber}</span>
+                  </div>
+                )}
+                {selectedOrder.shippingLabelUrl && (
+                  <div style={{ marginTop: "8px" }}>
+                    <a
+                      href={selectedOrder.shippingLabelUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: "#2563eb",
+                        color: "#ffffff",
+                        padding: "6px 12px",
+                        borderRadius: "8px",
+                        fontSize: "0.8rem",
+                        fontWeight: 600,
+                        textDecoration: "none",
+                      }}
+                    >
+                      📄 Download Shipping Label (PDF)
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Order Items */}
             <div style={{ marginBottom: "16px" }}>
@@ -924,12 +1072,23 @@ export default function OrdersPage({ orders = [], onUpdateOrder }) {
                         borderRadius: "8px",
                         background: "#f8fafc",
                         border: "1px solid #f1f5f9",
+                        gap: "10px",
                       }}
                     >
-                      <span style={{ fontWeight: 500, fontSize: "0.85rem", color: "#1e293b" }}>
-                        {it.title} <span style={{ color: "#64748b" }}>× {it.quantity || 1}</span>
-                      </span>
-                      <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "#0f172a" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        {it.image && (
+                          <img
+                            src={it.image}
+                            alt={it.title}
+                            style={{ width: "36px", height: "36px", borderRadius: "6px", objectFit: "cover", border: "1px solid #e2e8f0" }}
+                            onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          />
+                        )}
+                        <span style={{ fontWeight: 500, fontSize: "0.85rem", color: "#1e293b" }}>
+                          {it.title} <span style={{ color: "#64748b" }}>× {it.quantity || 1}</span>
+                        </span>
+                      </div>
+                      <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "#0f172a", whiteSpace: "nowrap" }}>
                         {it.price ? formatCurrency(it.price * (it.quantity || 1)) : "—"}
                       </span>
                     </div>
