@@ -50,8 +50,9 @@ export type AppointmentRecord = {
 // ── Pricing constants ────────────────────────────────────────────────────────
 const FEE_ONLINE  = 600;   // ₹600 – online consultation (new or returning, non-counselling)
 const FEE_OFFLINE = 800;   // ₹800 – pay at clinic (new or returning, non-counselling)
-const FEE_COUNSELLING_SINGLE = 500;   // ₹500 – returning, counselling single session
-const FEE_COUNSELLING_WEEK   = 1500;  // ₹1500 – returning, counselling weekly package (3 sessions)
+const FEE_COUNSELLING_SINGLE  = 800;   // ₹800  – returning, counselling single session (1 day)
+const FEE_COUNSELLING_2DAYS   = 1600;  // ₹1600 – returning, counselling 2-day package
+const FEE_COUNSELLING_3DAYS   = 2400;  // ₹2400 – returning, counselling 3-day package
 
 /**
  * Pure function that returns the appointment fee, totalSessions, and feeCharged
@@ -59,37 +60,38 @@ const FEE_COUNSELLING_WEEK   = 1500;  // ₹1500 – returning, counselling week
  *
  * Pricing rules:
  *  - New patient  → Online: ₹600 | Offline: ₹800
- *  - Returning + Counselling + week/3-session package → ₹1500, 3 sessions
- *  - Returning + Counselling + single session          → ₹500,  1 session
+ *  - Returning + Counselling:
+ *      "3 Days" / "2400"  → ₹2400, 3 sessions
+ *      "2 Days" / "1600"  → ₹1600, 2 sessions
+ *      Single / anything else → ₹800, 1 session
  *  - Returning + any other service → Online: ₹600 | Offline: ₹800
  */
 export function calculateAppointmentFee(params: {
   isNew: boolean;
   appointmentType: string;        // "online" | "in-person" | "offline" | "clinic"
   department: string;
-  session_frequency?: string;     // e.g. "Week", "3 Sessions", "full_week", "Single"
+  session_frequency?: string;     // e.g. "3 Days", "2 Days", "Single", "2400", "1600"
 }): { amount: number; totalSessions: number; feeCharged: number } {
   const { isNew, appointmentType, department, session_frequency = "" } = params;
   const isOnline = ["online", "video", "virtual"].includes(appointmentType.toLowerCase().trim());
   const isCounselling = department.toLowerCase().replace(/[_ ]+/g, "-").includes("counsel");
 
-  // New patient — fee depends only on mode
+  // New patient — fee depends only on consultation mode
   if (isNew) {
     const amount = isOnline ? FEE_ONLINE : FEE_OFFLINE;
     return { amount, totalSessions: 1, feeCharged: amount };
   }
 
-  // Returning patient + Counselling — session frequency decides package
+  // Returning patient + Counselling — tiered by session frequency
   if (isCounselling) {
-    const sf = session_frequency.toLowerCase();
-    const isWeeklyPkg =
-      sf.includes("week") ||
-      sf.includes("3 session") ||
-      sf.includes("3session") ||
-      sf === "full_week";
-    if (isWeeklyPkg) {
-      return { amount: FEE_COUNSELLING_WEEK, totalSessions: 3, feeCharged: FEE_COUNSELLING_WEEK };
+    const sf = session_frequency.toLowerCase().trim();
+    if (sf.includes("3 day") || sf.includes("3day") || sf.includes("2400")) {
+      return { amount: FEE_COUNSELLING_3DAYS, totalSessions: 3, feeCharged: FEE_COUNSELLING_3DAYS };
     }
+    if (sf.includes("2 day") || sf.includes("2day") || sf.includes("1600")) {
+      return { amount: FEE_COUNSELLING_2DAYS, totalSessions: 2, feeCharged: FEE_COUNSELLING_2DAYS };
+    }
+    // Single session (default)
     return { amount: FEE_COUNSELLING_SINGLE, totalSessions: 1, feeCharged: FEE_COUNSELLING_SINGLE };
   }
 

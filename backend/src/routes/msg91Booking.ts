@@ -186,8 +186,9 @@ msg91BookingRouter.post("/", async (req, res) => {
  *
  * Pricing rules:
  *  New patient   – Online: ₹600 | Offline: ₹800
- *  Returning + Counselling + weekly pkg  – ₹1500, 3 sessions
- *  Returning + Counselling + single      – ₹500,  1 session
+ *  Returning + Counselling + 3 Days / "2400" – ₹2400, 3 sessions
+ *  Returning + Counselling + 2 Days / "1600" – ₹1600, 2 sessions
+ *  Returning + Counselling + Single           – ₹800,  1 session
  *  Returning + other services – Online: ₹600 | Offline: ₹800
  */
 msg91BookingRouter.post("/calculate-fee", (req, res) => {
