@@ -1,21 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 
-const getBackendBase = () => {
-  if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
-    return "http://localhost:4000";
-  }
-  const envUrl =
-    import.meta.env.VITE_PUBLIC_API_BASE_URL ??
-    import.meta.env.VITE_BASE_URL ??
-    import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL;
-
-  if (envUrl && !envUrl.includes("onrender.com")) {
-    return envUrl.replace(/\/$/, "");
-  }
-
-  return "https://udaiapi.datamoshtechnologies.com";
-};
-const BACKEND_BASE = getBackendBase();
+// All API calls use relative paths so Nginx on pms.datamoshtechnologies.com
+// proxies them to the admin backend (port 5003) without any cross-origin issues.
 
 function formatTime(dateStr) {
   if (!dateStr) return "—";
@@ -127,38 +113,21 @@ export default function WhatsAppMessagesPage() {
   }, []);
 
   const fetchMessages = useCallback(async () => {
-    const urls = [
-      `${BACKEND_BASE}/webhook/messages`,
-      `${BACKEND_BASE}/api/webhook/messages`,
-      `${BACKEND_BASE}/api/admin/webhook/messages`,
-      "/api/admin/webhook/messages",
-      "/api/webhook/messages",
-      "/webhook/messages",
-    ];
-
-    let lastErr = null;
-    let fetched = false;
-
-    for (const url of urls) {
-      try {
-        const res = await fetch(url);
-        if (res.ok) {
-          const json = await res.json();
-          if (json && (json.success !== false || Array.isArray(json.data))) {
-            setMessages(json.data || []);
-            setError(null);
-            setLastRefresh(new Date());
-            fetched = true;
-            break;
-          }
-        }
-      } catch (err) {
-        lastErr = err;
+    // Use relative path — Nginx on pms.datamoshtechnologies.com proxies
+    // /api/admin/* to the admin backend (port 5003), no CORS needed.
+    const url = "/api/admin/webhook/messages";
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        setMessages(json.data || []);
+        setError(null);
+        setLastRefresh(new Date());
+      } else {
+        setError(`Server returned ${res.status}`);
       }
-    }
-
-    if (!fetched && lastErr) {
-      setError(lastErr.message);
+    } catch (err) {
+      setError(err.message);
     }
     setLoading(false);
   }, []);
@@ -170,30 +139,17 @@ export default function WhatsAppMessagesPage() {
   }, [fetchMessages]);
 
   const patchMessage = async (targetId, updatePayload) => {
-    const patchUrls = [
-      `${BACKEND_BASE}/webhook/messages/${targetId}`,
-      `${BACKEND_BASE}/api/webhook/messages/${targetId}`,
-      `${BACKEND_BASE}/api/admin/webhook/messages/${targetId}`,
-      `/api/admin/webhook/messages/${targetId}`,
-      `/api/webhook/messages/${targetId}`,
-      `/webhook/messages/${targetId}`,
-    ];
-
-    let success = false;
-    for (const url of patchUrls) {
-      try {
-        const res = await fetch(url, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatePayload),
-        });
-        if (res.ok) {
-          success = true;
-          break;
-        }
-      } catch {}
+    // Relative path — proxied by Nginx to admin backend.
+    try {
+      const res = await fetch(`/api/admin/webhook/messages/${targetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatePayload),
+      });
+      return res.ok;
+    } catch {
+      return false;
     }
-    return success;
   };
 
   // 1. Mark as Paid handler
