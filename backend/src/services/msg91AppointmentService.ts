@@ -38,10 +38,65 @@ export type AppointmentRecord = {
   additionalNotes?: string;
   paymentStatus?: string;
   bookingStatus?: string;
+  /** Pricing metadata */
+  session_frequency?: string;
+  totalSessions?: number;
+  feeCharged?: number;
   rawPayload: unknown;
   createdAt: string;
   updatedAt: string;
 };
+
+// ── Pricing constants ────────────────────────────────────────────────────────
+const FEE_ONLINE  = 600;   // ₹600 – online consultation (new or returning, non-counselling)
+const FEE_OFFLINE = 800;   // ₹800 – pay at clinic (new or returning, non-counselling)
+const FEE_COUNSELLING_SINGLE = 500;   // ₹500 – returning, counselling single session
+const FEE_COUNSELLING_WEEK   = 1500;  // ₹1500 – returning, counselling weekly package (3 sessions)
+
+/**
+ * Pure function that returns the appointment fee, totalSessions, and feeCharged
+ * based on patient type, appointment mode, department, and session frequency.
+ *
+ * Pricing rules:
+ *  - New patient  → Online: ₹600 | Offline: ₹800
+ *  - Returning + Counselling + week/3-session package → ₹1500, 3 sessions
+ *  - Returning + Counselling + single session          → ₹500,  1 session
+ *  - Returning + any other service → Online: ₹600 | Offline: ₹800
+ */
+export function calculateAppointmentFee(params: {
+  isNew: boolean;
+  appointmentType: string;        // "online" | "in-person" | "offline" | "clinic"
+  department: string;
+  session_frequency?: string;     // e.g. "Week", "3 Sessions", "full_week", "Single"
+}): { amount: number; totalSessions: number; feeCharged: number } {
+  const { isNew, appointmentType, department, session_frequency = "" } = params;
+  const isOnline = ["online", "video", "virtual"].includes(appointmentType.toLowerCase().trim());
+  const isCounselling = department.toLowerCase().replace(/[_ ]+/g, "-").includes("counsel");
+
+  // New patient — fee depends only on mode
+  if (isNew) {
+    const amount = isOnline ? FEE_ONLINE : FEE_OFFLINE;
+    return { amount, totalSessions: 1, feeCharged: amount };
+  }
+
+  // Returning patient + Counselling — session frequency decides package
+  if (isCounselling) {
+    const sf = session_frequency.toLowerCase();
+    const isWeeklyPkg =
+      sf.includes("week") ||
+      sf.includes("3 session") ||
+      sf.includes("3session") ||
+      sf === "full_week";
+    if (isWeeklyPkg) {
+      return { amount: FEE_COUNSELLING_WEEK, totalSessions: 3, feeCharged: FEE_COUNSELLING_WEEK };
+    }
+    return { amount: FEE_COUNSELLING_SINGLE, totalSessions: 1, feeCharged: FEE_COUNSELLING_SINGLE };
+  }
+
+  // Returning patient + other services — same online/offline tiers
+  const amount = isOnline ? FEE_ONLINE : FEE_OFFLINE;
+  return { amount, totalSessions: 1, feeCharged: amount };
+}
 
 const appointmentCollection = "appointments";
 
@@ -285,6 +340,10 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
   const rawBookingId = pick(data, "booking_id", "bookingId", "id", "requestId", "uuid") || pick(root, "bookingId", "booking_id", "requestId", "uuid");
   const rawPaymentStatus = pick(data, "payment_status", "paymentStatus") || pick(root, "paymentStatus", "payment_status") || "pending";
   const rawBookingStatus = pick(data, "booking_status", "bookingStatus", "status") || pick(root, "bookingStatus", "status") || "confirmed";
+  const rawSessionFrequency =
+    pick(data, "session_frequency", "sessionFrequency", "session_type", "sessionType", "frequency") ||
+    pick(root, "session_frequency", "sessionFrequency", "frequency") ||
+    "";
 
   const input: Omit<AppointmentRecord, "id" | "bookingId" | "rawPayload" | "createdAt" | "updatedAt"> & { bookingId?: string } = {
     bookingId: rawBookingId || undefined,
@@ -307,6 +366,7 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
     additionalNotes: pick(data, "additional_notes", "additionalNotes", "notes") || "",
     paymentStatus: normalizeStatus(rawPaymentStatus),
     bookingStatus: normalizeStatus(rawBookingStatus) || "confirmed",
+    session_frequency: rawSessionFrequency || undefined,
   };
 
   return { input, hasDate };
@@ -409,12 +469,27 @@ export async function saveMsg91Appointment(payload: unknown) {
   input.therapistId = assigned.id;
   input.therapistName = assigned.name;
 
+  // ── Fee Calculation ──────────────────────────────────────────────────────
+  const { amount, totalSessions, feeCharged } = calculateAppointmentFee({
+    isNew: isFirstSession,
+    appointmentType: input.appointmentType || "in-person",
+    department: targetDepartment,
+    session_frequency: input.session_frequency,
+  });
+  input.feeCharged = feeCharged;
+  input.totalSessions = totalSessions;
+  console.log(`[Fee Calculation] isNew=${isFirstSession} dept=${targetDepartment} type=${input.appointmentType} freq=${input.session_frequency} => ₹${amount} (${totalSessions} session(s))`);
+
   input.bookingStatus = "confirmed";
   const bookingId = input.bookingId || generatedBookingId(input);
   const now = new Date().toISOString();
   const document = {
     ...input,
     bookingId,
+    amount,
+    totalSessions,
+    feeCharged,
+    session_frequency: input.session_frequency || "",
     rawPayload: payload,
     createdAt: now,
     updatedAt: now,

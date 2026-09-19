@@ -1,6 +1,6 @@
 import { Router } from "express";
 import mongoose from "mongoose";
-import { normalizeAppointmentDate, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import { calculateAppointmentFee, normalizeAppointmentDate, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
 import { getAvailableDates, getAvailableSlots, getDepartments } from "../services/bookingService.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
 
@@ -165,6 +165,56 @@ msg91BookingRouter.post("/", async (req, res) => {
       message: "Request processed",
       error: error.message,
     });
+  }
+});
+
+/**
+ * POST /api/msg91/calculate-fee
+ * Returns the correct appointment fee based on patient type, appointment mode,
+ * department, and (for Counselling returning patients) session frequency.
+ *
+ * Body:
+ *  {
+ *    isNew: boolean,                        // from /check-patient-status response
+ *    appointmentType: "online" | "offline", // consultation mode
+ *    department: string,                    // e.g. "Counselling", "OT", "Speech Therapy"
+ *    session_frequency?: string             // e.g. "Week", "3 Sessions", "full_week", "Single"
+ *  }
+ *
+ * Response:
+ *  { success: true, amount: number, totalSessions: number, feeCharged: number }
+ *
+ * Pricing rules:
+ *  New patient   – Online: ₹600 | Offline: ₹800
+ *  Returning + Counselling + weekly pkg  – ₹1500, 3 sessions
+ *  Returning + Counselling + single      – ₹500,  1 session
+ *  Returning + other services – Online: ₹600 | Offline: ₹800
+ */
+msg91BookingRouter.post("/calculate-fee", (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const isNew: boolean = body.isNew === true || body.isNew === "true";
+    const appointmentType = String(body.appointmentType ?? body.appointment_type ?? "in-person").trim();
+    const department = String(body.department ?? body.service ?? "").trim();
+    const session_frequency = String(body.session_frequency ?? body.sessionFrequency ?? "").trim();
+
+    if (!department) {
+      return res.status(400).json({ success: false, message: "department is required" });
+    }
+
+    const { amount, totalSessions, feeCharged } = calculateAppointmentFee({
+      isNew,
+      appointmentType,
+      department,
+      session_frequency,
+    });
+
+    console.log(`[calculate-fee] isNew=${isNew} dept=${department} type=${appointmentType} freq=${session_frequency} => ₹${amount} (${totalSessions} session(s))`);
+
+    return res.json({ success: true, amount, totalSessions, feeCharged });
+  } catch (error: any) {
+    console.error("[calculate-fee] Error:", error.message || error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
