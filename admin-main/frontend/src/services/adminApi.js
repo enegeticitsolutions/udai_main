@@ -11,12 +11,16 @@ const getAdminApiBase = () => {
       : "http://localhost:5003/api/admin";
   }
 
+  // Production: use env var if set, otherwise use a RELATIVE path so that
+  // Nginx on pms.datamoshtechnologies.com proxies /api/admin/* to port 5003.
+  // Never hardcode udaiapi.datamoshtechnologies.com here — that's the main
+  // backend (port 4000) and does NOT serve /api/admin routes.
   const envUrl = import.meta.env.VITE_ADMIN_API_BASE;
   if (envUrl) {
     return envUrl.replace(/\/$/, "");
   }
 
-  return "https://udaiapi.datamoshtechnologies.com/api/admin";
+  return "/api/admin";
 };
 
 const getPublicUploadBase = () => {
