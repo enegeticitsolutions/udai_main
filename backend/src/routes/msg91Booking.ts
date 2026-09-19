@@ -168,4 +168,44 @@ msg91BookingRouter.post("/", async (req, res) => {
   }
 });
 
+/**
+ * POST /api/msg91/check-patient-status
+ * Checks whether a phone number has any existing (non-cancelled/non-rejected)
+ * appointments in the `appointments` collection.
+ * Body: { phoneNumber: string }
+ * Response: { success: true, isNew: boolean }
+ */
+msg91BookingRouter.post("/check-patient-status", async (req, res) => {
+  try {
+    const rawPhone = String(req.body?.phoneNumber ?? req.body?.phone ?? "").trim();
+    // Strip non-digit chars, then take the last 10 digits for a clean Indian mobile number
+    const digitsOnly = rawPhone.replace(/\D/g, "");
+    const cleanPhone = digitsOnly.slice(-10);
+
+    if (!cleanPhone || cleanPhone.length < 10) {
+      return res.status(400).json({ success: false, message: "Valid phoneNumber is required" });
+    }
+
+    const db = mongoose.connection.db;
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    // Match phone stored as 10-digit, with country code prefix (91XXXXXXXXXX), or the raw value
+    const phoneVariants = [cleanPhone, `91${cleanPhone}`, `+91${cleanPhone}`, rawPhone].filter(Boolean);
+    const count = await db.collection("appointments").countDocuments({
+      phoneNumber: { $in: phoneVariants },
+      bookingStatus: { $nin: ["cancelled", "rejected"] },
+    });
+
+    console.log(`[check-patient-status] phone=${cleanPhone} count=${count}`);
+
+    return res.json({ success: true, isNew: count === 0 });
+  } catch (error: any) {
+    console.error("[check-patient-status] Error:", error.message || error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
 export default msg91BookingRouter;
+

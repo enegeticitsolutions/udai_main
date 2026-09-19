@@ -64,6 +64,7 @@ export function createApp() {
 
   app.use("/api", apiRouter);
   app.use("/msg91-booking", msg91BookingRouter);
+  app.use("/api/msg91", msg91BookingRouter);
   app.use("/availability", availabilityRouter);
   app.use("/api/availability", availabilityRouter);
 
@@ -71,6 +72,7 @@ export function createApp() {
   app.post("/api/msg91/payment-webhook", handleMsg91PaymentWebhook);
   app.post("/msg91/payment-webhook", handleMsg91PaymentWebhook);
   app.post("/api/msg91", handleMsg91PaymentWebhook);
+
 
   // ── Webhook: receive MSG91 data & save to MongoDB ─────────────────
   app.post("/webhook/receive-msg", async (req, res) => {
