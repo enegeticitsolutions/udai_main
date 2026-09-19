@@ -106,11 +106,14 @@ export default function AppointmentsPage() {
 
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Booking</th><th>Patient</th><th>Phone</th><th>Therapist</th><th>Schedule</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Booking</th><th>Patient</th><th>Phone</th><th>Therapist</th><th>Schedule</th><th>Type</th><th>Session Freq</th><th>Sessions</th><th>Fee</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
             {appointments.length === 0 ? <tr><td colSpan="8" style={{ textAlign: "center", padding: "24px" }}>{loading ? "Loading appointments..." : "No appointments found."}</td></tr> : appointments.map((item) => (
               <tr key={item.id}>
                 <td>{item.bookingId}</td><td>{item.patientName}</td><td>{item.phoneNumber}</td><td>{item.therapistName}</td><td>{dateTime(item)}</td><td>{item.appointmentType}</td>
+                <td>{item.session_frequency || <span style={{color:"var(--muted)"}}>—</span>}</td>
+                <td style={{textAlign:"center"}}>{item.totalSessions ?? <span style={{color:"var(--muted)"}}>—</span>}</td>
+                <td style={{fontWeight:600}}>{item.feeCharged != null ? `₹${item.feeCharged}` : <span style={{color:"var(--muted)"}}>—</span>}</td>
                 <td><Badge tone={statusTone[item.bookingStatus] || "slate"}>{item.bookingStatus}</Badge></td>
                 <td><Button variant="secondary" onClick={() => openDetails(item.id)}>View</Button></td>
               </tr>
