@@ -54,6 +54,7 @@ export function createApp() {
     });
     app.use("/api", apiRouter);
     app.use("/msg91-booking", msg91BookingRouter);
+    app.use("/api/msg91", msg91BookingRouter);
     app.use("/availability", availabilityRouter);
     app.use("/api/availability", availabilityRouter);
     // ── MSG91 WhatsApp Payment Webhook Direct Route ──────────────────

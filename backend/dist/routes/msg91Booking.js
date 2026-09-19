@@ -1,6 +1,6 @@
 import { Router } from "express";
 import mongoose from "mongoose";
-import { normalizeAppointmentDate, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
+import { calculateAppointmentFee, normalizeAppointmentDate, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
 import { getAvailableDates, getAvailableSlots, getDepartments } from "../services/bookingService.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
 const msg91BookingRouter = Router();
@@ -151,6 +151,87 @@ msg91BookingRouter.post("/", async (req, res) => {
             message: "Request processed",
             error: error.message,
         });
+    }
+});
+/**
+ * POST /api/msg91/calculate-fee
+ * Returns the correct appointment fee based on patient type, appointment mode,
+ * department, and (for Counselling returning patients) session frequency.
+ *
+ * Body:
+ *  {
+ *    isNew: boolean,                        // from /check-patient-status response
+ *    appointmentType: "online" | "offline", // consultation mode
+ *    department: string,                    // e.g. "Counselling", "OT", "Speech Therapy"
+ *    session_frequency?: string             // e.g. "Week", "3 Sessions", "full_week", "Single"
+ *  }
+ *
+ * Response:
+ *  { success: true, amount: number, totalSessions: number, feeCharged: number }
+ *
+ * Pricing rules:
+ *  New patient   – Online: ₹600 | Offline: ₹800
+ *  Returning + Counselling + 3 Days / "2400" – ₹2400, 3 sessions
+ *  Returning + Counselling + 2 Days / "1600" – ₹1600, 2 sessions
+ *  Returning + Counselling + Single           – ₹800,  1 session
+ *  Returning + other services – Online: ₹600 | Offline: ₹800
+ */
+msg91BookingRouter.post("/calculate-fee", (req, res) => {
+    try {
+        const body = req.body ?? {};
+        const isNew = body.isNew === true || body.isNew === "true";
+        const appointmentType = String(body.appointmentType ?? body.appointment_type ?? "in-person").trim();
+        const department = String(body.department ?? body.service ?? "").trim();
+        const session_frequency = String(body.session_frequency ?? body.sessionFrequency ?? "").trim();
+        if (!department) {
+            return res.status(400).json({ success: false, message: "department is required" });
+        }
+        const { amount, totalSessions, feeCharged } = calculateAppointmentFee({
+            isNew,
+            appointmentType,
+            department,
+            session_frequency,
+        });
+        console.log(`[calculate-fee] isNew=${isNew} dept=${department} type=${appointmentType} freq=${session_frequency} => ₹${amount} (${totalSessions} session(s))`);
+        return res.json({ success: true, amount, totalSessions, feeCharged });
+    }
+    catch (error) {
+        console.error("[calculate-fee] Error:", error.message || error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+/**
+ * POST /api/msg91/check-patient-status
+ * Checks whether a phone number has any existing (non-cancelled/non-rejected)
+ * appointments in the `appointments` collection.
+ * Body: { phoneNumber: string }
+ * Response: { success: true, isNew: boolean }
+ */
+msg91BookingRouter.post("/check-patient-status", async (req, res) => {
+    try {
+        const rawPhone = String(req.body?.phoneNumber ?? req.body?.phone ?? "").trim();
+        // Strip non-digit chars, then take the last 10 digits for a clean Indian mobile number
+        const digitsOnly = rawPhone.replace(/\D/g, "");
+        const cleanPhone = digitsOnly.slice(-10);
+        if (!cleanPhone || cleanPhone.length < 10) {
+            return res.status(400).json({ success: false, message: "Valid phoneNumber is required" });
+        }
+        const db = mongoose.connection.db;
+        if (!db) {
+            return res.status(503).json({ success: false, message: "Database not connected" });
+        }
+        // Match phone stored as 10-digit, with country code prefix (91XXXXXXXXXX), or the raw value
+        const phoneVariants = [cleanPhone, `91${cleanPhone}`, `+91${cleanPhone}`, rawPhone].filter(Boolean);
+        const count = await db.collection("appointments").countDocuments({
+            phoneNumber: { $in: phoneVariants },
+            bookingStatus: { $nin: ["cancelled", "rejected"] },
+        });
+        console.log(`[check-patient-status] phone=${cleanPhone} count=${count}`);
+        return res.json({ success: true, isNew: count === 0 });
+    }
+    catch (error) {
+        console.error("[check-patient-status] Error:", error.message || error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
 export default msg91BookingRouter;
