@@ -108,7 +108,7 @@ export default function AppointmentsPage() {
         <table>
           <thead><tr><th>Booking</th><th>Patient</th><th>Phone</th><th>Therapist</th><th>Schedule</th><th>Type</th><th>Session Freq</th><th>Sessions</th><th>Fee</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            {appointments.length === 0 ? <tr><td colSpan="8" style={{ textAlign: "center", padding: "24px" }}>{loading ? "Loading appointments..." : "No appointments found."}</td></tr> : appointments.map((item) => (
+            {appointments.length === 0 ? <tr><td colSpan="11" style={{ textAlign: "center", padding: "24px" }}>{loading ? "Loading appointments..." : "No appointments found."}</td></tr> : appointments.map((item) => (
               <tr key={item.id}>
                 <td>{item.bookingId}</td><td>{item.patientName}</td><td>{item.phoneNumber}</td><td>{item.therapistName}</td><td>{dateTime(item)}</td><td>{item.appointmentType}</td>
                 <td>{item.session_frequency || <span style={{color:"var(--muted)"}}>—</span>}</td>

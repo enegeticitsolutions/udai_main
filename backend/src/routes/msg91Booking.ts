@@ -195,8 +195,10 @@ msg91BookingRouter.post("/calculate-fee", (req, res) => {
   try {
     const body = req.body ?? {};
     const isNew: boolean = body.isNew === true || body.isNew === "true";
-    const appointmentType = String(body.appointmentType ?? body.appointment_type ?? "in-person").trim();
-    const department = String(body.department ?? body.service ?? "").trim();
+    const appointmentType = String(
+      body.appointmentType ?? body.appointment_type ?? body.paymentMode ?? body.payment_mode ?? body.mode ?? "in-person"
+    ).trim();
+    const department = String(body.department ?? body.service ?? (isNew ? "General" : "")).trim();
     const session_frequency = String(body.session_frequency ?? body.sessionFrequency ?? "").trim();
 
     if (!department) {
