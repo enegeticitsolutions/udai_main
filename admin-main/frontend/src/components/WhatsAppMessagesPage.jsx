@@ -487,6 +487,9 @@ export default function WhatsAppMessagesPage() {
                 <th style={thStyle}>Child &amp; Parent</th>
                 <th style={{ ...thStyle, textAlign: "center" }}>Age</th>
                 <th style={thStyle}>Service / Concern</th>
+                <th style={{ ...thStyle, textAlign: "center" }}>Session Freq</th>
+                <th style={{ ...thStyle, textAlign: "center" }}>Sessions</th>
+                <th style={{ ...thStyle, textAlign: "center" }}>Fee</th>
                 <th style={thStyle}>Date &amp; Slot</th>
                 <th style={{ ...thStyle, textAlign: "center" }}>Payment</th>
                 <th style={thStyle}>Status</th>
@@ -533,6 +536,26 @@ export default function WhatsAppMessagesPage() {
 
                 const apptDate = field("appointmentDate", "appointment_date", "date", "schedule");
                 const apptTime = field("appointmentTime", "appointment_time", "time", "slot");
+
+                // Session Freq, Total Sessions & Fee
+                const rawFreq =
+                  msg.session_frequency ||
+                  raw.session_frequency ||
+                  field("session_frequency", "sessionFrequency", "frequency", "package");
+                const sessionFreq = rawFreq && rawFreq !== "—" ? rawFreq : "Single Session";
+
+                const totalSessions = msg.totalSessions ?? raw.totalSessions ?? (
+                  sessionFreq.includes("3") ? 3 : sessionFreq.includes("2") ? 2 : 1
+                );
+
+                const rawFee = msg.feeCharged ?? msg.amount ?? raw.feeCharged ?? raw.amount;
+                const feeCharged = rawFee !== undefined && rawFee !== null && rawFee !== ""
+                  ? Number(rawFee)
+                  : totalSessions === 3
+                  ? 2400
+                  : totalSessions === 2
+                  ? 1600
+                  : 800;
 
                 return (
                   <tr
@@ -618,6 +641,35 @@ export default function WhatsAppMessagesPage() {
                       >
                         {serviceOrConcern !== "—" ? serviceOrConcern : "General Consultation"}
                       </span>
+                    </td>
+
+                    {/* ── Session Freq ── */}
+                    <td style={{ ...tdStyle, textAlign: "center", whiteSpace: "nowrap" }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 500,
+                          background: sessionFreq.includes("3") ? "#eff6ff" : sessionFreq.includes("2") ? "#f5f3ff" : "#f8fafc",
+                          color: sessionFreq.includes("3") ? "#1d4ed8" : sessionFreq.includes("2") ? "#6d28d9" : "#475569",
+                          border: "1px solid",
+                          borderColor: sessionFreq.includes("3") ? "#bfdbfe" : sessionFreq.includes("2") ? "#ddd6fe" : "#e2e8f0",
+                        }}
+                      >
+                        {sessionFreq}
+                      </span>
+                    </td>
+
+                    {/* ── Sessions ── */}
+                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 600, color: "#334155" }}>
+                      {totalSessions}
+                    </td>
+
+                    {/* ── Fee ── */}
+                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, color: "#0f172a", fontSize: 13 }}>
+                      ₹{feeCharged}
                     </td>
 
                     {/* ── Date & Slot ── */}
@@ -929,6 +981,9 @@ export default function WhatsAppMessagesPage() {
               <div><strong>Assigned Therapist:</strong> {detailsItem.assignedTherapist || detailsItem.rawData?.assignedTherapist || "—"}</div>
               <div><strong>Service / Department:</strong> {detailsItem.department || detailsItem.rawData?.department || "—"}</div>
               <div><strong>Problem / Concern:</strong> {detailsItem.concern || detailsItem.rawData?.concern || "—"}</div>
+              <div><strong>Session Frequency:</strong> {detailsItem.session_frequency || detailsItem.rawData?.session_frequency || "Single Session"}</div>
+              <div><strong>Total Sessions:</strong> {detailsItem.totalSessions ?? detailsItem.rawData?.totalSessions ?? 1}</div>
+              <div><strong>Fee Charged:</strong> ₹{detailsItem.feeCharged ?? detailsItem.amount ?? detailsItem.rawData?.feeCharged ?? detailsItem.rawData?.amount ?? 0}</div>
               <div><strong>Ticket / Transaction ID:</strong> {detailsItem.transactionId || detailsItem.rawData?.requestId || detailsItem.rawData?.uuid || detailsItem._id || "—"}</div>
               <div><strong>Payment Status:</strong> {detailsItem.paymentStatus || detailsItem.rawData?.paymentStatus || "—"}</div>
               <div><strong>Booking Status:</strong> {detailsItem.status || "confirmed"}</div>

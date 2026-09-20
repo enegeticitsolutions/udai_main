@@ -299,21 +299,19 @@ export async function saveMsg91Appointment(payload) {
             const existingCount = await db.collection(appointmentCollection).countDocuments({
                 phoneNumber: { $in: phoneQueries },
             });
+            const requestedDept = input.department ? normalizeDepartment(input.department) : "";
             if (existingCount === 0) {
-                // New patient: Force department to Counselling and set isFirstSession = true
-                isFirstSession = true;
-                targetDepartment = "Counselling";
-                input.department = "Counselling";
-                input.firstSession = "true";
-                input.isFirstSession = true;
-                input.additionalNotes = input.additionalNotes
-                    ? `${input.additionalNotes} | First session auto-assigned to Counselling`
-                    : "First session auto-assigned to Counselling";
-                console.log(`[First Session Guard] New patient (${cleanPhone}) -> Force department: Counselling, isFirstSession: true`);
+                isFirstSession = input.firstSession === "false" || input.firstSession === "no" ? false : true;
+                targetDepartment = requestedDept || "Counselling";
+                input.department = targetDepartment;
+                input.firstSession = isFirstSession ? "true" : "false";
+                input.isFirstSession = isFirstSession;
+                console.log(`[First Session Guard] New patient (${cleanPhone}) -> Department: ${targetDepartment}, isFirstSession: ${isFirstSession}`);
             }
             else {
                 // Returning patient: Keep chosen service as-is and set isFirstSession = false
                 isFirstSession = false;
+                targetDepartment = requestedDept || targetDepartment;
                 input.department = targetDepartment;
                 input.firstSession = "false";
                 input.isFirstSession = false;

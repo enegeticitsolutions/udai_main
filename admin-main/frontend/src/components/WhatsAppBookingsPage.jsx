@@ -28,6 +28,23 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
 
       const allEventNames = events.map((e) => e.eventName).filter(Boolean);
       const isCompleted = allEventNames.includes("read");
+      const session_frequency =
+        item.session_frequency ??
+        item.userDetails?.session_frequency ??
+        raw.session_frequency ??
+        "Single Session";
+      const totalSessions =
+        item.totalSessions ??
+        item.userDetails?.totalSessions ??
+        raw.totalSessions ??
+        (String(session_frequency).includes("3") ? 3 : String(session_frequency).includes("2") ? 2 : 1);
+      const feeCharged =
+        item.feeCharged ??
+        item.amount ??
+        item.userDetails?.feeCharged ??
+        raw.feeCharged ??
+        raw.amount ??
+        (totalSessions === 3 ? 2400 : totalSessions === 2 ? 1600 : 800);
 
       return {
         id: item.id ?? item._id,
@@ -38,6 +55,9 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
         statusCode: latestEvent?.statusCode ?? raw.statusCode ?? "-",
         allEvents: allEventNames,
         isCompleted,
+        session_frequency,
+        totalSessions,
+        feeCharged,
         messageType: raw.messageType ?? "-",
         direction: raw.direction === "1" ? "Outgoing (Bot)" : raw.direction === "2" ? "Incoming (User)" : "-",
         receivedAt: item.createdAt ?? item.ts ?? "-",
@@ -141,7 +161,7 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
             <thead>
               <tr style={{ borderBottom: "2px solid var(--line)" }}>
-                {["Phone", "Message", "Events", "Direction", "Type", "Received At", "Details"].map((col) => (
+                {["Phone", "Message", "Session Freq", "Sessions", "Fee", "Events", "Direction", "Type", "Received At", "Details"].map((col) => (
                   <th key={col} style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700, color: "var(--muted)", fontSize: "12px", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     {col}
                   </th>
@@ -162,6 +182,17 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
                       <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text)" }}>
                         {item.message}
                       </span>
+                    </td>
+                    <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: "12px", background: "var(--surface-2)", padding: "2px 8px", borderRadius: "6px" }}>
+                        {item.session_frequency}
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px 16px", textAlign: "center", fontWeight: 600 }}>
+                      {item.totalSessions}
+                    </td>
+                    <td style={{ padding: "12px 16px", fontWeight: 700 }}>
+                      ₹{item.feeCharged}
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
@@ -192,7 +223,7 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
                   </tr>
                   {expanded === idx && (
                     <tr>
-                      <td colSpan={7} style={{ padding: "0 16px 16px", background: "var(--surface-2)" }}>
+                      <td colSpan={10} style={{ padding: "0 16px 16px", background: "var(--surface-2)" }}>
                         <div style={{ padding: "16px", borderRadius: "8px", marginTop: "8px" }}>
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px", marginBottom: "12px" }}>
                             <div><span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Transaction ID</span><br /><span style={{ fontFamily: "monospace", fontSize: "12px" }}>{item.transactionId}</span></div>

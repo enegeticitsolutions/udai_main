@@ -25,6 +25,10 @@ export interface IWebhookMessage {
   paymentUrl?: string;
   razorpayPaymentLinkId?: string;
   paymentStatus?: string;
+  session_frequency?: string;
+  totalSessions?: number;
+  feeCharged?: number;
+  amount?: number;
 }
 
 /**
@@ -52,6 +56,10 @@ const WebhookMessageSchema = new mongoose.Schema<IWebhookMessage>(
     paymentUrl: { type: String, default: "" },
     razorpayPaymentLinkId: { type: String, default: "" },
     paymentStatus: { type: String, default: "pending" },
+    session_frequency: { type: String, default: "" },
+    totalSessions: { type: Number, default: 1 },
+    feeCharged: { type: Number, default: 0 },
+    amount: { type: Number, default: 0 },
   },
   { strict: false, collection: "webhookmessages" }
 );

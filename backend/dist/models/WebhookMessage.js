@@ -23,5 +23,9 @@ const WebhookMessageSchema = new mongoose.Schema({
     paymentUrl: { type: String, default: "" },
     razorpayPaymentLinkId: { type: String, default: "" },
     paymentStatus: { type: String, default: "pending" },
+    session_frequency: { type: String, default: "" },
+    totalSessions: { type: Number, default: 1 },
+    feeCharged: { type: Number, default: 0 },
+    amount: { type: Number, default: 0 },
 }, { strict: false, collection: "webhookmessages" });
 export const WebhookMessage = mongoose.model("WebhookMessage", WebhookMessageSchema);
