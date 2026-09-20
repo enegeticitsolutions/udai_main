@@ -18,6 +18,7 @@ import {
 } from "./data/mockData";
 import {
   addSubscriber,
+  adminLogin,
   createTherapist,
   deleteTherapist,
   getAdminBootstrap,
