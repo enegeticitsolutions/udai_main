@@ -25,6 +25,8 @@ const WebhookMessageSchema = new mongoose.Schema({
     paymentStatus: { type: String, default: "pending" },
     session_frequency: { type: String, default: "" },
     totalSessions: { type: Number, default: 1 },
+    sessionSchedule: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    sessionScheduleText: { type: String, default: "" },
     feeCharged: { type: Number, default: 0 },
     amount: { type: Number, default: 0 },
 }, { strict: false, collection: "webhookmessages" });

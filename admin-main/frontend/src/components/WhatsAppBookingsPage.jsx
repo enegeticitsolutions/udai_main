@@ -3,6 +3,7 @@ import Badge from "./Badge";
 import Table from "./Table";
 import StatCard from "./StatCard";
 import Input from "./Input";
+import { getScheduleDays } from "./WhatsAppMessagesPage";
 
 export default function WhatsAppBookingsPage({ bookings = [] }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -231,6 +232,24 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
                             <div><span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Message Type</span><br /><span>{item.messageType}</span></div>
                             <div><span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Received</span><br /><span>{formatDate(item.receivedAt)}</span></div>
                           </div>
+                          {(() => {
+                            const sDays = getScheduleDays(item);
+                            if (sDays.length <= 1) return null;
+                            return (
+                              <div style={{ marginBottom: "12px", padding: "10px", background: "var(--bg)", borderRadius: "6px" }}>
+                                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", marginBottom: "6px" }}>
+                                  Scheduled Days &amp; Timings ({sDays.length} Days)
+                                </div>
+                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                                  {sDays.map((s, sIdx) => (
+                                    <div key={sIdx} style={{ background: "var(--surface-2)", padding: "4px 8px", borderRadius: "4px", fontSize: "12px" }}>
+                                      <strong>Day {s.sessionNumber}:</strong> {s.date} {s.day ? `(${s.day})` : ""} {s.time}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
                           <div style={{ marginBottom: "8px" }}>
                             <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Full Message</span>
                             <pre style={{ marginTop: "4px", padding: "10px", background: "var(--bg)", borderRadius: "6px", fontSize: "12px", whiteSpace: "pre-wrap", wordBreak: "break-all", maxHeight: "200px", overflowY: "auto" }}>

@@ -41,11 +41,72 @@ export type AppointmentRecord = {
   /** Pricing metadata */
   session_frequency?: string;
   totalSessions?: number;
+  sessionSchedule?: Array<{ sessionNumber: number; date: string; time: string; day: string }>;
+  sessionScheduleText?: string;
   feeCharged?: number;
   rawPayload: unknown;
   createdAt: string;
   updatedAt: string;
 };
+
+export function generateSessionSchedule(
+  startDate: string,
+  startTime: string,
+  totalSessions: number = 1
+): { schedule: Array<{ sessionNumber: number; date: string; time: string; day: string }>; scheduleText: string } {
+  const schedule: Array<{ sessionNumber: number; date: string; time: string; day: string }> = [];
+  if (!startDate) return { schedule: [], scheduleText: "" };
+
+  const timeStr = startTime || "10:00";
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  // Helper to parse date to noon to avoid timezone or DST boundary drift
+  let curr: Date;
+  const ymdMatch = String(startDate).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (ymdMatch) {
+    curr = new Date(Number(ymdMatch[1]), Number(ymdMatch[2]) - 1, Number(ymdMatch[3]), 12, 0, 0);
+  } else {
+    const parsed = new Date(startDate);
+    if (isNaN(parsed.getTime())) {
+      schedule.push({ sessionNumber: 1, date: startDate, time: timeStr, day: "" });
+      return { schedule, scheduleText: `Day 1: ${startDate} (${timeStr})` };
+    }
+    curr = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0);
+  }
+
+  const formatYMD = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  schedule.push({
+    sessionNumber: 1,
+    date: formatYMD(curr),
+    time: timeStr,
+    day: dayNames[curr.getDay()],
+  });
+
+  while (schedule.length < totalSessions) {
+    curr.setDate(curr.getDate() + 2);
+    if (curr.getDay() === 0) {
+      curr.setDate(curr.getDate() + 1); // Skip Sunday, move to Monday
+    }
+    schedule.push({
+      sessionNumber: schedule.length + 1,
+      date: formatYMD(curr),
+      time: timeStr,
+      day: dayNames[curr.getDay()],
+    });
+  }
+
+  const scheduleText = schedule
+    .map((s) => `Day ${s.sessionNumber}: ${s.date}${s.day ? ` (${s.day})` : ""} at ${s.time}`)
+    .join(" | ");
+
+  return { schedule, scheduleText };
+}
 
 // ── Pricing constants ────────────────────────────────────────────────────────
 const FEE_ONLINE  = 600;   // ₹600 – online consultation (new or returning, non-counselling)
@@ -483,6 +544,16 @@ export async function saveMsg91Appointment(payload: unknown) {
   input.bookingStatus = "confirmed";
   const bookingId = input.bookingId || generatedBookingId(input);
   const now = new Date().toISOString();
+
+  // ── Session Schedule Generation (for 1, 2, 3 days bookings) ───────────────
+  const { schedule: sessionSchedule, scheduleText: sessionScheduleText } = generateSessionSchedule(
+    input.appointmentDate,
+    input.appointmentTime,
+    totalSessions
+  );
+  input.sessionSchedule = sessionSchedule;
+  input.sessionScheduleText = sessionScheduleText;
+
   const document = {
     ...input,
     bookingId,
@@ -490,6 +561,8 @@ export async function saveMsg91Appointment(payload: unknown) {
     totalSessions,
     feeCharged,
     session_frequency: input.session_frequency || "",
+    sessionSchedule,
+    sessionScheduleText,
     rawPayload: payload,
     createdAt: now,
     updatedAt: now,

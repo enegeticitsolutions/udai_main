@@ -27,6 +27,8 @@ export interface IWebhookMessage {
   paymentStatus?: string;
   session_frequency?: string;
   totalSessions?: number;
+  sessionSchedule?: any[];
+  sessionScheduleText?: string;
   feeCharged?: number;
   amount?: number;
 }
@@ -58,6 +60,8 @@ const WebhookMessageSchema = new mongoose.Schema<IWebhookMessage>(
     paymentStatus: { type: String, default: "pending" },
     session_frequency: { type: String, default: "" },
     totalSessions: { type: Number, default: 1 },
+    sessionSchedule: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    sessionScheduleText: { type: String, default: "" },
     feeCharged: { type: Number, default: 0 },
     amount: { type: Number, default: 0 },
   },

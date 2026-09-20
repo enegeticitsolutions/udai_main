@@ -25,6 +25,88 @@ function extractField(raw, ...keys) {
   return "—";
 }
 
+export function getScheduleDays(item) {
+  if (!item) return [];
+  const raw = item.rawData || {};
+
+  if (Array.isArray(item.sessionSchedule) && item.sessionSchedule.length > 0) {
+    return item.sessionSchedule;
+  }
+  if (Array.isArray(raw.sessionSchedule) && raw.sessionSchedule.length > 0) {
+    return raw.sessionSchedule;
+  }
+  if (Array.isArray(raw.session_dates) && raw.session_dates.length > 0) {
+    return raw.session_dates.map((d, i) => ({
+      sessionNumber: i + 1,
+      date: typeof d === "string" ? d : d.date,
+      time: (typeof d === "object" && d.time) || item.appointmentTime || raw.appointmentTime || "10:00",
+      day: ""
+    }));
+  }
+
+  const rawFreq = String(
+    item.session_frequency ||
+    raw.session_frequency ||
+    item.childName ||
+    raw.childName ||
+    raw.patientName ||
+    ""
+  );
+
+  const total = Number(
+    item.totalSessions ??
+    raw.totalSessions ??
+    (rawFreq.includes("3") || /3\s*day/i.test(rawFreq) ? 3 : rawFreq.includes("2") || /2\s*day/i.test(rawFreq) ? 2 : 1)
+  );
+
+  const startDateStr = item.appointmentDate || raw.appointmentDate || raw.appointment_date || "";
+  const timeStr = item.appointmentTime || raw.appointmentTime || raw.appointment_time || "10:00";
+
+  if (!startDateStr || startDateStr === "—") return [];
+
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  let curr;
+  const ymdMatch = String(startDateStr).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (ymdMatch) {
+    curr = new Date(Number(ymdMatch[1]), Number(ymdMatch[2]) - 1, Number(ymdMatch[3]), 12, 0, 0);
+  } else {
+    const parsed = new Date(startDateStr);
+    if (isNaN(parsed.getTime())) {
+      return [{ sessionNumber: 1, date: startDateStr, time: timeStr, day: "" }];
+    }
+    curr = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0);
+  }
+
+  const formatYMD = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const schedule = [{
+    sessionNumber: 1,
+    date: formatYMD(curr),
+    time: timeStr,
+    day: dayNames[curr.getDay()]
+  }];
+
+  while (schedule.length < total) {
+    curr.setDate(curr.getDate() + 2);
+    if (curr.getDay() === 0) {
+      curr.setDate(curr.getDate() + 1); // Skip Sunday
+    }
+    schedule.push({
+      sessionNumber: schedule.length + 1,
+      date: formatYMD(curr),
+      time: timeStr,
+      day: dayNames[curr.getDay()]
+    });
+  }
+
+  return schedule;
+}
+
 function normalizePhone(val) {
   const digits = String(val || "").replace(/[^\d]/g, "");
   if (digits.length === 10) return `91${digits}`;
@@ -673,13 +755,29 @@ export default function WhatsAppMessagesPage() {
                     </td>
 
                     {/* ── Date & Slot ── */}
-                    <td style={{ ...tdStyle, whiteSpace: "nowrap", fontSize: 12.5, color: "#334155" }}>
+                    <td style={{ ...tdStyle, minWidth: 155, fontSize: 12.5, color: "#334155" }}>
                       <div>{apptDate !== "—" ? apptDate : "—"}</div>
                       {apptTime !== "—" && (
                         <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 1 }}>
                           🕒 {apptTime}
                         </div>
                       )}
+                      {(() => {
+                        const sDays = getScheduleDays(msg);
+                        if (sDays.length <= 1) return null;
+                        return (
+                          <div style={{ marginTop: 4, padding: "3px 6px", background: "#f8fafc", borderRadius: 4, border: "1px solid #e2e8f0", fontSize: 11 }}>
+                            <span style={{ fontWeight: 600, color: "#4338ca", display: "block", marginBottom: 2 }}>
+                              📅 All {sDays.length} Days:
+                            </span>
+                            {sDays.map((s, sIdx) => (
+                              <div key={sIdx} style={{ color: "#475569", whiteSpace: "nowrap" }}>
+                                D{s.sessionNumber}: {s.date.slice(5)} {s.day ? `(${s.day})` : ""} {s.time}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* ── Payment (Paid or Blank) ── */}
@@ -989,6 +1087,48 @@ export default function WhatsAppMessagesPage() {
               <div><strong>Booking Status:</strong> {detailsItem.status || "confirmed"}</div>
               <div><strong>Received At:</strong> {formatTime(detailsItem.receivedAt)}</div>
             </div>
+
+            {/* ── Multi-Session Schedule Breakdown ── */}
+            {(() => {
+              const modalSchedule = getScheduleDays(detailsItem);
+              const modalTotal = modalSchedule.length;
+              return (
+                <div style={{ marginTop: 14, padding: 12, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <strong style={{ color: "#1e293b", fontSize: 13 }}>
+                      📅 Total Days &amp; Timings ({modalTotal} {modalTotal === 1 ? "Day" : "Days"})
+                    </strong>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: modalTotal > 1 ? "#eff6ff" : "#f1f5f9", color: modalTotal > 1 ? "#1d4ed8" : "#475569" }}>
+                      {detailsItem.session_frequency || (modalTotal > 1 ? `${modalTotal} Days / Week` : "Single Session")}
+                    </span>
+                  </div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    {modalSchedule.map((s, sIdx) => (
+                      <div
+                        key={sIdx}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "6px 10px",
+                          background: "#fff",
+                          borderRadius: 6,
+                          border: "1px solid #e2e8f0",
+                          fontSize: 12.5,
+                        }}
+                      >
+                        <span style={{ fontWeight: 600, color: "#334155" }}>
+                          🗓️ Day {s.sessionNumber}: {s.date} {s.day ? `(${s.day})` : ""}
+                        </span>
+                        <span style={{ fontWeight: 700, color: "#4338ca" }}>
+                          🕒 {s.time}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div style={{ marginTop: 20, display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
