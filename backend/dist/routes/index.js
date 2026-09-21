@@ -40,6 +40,7 @@ apiRouter.use("/webhook", webhookRouter);
 apiRouter.use("/msg91-booking", msg91BookingRouter);
 apiRouter.use("/webhooks/msg91", msg91WebhookRouter);
 apiRouter.use("/msg91", msg91PaymentRouter);
+apiRouter.use("/msg91", msg91BookingRouter);
 apiRouter.use("/booking", bookingRouter);
 apiRouter.use("/therapists", therapistsRouter);
 apiRouter.use("/appointments", appointmentRouter);

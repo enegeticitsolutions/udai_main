@@ -230,7 +230,7 @@ msg91BookingRouter.all("/calculate-fee", (req, res) => {
  * Checks whether a phone number has any existing (non-cancelled/non-rejected)
  * appointments or bookings.
  * Resiliently extracts phone from body, query, nested payload, or customerNumber.
- * Always returns HTTP 200 with both `isNew` and `is_new_patient` so MSG91 Flow never halts.
+ * Never throws 400: defaults gracefully to isNew=true if phone is missing or invalid.
  */
 msg91BookingRouter.all("/check-patient-status", async (req, res) => {
     try {
@@ -238,82 +238,118 @@ msg91BookingRouter.all("/check-patient-status", async (req, res) => {
         const body = req.body || {};
         const query = req.query || {};
         const nested = body.data || body.payload || body.variables || {};
-        // Check all possible field names used by MSG91 and chat flows
-        const candidatePhone = body.phoneNumber ??
-            body.phone ??
-            body.customerNumber ??
-            body.customer_number ??
-            body.customer_no ??
-            body.mobile ??
-            body.mobile_number ??
-            body.phone_number ??
-            body.from ??
-            body.sender ??
-            body.contact ??
-            body.number ??
-            nested.phoneNumber ??
-            nested.phone ??
-            nested.customerNumber ??
-            nested.customer_number ??
-            nested.mobile ??
-            nested.from ??
-            query.phoneNumber ??
-            query.phone ??
-            query.customerNumber ??
-            query.customer_number ??
-            query.mobile ??
-            query.from ??
+        // 1. Normalize phone extraction across all possible keys from MSG91 bot flows
+        const rawCandidate = body.phone ||
+            body.phoneNumber ||
+            body.mobile ||
+            body.contact ||
+            body.sender ||
+            (body.data && (body.data.phone || body.data.phoneNumber || body.data.contact || body.data.sender || body.data.customerNumber)) ||
+            nested.phone ||
+            nested.phoneNumber ||
+            nested.mobile ||
+            nested.contact ||
+            nested.sender ||
+            nested.customerNumber ||
+            nested.customer_number ||
+            nested.from ||
+            body.customerNumber ||
+            body.customer_number ||
+            body.customer_no ||
+            body.mobile_number ||
+            body.phone_number ||
+            body.from ||
+            body.number ||
+            query.phone ||
+            query.phoneNumber ||
+            query.mobile ||
+            query.contact ||
+            query.sender ||
+            query.customerNumber ||
+            query.customer_number ||
+            query.from ||
             "";
-        let rawPhone = String(candidatePhone || "").trim();
-        // If candidatePhone was empty but body is a string or object containing numbers
+        let rawPhone = String(rawCandidate || "").trim();
+        // Fallback if candidate was empty but raw body is string containing phone digits
         if (!rawPhone && typeof req.body === "string") {
             const match = req.body.match(/\d{10,12}/);
             if (match)
                 rawPhone = match[0];
         }
+        // 2. Sanitize: strip non-digit characters and take the last 10 digits
         const digitsOnly = rawPhone.replace(/\D/g, "");
         const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
-        // If no phone could be extracted, safely default to new patient with HTTP 200
-        // so MSG91 flow does NOT fail or stop responding to the user!
+        // If phone is missing or empty, do NOT throw 400! Log a warning and return HTTP 200 fallback
         if (!cleanPhone) {
-            console.warn(`[check-patient-status] No phone found in request body/query: ${JSON.stringify(req.body)}. Defaulting to is_new_patient=true`);
-            return res.json({
+            console.warn(`[check-patient-status] Missing or empty phone parameter: ${JSON.stringify(req.body)}. Defaulting to new patient.`);
+            return res.status(200).json({
                 success: true,
                 isNew: true,
                 is_new: true,
                 is_new_patient: true,
                 isNewPatient: true,
+                existingPatient: false,
                 is_returning: false,
                 isReturning: false,
+                patientName: "",
                 status: "new",
                 count: 0,
-                message: "No phone provided; defaulted to new patient"
+                message: "Defaulted to new patient due to missing phone parameter",
+                data: {
+                    success: true,
+                    isNew: true,
+                    is_new: true,
+                    is_new_patient: true,
+                    isNewPatient: true,
+                    existingPatient: false,
+                    patientName: "",
+                    status: "new",
+                    count: 0,
+                },
             });
         }
+        // 3. Query DB for existing appointments/messages
         const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
         let count = 0;
+        let patientName = "";
         if (db) {
             const phoneVariants = [cleanPhone, `91${cleanPhone}`, `+91${cleanPhone}`, rawPhone].filter(Boolean);
-            const apptCount = await db.collection("appointments").countDocuments({
-                phoneNumber: { $in: phoneVariants },
-                bookingStatus: { $nin: ["cancelled", "rejected"] },
-            }).catch(() => 0);
-            const webhookCount = await db.collection("webhookmessages").countDocuments({
-                phone: { $in: phoneVariants },
-                status: { $nin: ["cancelled", "rejected"] },
-            }).catch(() => 0);
-            count = apptCount + webhookCount;
+            const [apptCount, webhookCount, latestAppt, latestWebhook] = await Promise.all([
+                db.collection("appointments").countDocuments({
+                    phoneNumber: { $in: phoneVariants },
+                    bookingStatus: { $nin: ["cancelled", "rejected"] },
+                }).catch(() => 0),
+                db.collection("webhookmessages").countDocuments({
+                    phone: { $in: phoneVariants },
+                    status: { $nin: ["cancelled", "rejected"] },
+                }).catch(() => 0),
+                db.collection("appointments").findOne({
+                    phoneNumber: { $in: phoneVariants },
+                    bookingStatus: { $nin: ["cancelled", "rejected"] },
+                }, { sort: { createdAt: -1 } }).catch(() => null),
+                db.collection("webhookmessages").findOne({
+                    phone: { $in: phoneVariants },
+                    status: { $nin: ["cancelled", "rejected"] },
+                }, { sort: { createdAt: -1 } }).catch(() => null),
+            ]);
+            count = (apptCount || 0) + (webhookCount || 0);
+            patientName =
+                latestAppt?.patientName ||
+                    latestWebhook?.childName ||
+                    latestWebhook?.patientName ||
+                    "";
         }
-        const isNew = count === 0;
-        console.log(`[check-patient-status] phone=${cleanPhone} totalCount=${count} => isNew=${isNew}`);
-        return res.json({
+        const existingPatient = count > 0;
+        const isNew = !existingPatient;
+        console.log(`[check-patient-status] phone=${cleanPhone} existingPatient=${existingPatient} totalCount=${count} patientName="${patientName}" => isNew=${isNew}`);
+        return res.status(200).json({
             success: true,
             isNew,
             is_new: isNew,
             is_new_patient: isNew,
             isNewPatient: isNew,
-            is_returning: !isNew,
-            isReturning: !isNew,
+            existingPatient,
+            patientName,
             status: isNew ? "new" : "returning",
             phone: cleanPhone,
             count,
@@ -322,26 +358,40 @@ msg91BookingRouter.all("/check-patient-status", async (req, res) => {
                 is_new: isNew,
                 is_new_patient: isNew,
                 isNewPatient: isNew,
-                is_returning: !isNew,
-                isReturning: !isNew,
+                existingPatient,
+                patientName,
                 status: isNew ? "new" : "returning",
                 count,
-            }
+            },
         });
     }
     catch (error) {
-        console.error("[check-patient-status] Error:", error.message || error);
-        // Never return 400/500 to MSG91 to prevent bot from hanging!
-        return res.json({
+        console.error("[check-patient-status] Error:", error?.message || error);
+        // Never return 400 or 500 to prevent MSG91 bot from hanging
+        return res.status(200).json({
             success: true,
             isNew: true,
             is_new: true,
             is_new_patient: true,
             isNewPatient: true,
+            existingPatient: false,
             is_returning: false,
+            isReturning: false,
+            patientName: "",
             status: "new",
             count: 0,
-            fallback: true
+            fallback: true,
+            message: "Defaulted to new patient due to missing phone parameter",
+            data: {
+                isNew: true,
+                is_new: true,
+                is_new_patient: true,
+                isNewPatient: true,
+                existingPatient: false,
+                patientName: "",
+                status: "new",
+                count: 0,
+            },
         });
     }
 });
