@@ -143,8 +143,18 @@ export function createApp() {
         incomingData.slot, parsedContent.appointmentTime, parsedContent.time
       );
       const rawDepartment = pick(
-        incomingData.department, incomingData.doctor, incomingData.therapistName,
-        parsedContent.department
+        incomingData.service,
+        incomingData.department,
+        incomingData.selectedService,
+        incomingData.interactive?.list_reply?.title,
+        incomingData.list_reply?.title,
+        incomingData.doctor,
+        incomingData.therapistName,
+        parsedContent.service,
+        parsedContent.department,
+        parsedContent.selectedService,
+        parsedContent.interactive?.list_reply?.title,
+        parsedContent.list_reply?.title
       );
       const department = normalizeDepartment(rawDepartment);
       const concern = pick(

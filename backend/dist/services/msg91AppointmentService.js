@@ -270,9 +270,13 @@ export function parseMsg91AppointmentPayload(payload) {
     // Appointment Time:
     const rawTime = pick(data, "appointment_time", "appointmentTime", "time", "selected_time", "slot", "appointment_slot", "slot_time") ||
         pick(root, "appointmentTime", "appointment_time", "time", "slot");
-    // Department / Service: Extract strictly from service/department keys (NEVER from concern!)
-    const rawDepartment = pick(data, "department", "service", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept", "specialization") ||
-        pick(root, "department", "service", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept") ||
+    // Department / Service: Extract strictly from service/department keys or interactive list reply (NEVER from concern!)
+    const rawDepartment = pick(data, "service", "department", "selectedService", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept", "specialization") ||
+        pick(root, "service", "department", "selectedService", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept") ||
+        data?.interactive?.list_reply?.title ||
+        data?.list_reply?.title ||
+        root?.interactive?.list_reply?.title ||
+        root?.list_reply?.title ||
         "";
     const resolvedDept = rawDepartment ? normalizeDepartment(rawDepartment) : "";
     // Therapist Name:
@@ -396,59 +400,74 @@ export async function saveMsg91Appointment(payload) {
     // If ANY existing record exists (priorBookings > 0), isFirstSession MUST BE false and patient tag MUST BE Returning!
     const isReturningPatient = priorBookings > 0 || isExplicitReturning;
     const isStrictNewPatient = !isReturningPatient && (priorBookings === 0 || isExplicitFirst);
-    if (isStrictNewPatient) {
+    const rawPayloadData = payloadData(payload);
+    const rawDept = String(input.rawDepartment ||
+        pick(rawPayloadData, "service", "department", "selectedService", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept", "specialization") ||
+        pick((payload ?? {}), "service", "department", "selectedService", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept") ||
+        rawPayloadData?.interactive?.list_reply?.title ||
+        rawPayloadData?.list_reply?.title ||
+        (payload ?? {})?.interactive?.list_reply?.title ||
+        (payload ?? {})?.list_reply?.title ||
+        "").trim();
+    const isExplicitOT = /^(ot|occupational(\s*therapy)?)$/i.test(rawDept) || /occupational/i.test(rawDept);
+    if (isExplicitOT) {
+        // If department is provided as "Occupational Therapy" or "OT", save it as "Occupational Therapy"
+        targetDepartment = "Occupational Therapy";
+        input.department = "Occupational Therapy";
+        isFirstSession = isStrictNewPatient;
+        input.firstSession = isFirstSession ? "true" : "false";
+        input.isFirstSession = isFirstSession;
+        console.log(`[Department Selection] Occupational Therapy selected (${cleanPhone}, priorBookings=${priorBookings}) -> Saved as "Occupational Therapy"`);
+    }
+    else if (rawDept && isReturningPatient) {
+        targetDepartment = normalizeDepartment(rawDept);
+        input.department = targetDepartment;
+        isFirstSession = false;
+        input.firstSession = "false";
+        input.isFirstSession = false;
+        console.log(`[Department Selection] Returning patient chose "${rawDept}" -> Saved as "${targetDepartment}"`);
+    }
+    else if (isStrictNewPatient) {
         isFirstSession = true;
         targetDepartment = "Child and Parental Counselling";
         input.department = "Child and Parental Counselling";
         input.firstSession = "true";
         input.isFirstSession = true;
-        console.log(`[First Session Guard] New patient/First session (${cleanPhone}, priorBookings=${priorBookings}) -> Locked department="Child and Parental Counselling", isFirstSession=true`);
+        console.log(`[First Session Guard] New patient/First session (${cleanPhone}, priorBookings=${priorBookings}) -> Defaulted department="Child and Parental Counselling", isFirstSession=true`);
     }
     else {
-        // Returning patient:
+        // Returning patient with no explicit department:
         isFirstSession = false;
         input.firstSession = "false";
         input.isFirstSession = false;
-        // DO NOT force Counselling!
-        // Check incoming raw department across payload, input, and nested fields
-        const rawPayloadData = payloadData(payload);
-        const rawDept = String(input.rawDepartment ||
-            pick(rawPayloadData, "department", "service", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept", "specialization") ||
-            pick((payload ?? {}), "department", "service", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept") ||
-            "").trim();
-        if (rawDept) {
-            targetDepartment = normalizeDepartment(rawDept);
+        // Check if a therapist name was chosen:
+        const rawTherapist = String(input.therapistName ||
+            pick(rawPayloadData, "therapistName", "therapist_name", "therapist", "doctor", "doctor_name") ||
+            pick((payload ?? {}), "therapistName", "therapist_name", "therapist", "doctor") ||
+            "").toLowerCase();
+        if (rawTherapist.includes("nikki") || rawTherapist.includes("harsimran")) {
+            targetDepartment = "Occupational Therapy";
+        }
+        else if (rawTherapist.includes("sakshi") || rawTherapist.includes("atal")) {
+            targetDepartment = "Speech Therapy";
+        }
+        else if (rawTherapist.includes("divya")) {
+            targetDepartment = "Physiotherapy";
+        }
+        else if (rawTherapist.includes("durgesh")) {
+            targetDepartment = "Physical Therapy";
+        }
+        else if (rawTherapist.includes("sonia") || rawTherapist.includes("shobha") || rawTherapist.includes("ranjana")) {
+            targetDepartment = "Special Education";
+        }
+        else if (rawTherapist.includes("tanu")) {
+            targetDepartment = "Child and Parental Counselling";
+        }
+        else if (latestPriorRecord?.department) {
+            targetDepartment = normalizeDepartment(latestPriorRecord.department);
         }
         else {
-            // Check if a therapist name was chosen:
-            const rawTherapist = String(input.therapistName ||
-                pick(rawPayloadData, "therapistName", "therapist_name", "therapist", "doctor", "doctor_name") ||
-                pick((payload ?? {}), "therapistName", "therapist_name", "therapist", "doctor") ||
-                "").toLowerCase();
-            if (rawTherapist.includes("nikki") || rawTherapist.includes("harsimran")) {
-                targetDepartment = "OT";
-            }
-            else if (rawTherapist.includes("sakshi") || rawTherapist.includes("atal")) {
-                targetDepartment = "Speech Therapy";
-            }
-            else if (rawTherapist.includes("divya")) {
-                targetDepartment = "Physiotherapy";
-            }
-            else if (rawTherapist.includes("durgesh")) {
-                targetDepartment = "Physical Therapy";
-            }
-            else if (rawTherapist.includes("sonia") || rawTherapist.includes("shobha") || rawTherapist.includes("ranjana")) {
-                targetDepartment = "Special Education";
-            }
-            else if (rawTherapist.includes("tanu")) {
-                targetDepartment = "Child and Parental Counselling";
-            }
-            else if (latestPriorRecord?.department) {
-                targetDepartment = normalizeDepartment(latestPriorRecord.department);
-            }
-            else {
-                targetDepartment = "OT"; // Safe clinical therapy default instead of forced counselling
-            }
+            targetDepartment = "Occupational Therapy"; // Safe clinical therapy default instead of forced counselling
         }
         input.department = targetDepartment;
         console.log(`[First Session Guard] Returning patient (${cleanPhone}, priorBookings=${priorBookings}) -> Retained Department: "${targetDepartment}", isFirstSession=false`);

@@ -79,7 +79,29 @@ msg91BookingRouter.post("/slots", handleSlots);
 msg91BookingRouter.post("/", async (req, res) => {
     console.log("==> Incoming MSG91 Booking Payload:", req.body);
     try {
-        const { appointment, duplicate } = await saveMsg91Appointment(req.body);
+        const rawBody = (req.body ?? {});
+        const nestedData = (rawBody.data ?? rawBody.payload ?? rawBody.variables ?? {});
+        // 1. Extract chosen service title / department from interactive list replies and standard keys
+        const chosenService = String(rawBody.service ||
+            rawBody.department ||
+            rawBody.selectedService ||
+            rawBody.interactive?.list_reply?.title ||
+            rawBody.list_reply?.title ||
+            nestedData.service ||
+            nestedData.department ||
+            nestedData.selectedService ||
+            nestedData.interactive?.list_reply?.title ||
+            nestedData.list_reply?.title ||
+            "").trim();
+        if (chosenService) {
+            rawBody.service = chosenService;
+            rawBody.department = chosenService;
+            if (typeof rawBody.data === "object" && rawBody.data !== null) {
+                rawBody.data.service = chosenService;
+                rawBody.data.department = chosenService;
+            }
+        }
+        const { appointment, duplicate } = await saveMsg91Appointment(rawBody);
         console.info(`[MSG91 Booking] ${duplicate ? "Existing booking updated" : "New booking created"}: ${appointment.bookingId}`);
         // 1. Log to WebhookMessage (for WhatsApp Messages dashboard)
         try {
@@ -93,7 +115,7 @@ msg91BookingRouter.post("/", async (req, res) => {
                 isFirstSession: appointment.isFirstSession,
                 appointmentDate: appointment.appointmentDate || "",
                 appointmentTime: appointment.appointmentTime || "",
-                department: appointment.department || "Child and Parental Counselling",
+                department: appointment.department || (chosenService ? normalizeDepartment(chosenService) : "Child and Parental Counselling"),
                 concern: appointment.mainConcern || "",
                 assignedTherapist: appointment.therapistName || "Ms. Tanu Rajput",
                 assignedTherapistId: appointment.therapistId || "roster-counselling-1",

@@ -102,7 +102,7 @@ export function createApp() {
             const firstSession = pick(incomingData.firstSession, incomingData.first_session, incomingData.isFirstSession, parsedContent.firstSession);
             const appointmentDate = pick(incomingData.appointmentDate, incomingData.appointment_date, incomingData.date, parsedContent.appointmentDate, parsedContent.date);
             const appointmentTime = pick(incomingData.appointmentTime, incomingData.appointment_time, incomingData.time, incomingData.slot, parsedContent.appointmentTime, parsedContent.time);
-            const rawDepartment = pick(incomingData.department, incomingData.doctor, incomingData.therapistName, parsedContent.department);
+            const rawDepartment = pick(incomingData.service, incomingData.department, incomingData.selectedService, incomingData.interactive?.list_reply?.title, incomingData.list_reply?.title, incomingData.doctor, incomingData.therapistName, parsedContent.service, parsedContent.department, parsedContent.selectedService, parsedContent.interactive?.list_reply?.title, parsedContent.list_reply?.title);
             const department = normalizeDepartment(rawDepartment);
             const concern = pick(incomingData.concern, incomingData.mainConcern, incomingData.problem, parsedContent.concern, incomingData.userDetails?.problem);
             const message = pick(incomingData.message, incomingData.content, incomingData.responseBody, incomingData.user_message, parsedContent.message);

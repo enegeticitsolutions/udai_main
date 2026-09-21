@@ -95,6 +95,8 @@ export function normalizeDepartment(dept) {
         return "Child and Parental Counselling";
     if (/counsel|consult|home\s*prog|parental/i.test(d))
         return "Child and Parental Counselling";
+    if (/^(ot|occupational(\s*therapy)?)$/i.test(d) || /occupational/i.test(d))
+        return "Occupational Therapy";
     if (/speech/i.test(d))
         return "Speech Therapy";
     if (/physio/i.test(d))
@@ -105,24 +107,25 @@ export function normalizeDepartment(dept) {
         return "Physical Therapy";
     if (/academic|remedial/i.test(d))
         return "Academic Support";
-    if (/^(ot|occupational(\s*therapy)?)$/i.test(d))
-        return "OT";
     // Known roster departments
     const validDepartments = [
         "Child and Parental Counselling",
         "Counselling",
+        "Occupational Therapy",
+        "OT",
         "Speech Therapy",
         "Physiotherapy",
         "Special Education",
         "Special Educator",
         "Physical Therapy",
         "Academic Support",
-        "OT",
     ];
     const exact = validDepartments.find((v) => v.toLowerCase() === d.toLowerCase());
     if (exact) {
         if (exact === "Counselling" || exact.toLowerCase().includes("counsel"))
             return "Child and Parental Counselling";
+        if (exact === "OT" || exact.toLowerCase().includes("occupational"))
+            return "Occupational Therapy";
         return exact === "Special Educator" ? "Special Education" : exact;
     }
     // Fallback default for unknown/invalid input (like "Disturb", "Hyperactive", etc.)
@@ -131,7 +134,7 @@ export function normalizeDepartment(dept) {
 /**
  * Clinical Roster by Department:
  * - Child and Parental Counselling / Counselling: ["Ms. Tanu Rajput", "Ms. Harsimran", "Ms. Sonia"]
- * - OT / Occupational Therapy: ["Ms. Nikki", "Ms. Harsimran"]
+ * - Occupational Therapy / OT: ["Ms. Nikki", "Ms. Harsimran"]
  * - Physiotherapy: ["Ms. Divya"]
  * - Special Educator / Special Education: ["Ms. Sonia", "Ms. Shobha", "Ms. Ranjana"]
  * - Speech Therapy: ["Ms. Sakshi", "Mr. Atal"]
@@ -148,6 +151,10 @@ export const CLINIC_ROSTER_BY_DEPARTMENT = {
         { name: "Ms. Tanu Rajput", role: "Psychological Counsellor" },
         { name: "Ms. Harsimran", role: "Counsellor" },
         { name: "Ms. Sonia", role: "Counsellor" },
+    ],
+    "Occupational Therapy": [
+        { name: "Ms. Nikki", role: "Occupational Therapist" },
+        { name: "Ms. Harsimran", role: "Occupational Therapist" },
     ],
     "OT": [
         { name: "Ms. Nikki", role: "Occupational Therapist" },
@@ -988,6 +995,7 @@ export async function assignTherapist(department, date, time) {
 export async function getDepartments() {
     return [
         "Child and Parental Counselling",
+        "Occupational Therapy",
         "Speech Therapy",
         "Physiotherapy",
         "Special Education",
