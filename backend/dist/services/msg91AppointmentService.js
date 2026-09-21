@@ -271,10 +271,14 @@ export function parseMsg91AppointmentPayload(payload) {
     const rawTime = pick(data, "appointment_time", "appointmentTime", "time", "selected_time", "slot", "appointment_slot", "slot_time") ||
         pick(root, "appointmentTime", "appointment_time", "time", "slot");
     // Department / Service: Extract strictly from service/department keys (NEVER from concern!)
-    const rawDepartment = pick(data, "department", "service", "selected_service", "service_name") ||
-        pick(root, "department", "service", "selected_service", "service_name") ||
+    const rawDepartment = pick(data, "department", "service", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept", "specialization") ||
+        pick(root, "department", "service", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept") ||
         "";
-    const resolvedDept = normalizeDepartment(rawDepartment);
+    const resolvedDept = rawDepartment ? normalizeDepartment(rawDepartment) : "";
+    // Therapist Name:
+    const rawTherapistName = pick(data, "therapistName", "therapist_name", "therapist", "doctor", "doctor_name", "assignedTherapist") ||
+        pick(root, "therapistName", "therapist_name", "therapist", "doctor", "assignedTherapist") ||
+        "";
     // Concern:
     const rawConcern = pick(data, "mainConcern", "main_concern", "concern", "concern_of_child", "concernOfChild", "child_concern", "problem", "message") ||
         pick(root, "mainConcern", "concern", "problem", "message") ||
@@ -298,9 +302,10 @@ export function parseMsg91AppointmentPayload(payload) {
         gender: rawGender || undefined,
         city: rawCity || undefined,
         preferredLanguage: rawLang || "English",
-        department: resolvedDept,
+        department: resolvedDept || "Child and Parental Counselling",
+        rawDepartment: rawDepartment || undefined,
         therapistId: pick(data, "therapist_id", "therapistId", "doctor_id", "doctorId") || null,
-        therapistName: resolvedDept,
+        therapistName: rawTherapistName || resolvedDept || "Ms. Tanu Rajput",
         appointmentDate: normalizeAppointmentDate(rawDate),
         appointmentTime: normalizeAppointmentTime(rawTime),
         appointmentType: normalizeAppointmentType(pick(data, "appointment_type", "appointmentType", "visit_type") || "in-person"),
@@ -348,64 +353,105 @@ export async function saveMsg91Appointment(payload) {
         rawFirstSession === "no" ||
         rawFirstSession === "0" ||
         input.isFirstSession === false;
-    if (db && input.phoneNumber) {
-        const cleanPhone = normalizePhone(input.phoneNumber);
-        const phoneQueries = [input.phoneNumber, cleanPhone];
-        if (cleanPhone.length === 10) {
-            phoneQueries.push(`91${cleanPhone}`, `+91${cleanPhone}`);
-        }
-        else if (cleanPhone.length === 12 && cleanPhone.startsWith("91")) {
-            phoneQueries.push(cleanPhone.slice(2), `+${cleanPhone}`);
-        }
+    const digitsOnly = String(input.phoneNumber || "").replace(/\D/g, "");
+    const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
+    let priorBookings = 0;
+    let latestPriorRecord = null;
+    if (db && cleanPhone) {
+        const phoneRegex = new RegExp(`${cleanPhone}$`);
+        const apptFilter = {
+            $or: [
+                { phoneNumber: phoneRegex },
+                { phone: phoneRegex },
+                { "rawPayload.customerNumber": phoneRegex },
+                { "rawPayload.phoneNumber": phoneRegex },
+            ],
+            bookingStatus: { $nin: ["cancelled", "Cancelled", "rejected", "Rejected"] },
+        };
+        const webhookFilter = {
+            $or: [
+                { phone: phoneRegex },
+                { phoneNumber: phoneRegex },
+                { "rawData.customerNumber": phoneRegex },
+                { "rawData.phoneNumber": phoneRegex },
+            ],
+            status: { $nin: ["cancelled", "Cancelled", "rejected", "Rejected"] },
+        };
         try {
-            const [existingAppts, existingWebhooks] = await Promise.all([
-                db.collection(appointmentCollection).countDocuments({
-                    phoneNumber: { $in: phoneQueries },
-                    bookingStatus: { $nin: ["cancelled", "rejected"] },
-                }).catch(() => 0),
-                db.collection("webhookmessages").countDocuments({
-                    phone: { $in: phoneQueries },
-                    status: { $nin: ["cancelled", "rejected"] },
-                }).catch(() => 0),
+            const [existingAppts, existingWebhooks, latestAppt, latestWebhook] = await Promise.all([
+                db.collection(appointmentCollection).countDocuments(apptFilter).catch(() => 0),
+                db.collection("webhookmessages").countDocuments(webhookFilter).catch(() => 0),
+                db.collection(appointmentCollection).findOne(apptFilter, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
+                db.collection("webhookmessages").findOne(webhookFilter, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
             ]);
-            const priorBookings = (existingAppts || 0) + (existingWebhooks || 0);
-            // 1. Strict First Session Rule:
-            // If isFirstSession === true OR patient is a new patient (no prior bookings):
-            // department MUST ALWAYS be strictly set to "Child and Parental Counselling".
-            // Ignore any incoming department or concern text for first sessions and lock it to "Child and Parental Counselling".
-            if (priorBookings === 0 || isExplicitFirst || !isExplicitReturning) {
-                isFirstSession = true;
-                targetDepartment = "Child and Parental Counselling";
-                input.department = "Child and Parental Counselling";
-                input.firstSession = "true";
-                input.isFirstSession = true;
-                console.log(`[First Session Guard] New patient/First session (${cleanPhone}, priorBookings=${priorBookings}) -> Locked department="Child and Parental Counselling", isFirstSession=true`);
-            }
-            else {
-                // Returning patient with prior bookings: sanitize requested department
-                isFirstSession = false;
-                targetDepartment = normalizeDepartment(input.department || "");
-                input.department = targetDepartment;
-                input.firstSession = "false";
-                input.isFirstSession = false;
-                console.log(`[First Session Guard] Returning patient (${cleanPhone}, priorBookings=${priorBookings}) -> Department: ${targetDepartment}, isFirstSession=false`);
-            }
+            priorBookings = (existingAppts || 0) + (existingWebhooks || 0);
+            latestPriorRecord = latestAppt || latestWebhook;
         }
         catch (countErr) {
             console.warn("[First Session Guard] Error checking prior bookings:", countErr.message);
-            isFirstSession = true;
-            targetDepartment = "Child and Parental Counselling";
-            input.department = "Child and Parental Counselling";
-            input.firstSession = "true";
-            input.isFirstSession = true;
         }
     }
-    else {
+    // 1. Returning vs New Patient Determination:
+    // ONLY enforce "Child and Parental Counselling" when isFirstSession === true AND count === 0.
+    // If ANY existing record exists (priorBookings > 0), isFirstSession MUST BE false and patient tag MUST BE Returning!
+    const isReturningPatient = priorBookings > 0 || isExplicitReturning;
+    const isStrictNewPatient = !isReturningPatient && (priorBookings === 0 || isExplicitFirst);
+    if (isStrictNewPatient) {
         isFirstSession = true;
         targetDepartment = "Child and Parental Counselling";
         input.department = "Child and Parental Counselling";
         input.firstSession = "true";
         input.isFirstSession = true;
+        console.log(`[First Session Guard] New patient/First session (${cleanPhone}, priorBookings=${priorBookings}) -> Locked department="Child and Parental Counselling", isFirstSession=true`);
+    }
+    else {
+        // Returning patient:
+        isFirstSession = false;
+        input.firstSession = "false";
+        input.isFirstSession = false;
+        // DO NOT force Counselling!
+        // Check incoming raw department across payload, input, and nested fields
+        const rawPayloadData = payloadData(payload);
+        const rawDept = String(input.rawDepartment ||
+            pick(rawPayloadData, "department", "service", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept", "specialization") ||
+            pick((payload ?? {}), "department", "service", "selected_service", "service_name", "selected_department", "therapy", "therapy_type", "dept") ||
+            "").trim();
+        if (rawDept) {
+            targetDepartment = normalizeDepartment(rawDept);
+        }
+        else {
+            // Check if a therapist name was chosen:
+            const rawTherapist = String(input.therapistName ||
+                pick(rawPayloadData, "therapistName", "therapist_name", "therapist", "doctor", "doctor_name") ||
+                pick((payload ?? {}), "therapistName", "therapist_name", "therapist", "doctor") ||
+                "").toLowerCase();
+            if (rawTherapist.includes("nikki") || rawTherapist.includes("harsimran")) {
+                targetDepartment = "OT";
+            }
+            else if (rawTherapist.includes("sakshi") || rawTherapist.includes("atal")) {
+                targetDepartment = "Speech Therapy";
+            }
+            else if (rawTherapist.includes("divya")) {
+                targetDepartment = "Physiotherapy";
+            }
+            else if (rawTherapist.includes("durgesh")) {
+                targetDepartment = "Physical Therapy";
+            }
+            else if (rawTherapist.includes("sonia") || rawTherapist.includes("shobha") || rawTherapist.includes("ranjana")) {
+                targetDepartment = "Special Education";
+            }
+            else if (rawTherapist.includes("tanu")) {
+                targetDepartment = "Child and Parental Counselling";
+            }
+            else if (latestPriorRecord?.department) {
+                targetDepartment = normalizeDepartment(latestPriorRecord.department);
+            }
+            else {
+                targetDepartment = "OT"; // Safe clinical therapy default instead of forced counselling
+            }
+        }
+        input.department = targetDepartment;
+        console.log(`[First Session Guard] Returning patient (${cleanPhone}, priorBookings=${priorBookings}) -> Retained Department: "${targetDepartment}", isFirstSession=false`);
     }
     // 3. Safe Therapist Lookup:
     // If matched therapists list is empty or unavailable, fallback to an active therapist

@@ -212,15 +212,49 @@ msg91BookingRouter.post("/", async (req, res) => {
  *  Returning + Counselling + Single           – ₹800,  1 session
  *  Returning + other services – Online: ₹600 | Offline: ₹800
  */
-msg91BookingRouter.all("/calculate-fee", (req, res) => {
+msg91BookingRouter.all("/calculate-fee", async (req, res) => {
   try {
     const data = { ...(req.query || {}), ...(req.body || {}) };
+    const rawCandidatePhone =
+      data.phone ||
+      data.phoneNumber ||
+      data.customerNumber ||
+      data.mobile ||
+      "";
+    const digitsOnly = String(rawCandidatePhone || "").replace(/\D/g, "");
+    const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
+
+    let isNew: boolean;
     const rawIsNew = data.isNew ?? data.is_new ?? data.is_new_patient ?? data.isNewPatient ?? data.firstSession ?? data.isFirstSession;
-    const isNew: boolean = rawIsNew === true || rawIsNew === "true" || rawIsNew === "yes" || rawIsNew === 1 || rawIsNew === "1";
+    if (rawIsNew !== undefined && rawIsNew !== null && rawIsNew !== "") {
+      isNew = rawIsNew === true || rawIsNew === "true" || rawIsNew === "yes" || rawIsNew === 1 || rawIsNew === "1";
+    } else if (cleanPhone) {
+      // Check if phone has existing bookings
+      const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+      if (db) {
+        const phoneRegex = new RegExp(`${cleanPhone}$`);
+        const priorCount = await db.collection("appointments").countDocuments({
+          $or: [
+            { phoneNumber: phoneRegex },
+            { phone: phoneRegex },
+            { "rawPayload.customerNumber": phoneRegex },
+            { "rawPayload.phoneNumber": phoneRegex },
+          ],
+          bookingStatus: { $nin: ["cancelled", "Cancelled", "rejected", "Rejected"] },
+        }).catch(() => 0);
+        isNew = priorCount === 0;
+      } else {
+        isNew = false;
+      }
+    } else {
+      isNew = false;
+    }
+
     const appointmentType = String(
       data.appointmentType ?? data.appointment_type ?? data.paymentMode ?? data.payment_mode ?? data.mode ?? "in-person"
     ).trim();
     const rawDept = String(data.department ?? data.service ?? data.selected_service ?? "").trim();
+    // Only lock to Counselling if patient is strictly a new first-time patient!
     const department = isNew ? "Child and Parental Counselling" : normalizeDepartment(rawDept);
     const session_frequency = String(data.session_frequency ?? data.sessionFrequency ?? data.frequency ?? "").trim();
 
@@ -318,9 +352,11 @@ msg91BookingRouter.all("/check-patient-status", async (req, res) => {
         is_new_patient: true,
         isNewPatient: true,
         existingPatient: false,
+        existing_patient: false,
         is_returning: false,
         isReturning: false,
         patientName: "",
+        childName: "",
         status: "new",
         count: 0,
         message: "Defaulted to new patient due to missing phone parameter",
@@ -331,44 +367,46 @@ msg91BookingRouter.all("/check-patient-status", async (req, res) => {
           is_new_patient: true,
           isNewPatient: true,
           existingPatient: false,
+          existing_patient: false,
           patientName: "",
+          childName: "",
           status: "new",
           count: 0,
         },
       });
     }
 
-    // 3. Query DB for existing appointments/messages
+    // 3. Query DB for existing appointments/messages matching last 10 digits regex
     const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
     let count = 0;
     let patientName = "";
 
     if (db) {
-      const phoneVariants = [cleanPhone, `91${cleanPhone}`, `+91${cleanPhone}`, rawPhone].filter(Boolean);
+      const phoneRegex = new RegExp(`${cleanPhone}$`);
+      const apptFilter = {
+        $or: [
+          { phoneNumber: phoneRegex },
+          { phone: phoneRegex },
+          { "rawPayload.customerNumber": phoneRegex },
+          { "rawPayload.phoneNumber": phoneRegex },
+        ],
+        bookingStatus: { $nin: ["cancelled", "Cancelled", "rejected", "Rejected"] },
+      };
+      const webhookFilter = {
+        $or: [
+          { phone: phoneRegex },
+          { phoneNumber: phoneRegex },
+          { "rawData.customerNumber": phoneRegex },
+          { "rawData.phoneNumber": phoneRegex },
+        ],
+        status: { $nin: ["cancelled", "Cancelled", "rejected", "Rejected"] },
+      };
 
       const [apptCount, webhookCount, latestAppt, latestWebhook] = await Promise.all([
-        db.collection("appointments").countDocuments({
-          phoneNumber: { $in: phoneVariants },
-          bookingStatus: { $nin: ["cancelled", "rejected"] },
-        }).catch(() => 0),
-        db.collection("webhookmessages").countDocuments({
-          phone: { $in: phoneVariants },
-          status: { $nin: ["cancelled", "rejected"] },
-        }).catch(() => 0),
-        db.collection("appointments").findOne(
-          {
-            phoneNumber: { $in: phoneVariants },
-            bookingStatus: { $nin: ["cancelled", "rejected"] },
-          },
-          { sort: { createdAt: -1 } }
-        ).catch(() => null),
-        db.collection("webhookmessages").findOne(
-          {
-            phone: { $in: phoneVariants },
-            status: { $nin: ["cancelled", "rejected"] },
-          },
-          { sort: { createdAt: -1 } }
-        ).catch(() => null),
+        db.collection("appointments").countDocuments(apptFilter).catch(() => 0),
+        db.collection("webhookmessages").countDocuments(webhookFilter).catch(() => 0),
+        db.collection("appointments").findOne(apptFilter, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
+        db.collection("webhookmessages").findOne(webhookFilter, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
       ]);
 
       count = (apptCount || 0) + (webhookCount || 0);
@@ -376,6 +414,8 @@ msg91BookingRouter.all("/check-patient-status", async (req, res) => {
         latestAppt?.patientName ||
         latestWebhook?.childName ||
         latestWebhook?.patientName ||
+        latestAppt?.parentName ||
+        latestWebhook?.parentName ||
         "";
     }
 
@@ -390,17 +430,26 @@ msg91BookingRouter.all("/check-patient-status", async (req, res) => {
       is_new_patient: isNew,
       isNewPatient: isNew,
       existingPatient,
+      existing_patient: existingPatient,
+      is_returning: existingPatient,
+      isReturning: existingPatient,
       patientName,
+      childName: patientName,
       status: isNew ? "new" : "returning",
       phone: cleanPhone,
       count,
       data: {
+        success: true,
         isNew,
         is_new: isNew,
         is_new_patient: isNew,
         isNewPatient: isNew,
         existingPatient,
+        existing_patient: existingPatient,
+        is_returning: existingPatient,
+        isReturning: existingPatient,
         patientName,
+        childName: patientName,
         status: isNew ? "new" : "returning",
         count,
       },
@@ -415,20 +464,27 @@ msg91BookingRouter.all("/check-patient-status", async (req, res) => {
       is_new_patient: true,
       isNewPatient: true,
       existingPatient: false,
+      existing_patient: false,
       is_returning: false,
       isReturning: false,
       patientName: "",
+      childName: "",
       status: "new",
       count: 0,
       fallback: true,
       message: "Defaulted to new patient due to missing phone parameter",
       data: {
+        success: true,
         isNew: true,
         is_new: true,
         is_new_patient: true,
         isNewPatient: true,
         existingPatient: false,
+        existing_patient: false,
+        is_returning: false,
+        isReturning: false,
         patientName: "",
+        childName: "",
         status: "new",
         count: 0,
       },
