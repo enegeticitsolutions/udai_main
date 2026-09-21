@@ -8,6 +8,24 @@ import { getScheduleDays } from "./WhatsAppMessagesPage";
 
 const statusTone = { pending: "amber", confirmed: "green", completed: "blue", cancelled: "red" };
 
+export function normalizeDepartment(dept) {
+  if (!dept || typeof dept !== "string") return dept || "—";
+  const trimmed = dept.trim();
+  const lower = trimmed.toLowerCase();
+  if (
+    lower === "counselling" ||
+    lower === "counseling" ||
+    lower === "child counselling" ||
+    lower === "parental counselling" ||
+    lower === "child and parental counselling" ||
+    lower.includes("counsel") ||
+    lower.includes("parental")
+  ) {
+    return "Child and Parental Counselling";
+  }
+  return trimmed;
+}
+
 function dateTime(item) {
   return `${item.appointmentDate || "-"} ${item.appointmentTime || ""}`.trim();
 }
@@ -16,7 +34,7 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
   const [metrics, setMetrics] = useState({});
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 0 });
-  const [filters, setFilters] = useState({ search: "", bookingStatus: "", therapistId: "", dateFrom: "", dateTo: "", page: 1, limit: 10, sortBy: "createdAt", sortOrder: "desc" });
+  const [filters, setFilters] = useState({ search: "", bookingStatus: "", department: "", therapistId: "", dateFrom: "", dateTo: "", page: 1, limit: 10, sortBy: "createdAt", sortOrder: "desc" });
   const [selected, setSelected] = useState(null);
   const [alert, setAlert] = useState("");
   const [loading, setLoading] = useState(true);
@@ -73,6 +91,14 @@ export default function AppointmentsPage() {
     if (selected?.id === id) setSelected((current) => ({ ...current, bookingStatus }));
   }
 
+  const displayAppointments = useMemo(() => {
+    if (!filters.department) return appointments;
+    return appointments.filter((item) => {
+      const d = normalizeDepartment(item.department || item.appointmentType || "");
+      return d === filters.department;
+    });
+  }, [appointments, filters.department]);
+
   return (
     <section className="content-card">
       <div className="section-head">
@@ -100,6 +126,18 @@ export default function AppointmentsPage() {
       <div className="form-grid" style={{ marginTop: "20px", marginBottom: "20px" }}>
         <Input label="Search patient or phone" value={filters.search} onChange={(event) => updateFilter("search", event.target.value)} />
         <label className="field"><span>Status</span><select value={filters.bookingStatus} onChange={(event) => updateFilter("bookingStatus", event.target.value)}><option value="">All statuses</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+        <label className="field">
+          <span>Department</span>
+          <select value={filters.department} onChange={(event) => updateFilter("department", event.target.value)}>
+            <option value="">All departments</option>
+            <option value="Child and Parental Counselling">Child and Parental Counselling</option>
+            <option value="OT">OT</option>
+            <option value="Speech Therapy">Speech Therapy</option>
+            <option value="Physiotherapy">Physiotherapy</option>
+            <option value="Special Educator">Special Education</option>
+            <option value="Physical Therapy">Physical Therapy</option>
+          </select>
+        </label>
         <label className="field"><span>Therapist</span><select value={filters.therapistId} onChange={(event) => updateFilter("therapistId", event.target.value)}><option value="">All therapists</option>{therapistOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
         <Input label="Date from" type="date" value={filters.dateFrom} onChange={(event) => updateFilter("dateFrom", event.target.value)} />
         <Input label="Date to" type="date" value={filters.dateTo} onChange={(event) => updateFilter("dateTo", event.target.value)} />
@@ -107,9 +145,9 @@ export default function AppointmentsPage() {
 
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Booking</th><th>Patient</th><th>Phone</th><th>Therapist</th><th>Schedule</th><th>Type</th><th>Session Freq</th><th>Sessions</th><th>Fee</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Booking</th><th>Patient</th><th>Phone</th><th>Therapist</th><th>Schedule</th><th>Department</th><th>Session Freq</th><th>Sessions</th><th>Fee</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            {appointments.length === 0 ? <tr><td colSpan="11" style={{ textAlign: "center", padding: "24px" }}>{loading ? "Loading appointments..." : "No appointments found."}</td></tr> : appointments.map((item) => {
+            {displayAppointments.length === 0 ? <tr><td colSpan="11" style={{ textAlign: "center", padding: "24px" }}>{loading ? "Loading appointments..." : "No appointments found."}</td></tr> : displayAppointments.map((item) => {
               const sDays = getScheduleDays(item);
               return (
                 <tr key={item.id}>
@@ -127,7 +165,23 @@ export default function AppointmentsPage() {
                       </div>
                     )}
                   </td>
-                  <td>{item.appointmentType}</td>
+                  <td>
+                    <span
+                      style={{
+                        fontWeight: 500,
+                        color: "#334155",
+                        background: "#f8fafc",
+                        padding: "2px 8px",
+                        borderRadius: 6,
+                        border: "1px solid #e2e8f0",
+                        fontSize: 12,
+                        display: "inline-block",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {normalizeDepartment(item.department || item.appointmentType || "Child and Parental Counselling")}
+                    </span>
+                  </td>
                   <td>{item.session_frequency || <span style={{color:"var(--muted)"}}>—</span>}</td>
                   <td style={{textAlign:"center"}}>{item.totalSessions ?? <span style={{color:"var(--muted)"}}>—</span>}</td>
                   <td style={{fontWeight:600}}>{item.feeCharged != null ? `₹${item.feeCharged}` : <span style={{color:"var(--muted)"}}>—</span>}</td>
@@ -180,7 +234,16 @@ export default function AppointmentsPage() {
             })()}
 
             <div className="form-grid">
-              {Object.entries(selected).filter(([key]) => key !== "rawPayload" && key !== "sessionSchedule").map(([key, value]) => <div key={key}><strong>{key}</strong><div>{String(value ?? "-")}</div></div>)}
+              {Object.entries(selected).filter(([key]) => key !== "rawPayload" && key !== "sessionSchedule").map(([key, value]) => (
+                <div key={key}>
+                  <strong>{key}</strong>
+                  <div>
+                    {key === "appointmentType" || key === "department"
+                      ? normalizeDepartment(String(value ?? "-"))
+                      : String(value ?? "-")}
+                  </div>
+                </div>
+              ))}
             </div>
             <div style={{ marginTop: "18px" }}><strong>Raw payload</strong><pre style={{ overflow: "auto", padding: "12px", background: "#f8fafc", borderRadius: "8px" }}>{JSON.stringify(selected.rawPayload, null, 2)}</pre></div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "18px" }}>{["pending", "confirmed", "completed", "cancelled"].map((status) => <Button key={status} variant={selected.bookingStatus === status ? "primary" : "secondary"} onClick={() => updateStatus(selected.id, status)}>{status}</Button>)}</div>

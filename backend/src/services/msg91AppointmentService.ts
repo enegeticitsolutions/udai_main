@@ -109,11 +109,11 @@ export function generateSessionSchedule(
 }
 
 // ── Pricing constants ────────────────────────────────────────────────────────
-const FEE_ONLINE  = 600;   // ₹600 – online consultation (new or returning, non-counselling)
-const FEE_OFFLINE = 800;   // ₹800 – pay at clinic (new or returning, non-counselling)
-const FEE_COUNSELLING_SINGLE  = 800;   // ₹800  – returning, counselling single session (1 day)
-const FEE_COUNSELLING_2DAYS   = 1600;  // ₹1600 – returning, counselling 2-day package
-const FEE_COUNSELLING_3DAYS   = 2400;  // ₹2400 – returning, counselling 3-day package
+const FEE_ONLINE  = 600;    // ₹600 – online consultation (new or returning, non-counselling)
+const FEE_OFFLINE = 800;    // ₹800 – pay at clinic (new or returning, non-counselling)
+const FEE_COUNSELLING_SINGLE  = 1500;  // ₹1500 – returning, counselling single session (1 day)
+const FEE_COUNSELLING_2DAYS   = 3000;  // ₹3000 – returning, counselling 2-day package (2 days / week)
+const FEE_COUNSELLING_3DAYS   = 4500;  // ₹4500 – returning, counselling 3-day package (3 days / week)
 
 /**
  * Pure function that returns the appointment fee, totalSessions, and feeCharged
@@ -121,21 +121,26 @@ const FEE_COUNSELLING_3DAYS   = 2400;  // ₹2400 – returning, counselling 3-d
  *
  * Pricing rules:
  *  - New patient  → Online: ₹600 | Offline: ₹800
- *  - Returning + Counselling:
- *      "3 Days" / "2400"  → ₹2400, 3 sessions
- *      "2 Days" / "1600"  → ₹1600, 2 sessions
- *      Single / anything else → ₹800, 1 session
+ *  - Returning + Child and Parental Counselling (or legacy Counselling):
+ *      "3 Days" / "4500"  → ₹4500, 3 sessions
+ *      "2 Days" / "3000"  → ₹3000, 2 sessions
+ *      Single / anything else → ₹1500, 1 session
  *  - Returning + any other service → Online: ₹600 | Offline: ₹800
  */
 export function calculateAppointmentFee(params: {
   isNew: boolean;
   appointmentType: string;        // "online" | "in-person" | "offline" | "clinic"
   department: string;
-  session_frequency?: string;     // e.g. "3 Days", "2 Days", "Single", "2400", "1600"
+  session_frequency?: string;     // e.g. "3 Days", "2 Days", "Single", "4500", "3000", "1500"
 }): { amount: number; totalSessions: number; feeCharged: number } {
   const { isNew, appointmentType, department, session_frequency = "" } = params;
   const isOnline = ["online", "video", "virtual"].includes(appointmentType.toLowerCase().trim());
-  const isCounselling = department.toLowerCase().replace(/[_ ]+/g, "-").includes("counsel");
+  const deptLower = department.toLowerCase().replace(/[_ ]+/g, "-");
+  const isCounselling =
+    deptLower.includes("counsel") ||
+    deptLower.includes("parental") ||
+    department === "Child and Parental Counselling" ||
+    department === "Counselling";
 
   // New patient — fee depends only on consultation mode
   if (isNew) {
@@ -143,13 +148,13 @@ export function calculateAppointmentFee(params: {
     return { amount, totalSessions: 1, feeCharged: amount };
   }
 
-  // Returning patient + Counselling — tiered by session frequency
+  // Returning patient + Child and Parental Counselling — tiered by session frequency
   if (isCounselling) {
     const sf = session_frequency.toLowerCase().trim();
-    if (sf.includes("3 day") || sf.includes("3day") || sf.includes("2400")) {
+    if (sf.includes("3 day") || sf.includes("3day") || sf.includes("4500") || sf.includes("3 session") || sf.includes("2400")) {
       return { amount: FEE_COUNSELLING_3DAYS, totalSessions: 3, feeCharged: FEE_COUNSELLING_3DAYS };
     }
-    if (sf.includes("2 day") || sf.includes("2day") || sf.includes("1600")) {
+    if (sf.includes("2 day") || sf.includes("2day") || sf.includes("3000") || sf.includes("2 session") || sf.includes("1600")) {
       return { amount: FEE_COUNSELLING_2DAYS, totalSessions: 2, feeCharged: FEE_COUNSELLING_2DAYS };
     }
     // Single session (default)
@@ -448,7 +453,7 @@ export async function saveMsg91Appointment(payload: unknown) {
   const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
 
   // ── First Session Service Guard & Strict Department Enforcement ──────────
-  let targetDepartment = "Counselling";
+  let targetDepartment = "Child and Parental Counselling";
   let isFirstSession = true;
 
   const rawFirstSession = String(input.firstSession || "").toLowerCase().trim();
@@ -488,15 +493,15 @@ export async function saveMsg91Appointment(payload: unknown) {
 
       // 1. Strict First Session Rule:
       // If isFirstSession === true OR patient is a new patient (no prior bookings):
-      // department MUST ALWAYS be strictly set to "Counselling".
-      // Ignore any incoming department or concern text for first sessions and lock it to "Counselling".
+      // department MUST ALWAYS be strictly set to "Child and Parental Counselling".
+      // Ignore any incoming department or concern text for first sessions and lock it to "Child and Parental Counselling".
       if (priorBookings === 0 || isExplicitFirst || !isExplicitReturning) {
         isFirstSession = true;
-        targetDepartment = "Counselling";
-        input.department = "Counselling";
+        targetDepartment = "Child and Parental Counselling";
+        input.department = "Child and Parental Counselling";
         input.firstSession = "true";
         input.isFirstSession = true;
-        console.log(`[First Session Guard] New patient/First session (${cleanPhone}, priorBookings=${priorBookings}) -> Locked department="Counselling", isFirstSession=true`);
+        console.log(`[First Session Guard] New patient/First session (${cleanPhone}, priorBookings=${priorBookings}) -> Locked department="Child and Parental Counselling", isFirstSession=true`);
       } else {
         // Returning patient with prior bookings: sanitize requested department
         isFirstSession = false;
@@ -509,22 +514,22 @@ export async function saveMsg91Appointment(payload: unknown) {
     } catch (countErr: any) {
       console.warn("[First Session Guard] Error checking prior bookings:", countErr.message);
       isFirstSession = true;
-      targetDepartment = "Counselling";
-      input.department = "Counselling";
+      targetDepartment = "Child and Parental Counselling";
+      input.department = "Child and Parental Counselling";
       input.firstSession = "true";
       input.isFirstSession = true;
     }
   } else {
     isFirstSession = true;
-    targetDepartment = "Counselling";
-    input.department = "Counselling";
+    targetDepartment = "Child and Parental Counselling";
+    input.department = "Child and Parental Counselling";
     input.firstSession = "true";
     input.isFirstSession = true;
   }
 
   // 3. Safe Therapist Lookup:
   // If matched therapists list is empty or unavailable, fallback to an active therapist
-  // assigned to "Counselling" (e.g., "Ms. Tanu Rajput") so the appointment is NEVER dropped or rejected.
+  // assigned to "Child and Parental Counselling" (e.g., "Ms. Tanu Rajput") so the appointment is NEVER dropped or rejected.
   let availableSlots: any[] = [];
   try {
     availableSlots = await getAvailableSlots(targetDepartment, input.appointmentDate);
@@ -533,9 +538,9 @@ export async function saveMsg91Appointment(payload: unknown) {
   }
 
   if (!availableSlots || availableSlots.length === 0) {
-    if (targetDepartment !== "Counselling") {
+    if (targetDepartment !== "Child and Parental Counselling") {
       try {
-        availableSlots = await getAvailableSlots("Counselling", input.appointmentDate);
+        availableSlots = await getAvailableSlots("Child and Parental Counselling", input.appointmentDate);
       } catch (counselSlotsErr: any) {
         console.warn("[saveMsg91Appointment] Error getting Counselling slots:", counselSlotsErr.message);
       }
@@ -547,7 +552,7 @@ export async function saveMsg91Appointment(payload: unknown) {
     input.appointmentTime = availableSlots?.[0]?.time || "10:00";
   }
 
-  // Assign therapist safely: try targetDepartment, fallback to Counselling, fallback to "Ms. Tanu Rajput"
+  // Assign therapist safely: try targetDepartment, fallback to Child and Parental Counselling, fallback to "Ms. Tanu Rajput"
   let assigned: { id: string; name: string } | null = null;
   try {
     assigned = await assignTherapist(targetDepartment, input.appointmentDate, input.appointmentTime);
@@ -555,10 +560,10 @@ export async function saveMsg91Appointment(payload: unknown) {
     console.warn(`[saveMsg91Appointment] Error assigning therapist for ${targetDepartment}:`, assignErr.message);
   }
 
-  if (!assigned && targetDepartment !== "Counselling") {
-    console.warn(`[saveMsg91Appointment] Fallback therapist lookup for Counselling on ${input.appointmentDate} at ${input.appointmentTime}`);
+  if (!assigned && targetDepartment !== "Child and Parental Counselling") {
+    console.warn(`[saveMsg91Appointment] Fallback therapist lookup for Child and Parental Counselling on ${input.appointmentDate} at ${input.appointmentTime}`);
     try {
-      assigned = await assignTherapist("Counselling", input.appointmentDate, input.appointmentTime);
+      assigned = await assignTherapist("Child and Parental Counselling", input.appointmentDate, input.appointmentTime);
     } catch (fallbackErr: any) {
       console.warn("[saveMsg91Appointment] Fallback assignTherapist error:", fallbackErr.message);
     }
@@ -665,7 +670,7 @@ export async function saveMsg91Appointment(payload: unknown) {
             isFirstSession: input.isFirstSession,
             appointmentDate: input.appointmentDate || "",
             appointmentTime: input.appointmentTime || "",
-            department: input.department || "Counselling",
+            department: input.department || "Child and Parental Counselling",
             concern: input.mainConcern || "",
             assignedTherapist: input.therapistName || "Ms. Tanu Rajput",
             assignedTherapistId: input.therapistId || "roster-counselling-1",

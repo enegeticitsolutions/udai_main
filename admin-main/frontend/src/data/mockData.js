@@ -45,6 +45,7 @@ export const therapistDepartments = {
   "Speech Therapy": ["Ms Sakshi", "Mr Atal"],
   "Physical Therapy": ["Mr Durgesh"],
   "Remedial & Academic Support": [],
+  "Child and Parental Counselling": ["Ms Tanu Rajput", "Ms Sonia", "Ms Harsimran"],
   "Counselling / Home Programme": ["Ms Tanu Rajput", "Ms Sonia", "Ms Harsimran"],
 };
 

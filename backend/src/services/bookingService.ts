@@ -83,21 +83,22 @@ export const SLOT_DURATION_MINUTES = 45;
 
 /**
  * Normalizes input department name to one of the public bookable departments.
+ * Canonical name: "Child and Parental Counselling".
+ * Aliases mapped:
+ * - "Counselling" -> "Child and Parental Counselling"
+ * - "counselling" -> "Child and Parental Counselling"
+ * - "counseling" -> "Child and Parental Counselling"
+ * - "parental counselling" -> "Child and Parental Counselling"
+ * - "child counselling" -> "Child and Parental Counselling"
  * If incoming department is empty, whitespace, or invalid (e.g., user concern like "Disturb"):
  * - Do NOT use concern as the department.
- * - Fallback default MUST be "Counselling".
- * Normalized names:
- * - "counseling", "counselling", "consultation" -> "Counselling"
- * - "ot", "occupational therapy" -> "OT"
- * - "speech", "speech therapy" -> "Speech Therapy"
- * - "special ed", "special education" -> "Special Education"
- * - "physio", "physiotherapy" -> "Physiotherapy"
+ * - Fallback default MUST be "Child and Parental Counselling".
  */
 export function normalizeDepartment(dept?: string): string {
   const d = String(dept ?? "").trim();
-  if (!d) return "Counselling";
+  if (!d) return "Child and Parental Counselling";
 
-  if (/counsel|consult|home\s*prog/i.test(d)) return "Counselling";
+  if (/counsel|consult|home\s*prog|parental/i.test(d)) return "Child and Parental Counselling";
   if (/speech/i.test(d)) return "Speech Therapy";
   if (/physio/i.test(d)) return "Physiotherapy";
   if (/special.*ed/i.test(d) || /special/i.test(d)) return "Special Education";
@@ -107,6 +108,7 @@ export function normalizeDepartment(dept?: string): string {
 
   // Known roster departments
   const validDepartments = [
+    "Child and Parental Counselling",
     "Counselling",
     "Speech Therapy",
     "Physiotherapy",
@@ -118,24 +120,35 @@ export function normalizeDepartment(dept?: string): string {
   ];
   const exact = validDepartments.find((v) => v.toLowerCase() === d.toLowerCase());
   if (exact) {
+    if (exact === "Counselling" || exact.toLowerCase().includes("counsel")) return "Child and Parental Counselling";
     return exact === "Special Educator" ? "Special Education" : exact;
   }
 
   // Fallback default for unknown/invalid input (like "Disturb", "Hyperactive", etc.)
-  return "Counselling";
+  return "Child and Parental Counselling";
 }
 
 /**
  * Clinical Roster by Department:
+ * - Child and Parental Counselling / Counselling: ["Ms. Tanu Rajput", "Ms. Harsimran", "Ms. Sonia"]
  * - OT / Occupational Therapy: ["Ms. Nikki", "Ms. Harsimran"]
  * - Physiotherapy: ["Ms. Divya"]
  * - Special Educator / Special Education: ["Ms. Sonia", "Ms. Shobha", "Ms. Ranjana"]
  * - Speech Therapy: ["Ms. Sakshi", "Mr. Atal"]
  * - Physical Therapy: ["Mr. Durgesh"]
  * - Academic Support / Remedial and Academics Support: ["Ms. Sonia", "Ms. Shobha"]
- * - Counselling / Counselling / Home Programme: ["Ms. Tanu Rajput", "Ms. Harsimran", "Ms. Sonia"]
  */
 export const CLINIC_ROSTER_BY_DEPARTMENT: Record<string, Array<{ name: string; role: string }>> = {
+  "Child and Parental Counselling": [
+    { name: "Ms. Tanu Rajput", role: "Psychological Counsellor" },
+    { name: "Ms. Harsimran", role: "Counsellor" },
+    { name: "Ms. Sonia", role: "Counsellor" },
+  ],
+  "Counselling": [
+    { name: "Ms. Tanu Rajput", role: "Psychological Counsellor" },
+    { name: "Ms. Harsimran", role: "Counsellor" },
+    { name: "Ms. Sonia", role: "Counsellor" },
+  ],
   "OT": [
     { name: "Ms. Nikki", role: "Occupational Therapist" },
     { name: "Ms. Harsimran", role: "Occupational Therapist" },
@@ -163,11 +176,6 @@ export const CLINIC_ROSTER_BY_DEPARTMENT: Record<string, Array<{ name: string; r
   "Academic Support": [
     { name: "Ms. Sonia", role: "Academic Support Specialist" },
     { name: "Ms. Shobha", role: "Academic Support Specialist" },
-  ],
-  "Counselling": [
-    { name: "Ms. Tanu Rajput", role: "Psychological Counsellor" },
-    { name: "Ms. Harsimran", role: "Counsellor" },
-    { name: "Ms. Sonia", role: "Counsellor" },
   ],
 };
 
@@ -657,8 +665,8 @@ export function isTimeInTherapistShift(
 export async function loadTherapists(department: string): Promise<ITherapist[]> {
   const normalizedDept = normalizeDepartment(department);
 
-  // 1. Defined clinic roster is the primary source of truth for all 7 departments
-  const roster = CLINIC_ROSTER_BY_DEPARTMENT[normalizedDept];
+  // 1. Defined clinic roster is the primary source of truth for all departments
+  const roster = CLINIC_ROSTER_BY_DEPARTMENT[normalizedDept] || CLINIC_ROSTER_BY_DEPARTMENT["Child and Parental Counselling"];
   if (roster && roster.length > 0) {
     return roster.map((m, idx) => ({
       _id: `roster-${normalizedDept.toLowerCase().replace(/\s+/g, "-")}-${idx + 1}`,
@@ -670,9 +678,14 @@ export async function loadTherapists(department: string): Promise<ITherapist[]> 
     }));
   }
 
-  // 2. Fallback to MongoDB therapists collection
+  // 2. Fallback to MongoDB therapists collection supporting both new and legacy names
+  const deptFilter =
+    normalizedDept === "Child and Parental Counselling"
+      ? { $in: ["Child and Parental Counselling", "Counselling", "Counselling / Home Programme"] }
+      : normalizedDept;
+
   const mongoTherapists = await TherapistModel.find({
-    department: normalizedDept,
+    department: deptFilter,
     active: true,
   }).lean();
 
@@ -1074,9 +1087,9 @@ export async function assignTherapist(
 
   // Safe fallback if no eligible therapists found for requested department
   if (eligibleTherapists.length === 0) {
-    if (normalizedDept !== "Counselling") {
-      console.warn(`[assignTherapist] No therapist free for ${normalizedDept} on ${date} at ${time}. Falling back to Counselling.`);
-      const counselFallback = await assignTherapist("Counselling", date, time);
+    if (normalizedDept !== "Child and Parental Counselling" && normalizedDept !== "Counselling") {
+      console.warn(`[assignTherapist] No therapist free for ${normalizedDept} on ${date} at ${time}. Falling back to Child and Parental Counselling.`);
+      const counselFallback = await assignTherapist("Child and Parental Counselling", date, time);
       if (counselFallback) return counselFallback;
     }
     return { id: "roster-counselling-1", name: "Ms. Tanu Rajput" };
@@ -1126,16 +1139,16 @@ export async function assignTherapist(
 }
 
 /**
- * Returns a list of all 7 public bookable departments.
+ * Returns a list of all public bookable departments.
  */
 export async function getDepartments(): Promise<string[]> {
   return [
+    "Child and Parental Counselling",
     "Speech Therapy",
     "Physiotherapy",
-    "Special Educator",
+    "Special Education",
     "Physical Therapy",
     "Academic Support",
-    "Counselling",
     "OT",
   ];
 }

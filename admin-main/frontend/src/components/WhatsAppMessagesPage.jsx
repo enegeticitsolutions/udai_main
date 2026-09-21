@@ -1,7 +1,25 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 
 // All API calls use relative paths so Nginx on pms.datamoshtechnologies.com
 // proxies them to the admin backend (port 5003) without any cross-origin issues.
+
+export function normalizeDepartmentDisplay(dept) {
+  if (!dept || typeof dept !== "string") return dept || "—";
+  const trimmed = dept.trim();
+  const lower = trimmed.toLowerCase();
+  if (
+    lower === "counselling" ||
+    lower === "counseling" ||
+    lower === "child counselling" ||
+    lower === "parental counselling" ||
+    lower === "child and parental counselling" ||
+    lower.includes("counsel") ||
+    lower.includes("parental")
+  ) {
+    return "Child and Parental Counselling";
+  }
+  return trimmed;
+}
 
 function formatTime(dateStr) {
   if (!dateStr) return "—";
@@ -169,6 +187,10 @@ export default function WhatsAppMessagesPage() {
   const [rescheduleItem, setRescheduleItem] = useState(null);
   const [cancelItem, setCancelItem] = useState(null);
   const [detailsItem, setDetailsItem] = useState(null);
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("All");
 
   // Reschedule form state
   const [rescheduleDate, setRescheduleDate] = useState("");
@@ -367,6 +389,35 @@ export default function WhatsAppMessagesPage() {
     }
   };
 
+  const filteredMessages = useMemo(() => {
+    return messages.filter((msg) => {
+      const raw = msg.rawData || {};
+      const field = (...keys) => {
+        for (const k of keys) {
+          if (msg[k] !== undefined && msg[k] !== null && msg[k] !== "") return String(msg[k]);
+        }
+        return extractField(raw, ...keys);
+      };
+      const childName = field("childName", "child_name", "name", "patientName");
+      const phone = field("phone", "customerNumber", "phoneNumber", "phone_number", "from", "sender");
+      const rawService = field("department", "service", "selected_service", "concern", "mainConcern", "therapistName", "doctor", "problem");
+      const dept = normalizeDepartmentDisplay(rawService);
+
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        childName.toLowerCase().includes(q) ||
+        phone.toLowerCase().includes(q) ||
+        dept.toLowerCase().includes(q);
+
+      const matchesDept =
+        departmentFilter === "All" ||
+        dept === departmentFilter;
+
+      return matchesSearch && matchesDept;
+    });
+  }, [messages, searchQuery, departmentFilter]);
+
   return (
     <div style={{ padding: 0, position: "relative" }}>
       {/* ── Toast Notification ────────────────────────────── */}
@@ -530,6 +581,45 @@ export default function WhatsAppMessagesPage() {
         ))}
       </div>
 
+      {/* ── Search & Filter Controls ──────────────────────── */}
+      <div style={{ display: "flex", gap: "12px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          type="text"
+          placeholder="Search child, phone, department..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #d0d5dd",
+            fontSize: 13,
+            minWidth: 240,
+            flex: 1,
+          }}
+        />
+        <select
+          value={departmentFilter}
+          onChange={(e) => setDepartmentFilter(e.target.value)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #d0d5dd",
+            fontSize: 13,
+            background: "#fff",
+            cursor: "pointer",
+            minWidth: 220,
+          }}
+        >
+          <option value="All">All Departments</option>
+          <option value="Child and Parental Counselling">Child and Parental Counselling</option>
+          <option value="OT">OT</option>
+          <option value="Speech Therapy">Speech Therapy</option>
+          <option value="Physiotherapy">Physiotherapy</option>
+          <option value="Special Educator">Special Education</option>
+          <option value="Physical Therapy">Physical Therapy</option>
+        </select>
+      </div>
+
       {/* ── Table ────────────────────────────────────────── */}
       {loading ? (
         <div style={{ textAlign: "center", padding: 40, color: "#888" }}>Loading messages...</div>
@@ -546,7 +636,7 @@ export default function WhatsAppMessagesPage() {
         >
           ⚠️ Could not fetch messages: {error}
         </div>
-      ) : messages.length === 0 ? (
+      ) : filteredMessages.length === 0 ? (
         <div
           style={{
             textAlign: "center",
@@ -557,7 +647,7 @@ export default function WhatsAppMessagesPage() {
             border: "1px dashed #d0d5dd",
           }}
         >
-          No webhook messages received yet. Send a WhatsApp message to see data here.
+          {messages.length === 0 ? "No webhook messages received yet. Send a WhatsApp message to see data here." : "No messages match your filter."}
         </div>
       ) : (
         <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid #e5e7eb", background: "#fff" }}>
@@ -579,7 +669,7 @@ export default function WhatsAppMessagesPage() {
               </tr>
             </thead>
             <tbody>
-              {messages.map((msg, idx) => {
+              {filteredMessages.map((msg, idx) => {
                 const raw = msg.rawData || {};
                 const field = (...keys) => {
                   for (const k of keys) {
@@ -608,8 +698,12 @@ export default function WhatsAppMessagesPage() {
                 const isReturning = rawFirst === "false" || rawFirst === "no" || rawFirst === "0";
 
                 // Service / Concern
-                const serviceOrConcern =
+                const rawService =
                   field("department", "service", "selected_service", "concern", "mainConcern", "therapistName", "doctor", "problem");
+                let serviceOrConcern = normalizeDepartmentDisplay(rawService);
+                if (isFirstTime && (serviceOrConcern === "—" || serviceOrConcern === "General Consultation" || !serviceOrConcern)) {
+                  serviceOrConcern = "Child and Parental Counselling";
+                }
 
                 // Payment Status & Mode
                 const pStatus = (msg.paymentStatus || raw.paymentStatus || raw.payment_status || "").toLowerCase();
@@ -631,13 +725,12 @@ export default function WhatsAppMessagesPage() {
                 );
 
                 const rawFee = msg.feeCharged ?? msg.amount ?? raw.feeCharged ?? raw.amount;
+                const isCounsel = serviceOrConcern.includes("Counsel");
                 const feeCharged = rawFee !== undefined && rawFee !== null && rawFee !== ""
                   ? Number(rawFee)
-                  : totalSessions === 3
-                  ? 2400
-                  : totalSessions === 2
-                  ? 1600
-                  : 800;
+                  : isCounsel
+                  ? (totalSessions === 3 ? 4500 : totalSessions === 2 ? 3000 : 1500)
+                  : (totalSessions === 3 ? 2400 : totalSessions === 2 ? 1600 : 800);
 
                 return (
                   <tr
@@ -1077,7 +1170,7 @@ export default function WhatsAppMessagesPage() {
               <div><strong>First-Time Session:</strong> {detailsItem.firstSession || detailsItem.rawData?.firstSession || "—"}</div>
               <div><strong>Appointment Slot:</strong> {detailsItem.appointmentDate || detailsItem.rawData?.appointmentDate || "—"} {detailsItem.appointmentTime || detailsItem.rawData?.appointmentTime || ""}</div>
               <div><strong>Assigned Therapist:</strong> {detailsItem.assignedTherapist || detailsItem.rawData?.assignedTherapist || "—"}</div>
-              <div><strong>Service / Department:</strong> {detailsItem.department || detailsItem.rawData?.department || "—"}</div>
+              <div><strong>Service / Department:</strong> {normalizeDepartmentDisplay(detailsItem.department || detailsItem.rawData?.department || "—")}</div>
               <div><strong>Problem / Concern:</strong> {detailsItem.concern || detailsItem.rawData?.concern || "—"}</div>
               <div><strong>Session Frequency:</strong> {detailsItem.session_frequency || detailsItem.rawData?.session_frequency || "Single Session"}</div>
               <div><strong>Total Sessions:</strong> {detailsItem.totalSessions ?? detailsItem.rawData?.totalSessions ?? 1}</div>

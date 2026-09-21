@@ -3,11 +3,12 @@ import Badge from "./Badge";
 import Table from "./Table";
 import StatCard from "./StatCard";
 import Input from "./Input";
-import { getScheduleDays } from "./WhatsAppMessagesPage";
+import { getScheduleDays, normalizeDepartmentDisplay } from "./WhatsAppMessagesPage";
 
 export default function WhatsAppBookingsPage({ bookings = [] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [eventFilter, setEventFilter] = useState("All");
+  const [departmentFilter, setDepartmentFilter] = useState("All");
   const [expanded, setExpanded] = useState(null);
 
   // Normalize MSG91 chatbotsubmissions data to display fields
@@ -39,13 +40,26 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
         item.userDetails?.totalSessions ??
         raw.totalSessions ??
         (String(session_frequency).includes("3") ? 3 : String(session_frequency).includes("2") ? 2 : 1);
+
+      const rawDept =
+        item.department ??
+        item.userDetails?.department ??
+        raw.department ??
+        raw.service ??
+        item.service ??
+        "Child and Parental Counselling";
+      const department = normalizeDepartmentDisplay(rawDept);
+
+      const isCounsel = department.includes("Counsel");
       const feeCharged =
         item.feeCharged ??
         item.amount ??
         item.userDetails?.feeCharged ??
         raw.feeCharged ??
         raw.amount ??
-        (totalSessions === 3 ? 2400 : totalSessions === 2 ? 1600 : 800);
+        (isCounsel
+          ? (totalSessions === 3 ? 4500 : totalSessions === 2 ? 3000 : 1500)
+          : (totalSessions === 3 ? 2400 : totalSessions === 2 ? 1600 : 800));
 
       return {
         id: item.id ?? item._id,
@@ -56,6 +70,7 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
         statusCode: latestEvent?.statusCode ?? raw.statusCode ?? "-",
         allEvents: allEventNames,
         isCompleted,
+        department,
         session_frequency,
         totalSessions,
         feeCharged,
@@ -76,15 +91,20 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
         !query ||
         item.phone.toLowerCase().includes(query) ||
         item.message.toLowerCase().includes(query) ||
+        item.department.toLowerCase().includes(query) ||
         item.transactionId.toLowerCase().includes(query);
 
       const matchesEvent =
         eventFilter === "All" ||
         item.allEvents.includes(eventFilter);
 
-      return matchesSearch && matchesEvent;
+      const matchesDept =
+        departmentFilter === "All" ||
+        item.department === departmentFilter;
+
+      return matchesSearch && matchesEvent && matchesDept;
     });
-  }, [normalized, searchQuery, eventFilter]);
+  }, [normalized, searchQuery, eventFilter, departmentFilter]);
 
   const completedCount = normalized.filter((b) => b.isCompleted).length;
   const outgoingCount = normalized.filter((b) => b.direction === "Outgoing (Bot)").length;
@@ -147,6 +167,24 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
             </select>
           </label>
         </div>
+        <div style={{ minWidth: "220px" }}>
+          <label className="field">
+            <span>Filter by Department</span>
+            <select
+              className="select-inline"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+            >
+              <option value="All">All Departments</option>
+              <option value="Child and Parental Counselling">Child and Parental Counselling</option>
+              <option value="OT">OT</option>
+              <option value="Speech Therapy">Speech Therapy</option>
+              <option value="Physiotherapy">Physiotherapy</option>
+              <option value="Special Educator">Special Education</option>
+              <option value="Physical Therapy">Physical Therapy</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -162,7 +200,7 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
             <thead>
               <tr style={{ borderBottom: "2px solid var(--line)" }}>
-                {["Phone", "Message", "Session Freq", "Sessions", "Fee", "Events", "Direction", "Type", "Received At", "Details"].map((col) => (
+                {["Phone", "Message", "Department", "Session Freq", "Sessions", "Fee", "Events", "Direction", "Type", "Received At", "Details"].map((col) => (
                   <th key={col} style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700, color: "var(--muted)", fontSize: "12px", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     {col}
                   </th>
@@ -182,6 +220,11 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
                     <td style={{ padding: "12px 16px", maxWidth: "280px" }}>
                       <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text)" }}>
                         {item.message}
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: "12px", background: "var(--surface-2)", padding: "2px 8px", borderRadius: "6px", fontWeight: 500, color: "#334155" }}>
+                        {item.department}
                       </span>
                     </td>
                     <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
@@ -224,10 +267,11 @@ export default function WhatsAppBookingsPage({ bookings = [] }) {
                   </tr>
                   {expanded === idx && (
                     <tr>
-                      <td colSpan={10} style={{ padding: "0 16px 16px", background: "var(--surface-2)" }}>
+                      <td colSpan={11} style={{ padding: "0 16px 16px", background: "var(--surface-2)" }}>
                         <div style={{ padding: "16px", borderRadius: "8px", marginTop: "8px" }}>
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px", marginBottom: "12px" }}>
                             <div><span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Transaction ID</span><br /><span style={{ fontFamily: "monospace", fontSize: "12px" }}>{item.transactionId}</span></div>
+                            <div><span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Department</span><br /><span>{item.department}</span></div>
                             <div><span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Status Code</span><br /><span>{item.statusCode}</span></div>
                             <div><span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Message Type</span><br /><span>{item.messageType}</span></div>
                             <div><span style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Received</span><br /><span>{formatDate(item.receivedAt)}</span></div>

@@ -79,14 +79,14 @@ export function isTherapistScheduledWorking(therapistName, dayIso, dayOfWeek) {
 export const CLINIC_THERAPISTS_ROSTER = [
   {
     therapistName: "Ms. Tanu Rajput",
-    department: "Counselling",
-    departments: ["Counselling"],
+    department: "Child and Parental Counselling",
+    departments: ["Child and Parental Counselling", "Counselling"],
     role: "Psychological Counsellor",
   },
   {
     therapistName: "Ms. Harsimran",
-    department: "OT / Counselling",
-    departments: ["OT", "Counselling"],
+    department: "OT / Child and Parental Counselling",
+    departments: ["OT", "Child and Parental Counselling", "Counselling"],
     role: "Occupational Therapist & Counsellor",
   },
   {
@@ -103,8 +103,8 @@ export const CLINIC_THERAPISTS_ROSTER = [
   },
   {
     therapistName: "Ms. Sonia",
-    department: "Special Ed / Academic / Counselling",
-    departments: ["Special Educator", "Academic Support", "Counselling"],
+    department: "Special Ed / Academic / Child and Parental Counselling",
+    departments: ["Special Educator", "Academic Support", "Child and Parental Counselling", "Counselling"],
     role: "Special Educator & Counsellor",
   },
   {
@@ -147,7 +147,7 @@ export const DEPARTMENT_FILTERS = [
   "Special Educator",
   "Physical Therapy",
   "Academic Support",
-  "Counselling",
+  "Child and Parental Counselling",
 ];
 
 export default function AvailabilityManagerPage() {
@@ -283,9 +283,15 @@ export default function AvailabilityManagerPage() {
     if (selectedDeptFilter === "All") return CLINIC_THERAPISTS_ROSTER;
     return CLINIC_THERAPISTS_ROSTER.filter((t) => {
       if (Array.isArray(t.departments)) {
-        return t.departments.includes(selectedDeptFilter);
+        return (
+          t.departments.includes(selectedDeptFilter) ||
+          (selectedDeptFilter === "Child and Parental Counselling" && t.departments.includes("Counselling"))
+        );
       }
-      return t.department === selectedDeptFilter;
+      return (
+        t.department === selectedDeptFilter ||
+        (selectedDeptFilter === "Child and Parental Counselling" && (t.department === "Counselling" || t.department?.includes("Counselling")))
+      );
     });
   }, [selectedDeptFilter]);
 

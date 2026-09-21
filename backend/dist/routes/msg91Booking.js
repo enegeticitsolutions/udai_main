@@ -28,7 +28,7 @@ const handleDates = async (req, res, next) => {
         const rawDept = String(req.query.department ?? req.query.service ?? req.query.selected_service ??
             data.department ?? data.service ?? data.selected_service ?? data.service_name ?? "").trim();
         const department = normalizeDepartment(rawDept);
-        const dates = await getAvailableDates(department || "Counselling");
+        const dates = await getAvailableDates(department || "Child and Parental Counselling");
         res.status(200).json({ success: true, status: "success", data: dates });
     }
     catch (error) {
@@ -49,7 +49,7 @@ const handleSlots = async (req, res, next) => {
         const rawDate = String(req.query.date ?? req.query.appointment_date ?? req.query.selected_date ??
             data.date ?? data.appointment_date ?? data.selected_date ?? data.date_of_appointment ?? "").trim();
         const date = normalizeAppointmentDate(rawDate);
-        const slots = await getAvailableSlots(department || "Counselling", date);
+        const slots = await getAvailableSlots(department || "Child and Parental Counselling", date);
         const formattedSlots = slots
             .filter((s) => s.isAvailable !== false)
             .slice(0, 10)
@@ -93,7 +93,7 @@ msg91BookingRouter.post("/", async (req, res) => {
                 isFirstSession: appointment.isFirstSession,
                 appointmentDate: appointment.appointmentDate || "",
                 appointmentTime: appointment.appointmentTime || "",
-                department: appointment.department || "Counselling",
+                department: appointment.department || "Child and Parental Counselling",
                 concern: appointment.mainConcern || "",
                 assignedTherapist: appointment.therapistName || "Ms. Tanu Rajput",
                 assignedTherapistId: appointment.therapistId || "roster-counselling-1",
@@ -127,7 +127,7 @@ msg91BookingRouter.post("/", async (req, res) => {
                             problem: appointment.mainConcern || appointment.therapistName || undefined,
                             appointmentDate: appointment.appointmentDate,
                             appointmentTime: appointment.appointmentTime,
-                            department: appointment.department || "Counselling",
+                            department: appointment.department || "Child and Parental Counselling",
                             session_frequency: appointment.session_frequency,
                             totalSessions: appointment.totalSessions,
                             sessionSchedule: appointment.sessionSchedule || [],
@@ -204,7 +204,7 @@ msg91BookingRouter.all("/calculate-fee", (req, res) => {
         const isNew = rawIsNew === true || rawIsNew === "true" || rawIsNew === "yes" || rawIsNew === 1 || rawIsNew === "1";
         const appointmentType = String(data.appointmentType ?? data.appointment_type ?? data.paymentMode ?? data.payment_mode ?? data.mode ?? "in-person").trim();
         const rawDept = String(data.department ?? data.service ?? data.selected_service ?? "").trim();
-        const department = isNew ? "Counselling" : normalizeDepartment(rawDept);
+        const department = isNew ? "Child and Parental Counselling" : normalizeDepartment(rawDept);
         const session_frequency = String(data.session_frequency ?? data.sessionFrequency ?? data.frequency ?? "").trim();
         const { amount, totalSessions, feeCharged } = calculateAppointmentFee({
             isNew,
