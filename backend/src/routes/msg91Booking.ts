@@ -344,18 +344,50 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
     }
 
     // 2. Sanitize: strip non-digit characters and take the last 10 digits
-    const digitsOnly = rawPhone.replace(/\D/g, "");
-    const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
+    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+    let digitsOnly = rawPhone.replace(/\D/g, "");
+    let cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
 
-    // If phone is missing or empty, do NOT throw 400! Log a warning and return HTTP 200 fallback
+    // If phone is missing from request, fallback to latest webhook or appointment in DB
+    if (!cleanPhone && db) {
+      try {
+        const [recentWebhook, recentAppt] = await Promise.all([
+          db.collection("webhookmessages").findOne({}, { sort: { receivedAt: -1, createdAt: -1, _id: -1 } }).catch(() => null),
+          db.collection("appointments").findOne({}, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
+        ]);
+
+        const fallbackPhone =
+          recentWebhook?.phone ||
+          recentWebhook?.rawData?.customerNumber ||
+          recentWebhook?.rawData?.phoneNumber ||
+          recentAppt?.phoneNumber ||
+          recentAppt?.phone ||
+          recentAppt?.rawPayload?.customerNumber ||
+          recentAppt?.rawPayload?.phoneNumber ||
+          "";
+
+        if (fallbackPhone) {
+          const fbDigits = String(fallbackPhone).replace(/\D/g, "");
+          if (fbDigits.length >= 10) {
+            cleanPhone = fbDigits.slice(-10);
+            console.log(`[check-patient-status] Phone was missing in request, fell back to latest DB record phone: ${cleanPhone}`);
+          }
+        }
+      } catch (fbErr: any) {
+        console.warn("[check-patient-status] Error fetching fallback phone:", fbErr?.message || fbErr);
+      }
+    }
+
+    // If phone is STILL missing or empty, do NOT throw 400! Log a warning and return HTTP 200 fallback
     if (!cleanPhone) {
       console.warn(`[check-patient-status] Missing or empty phone parameter: ${JSON.stringify(req.body)}. Defaulting to new patient.`);
       return res.status(200).json({
         success: true,
         isNew: true,
         is_new: true,
-        is_new_patient: true,
+        is_new_patient: "true",
         isNewPatient: true,
+        is_new_patient_bool: true,
         existingPatient: false,
         existing_patient: false,
         is_returning: false,
@@ -369,8 +401,9 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
           success: true,
           isNew: true,
           is_new: true,
-          is_new_patient: true,
+          is_new_patient: "true",
           isNewPatient: true,
+          is_new_patient_bool: true,
           existingPatient: false,
           existing_patient: false,
           patientName: "",
@@ -382,7 +415,6 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
     }
 
     // 3. Query DB for existing appointments/messages matching last 10 digits regex
-    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
     let count = 0;
     let patientName = "";
 
