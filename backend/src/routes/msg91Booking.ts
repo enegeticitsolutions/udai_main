@@ -1,7 +1,7 @@
 import { Router } from "express";
 import mongoose from "mongoose";
 import { calculateAppointmentFee, normalizeAppointmentDate, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
-import { getAvailableDates, getAvailableSlots, getDepartments } from "../services/bookingService.js";
+import { getAvailableDates, getAvailableSlots, getDepartments, normalizeDepartment } from "../services/bookingService.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 
@@ -27,11 +27,12 @@ msg91BookingRouter.post("/departments", handleDepartments);
 const handleDates = async (req: any, res: any, next: any) => {
   try {
     const data = (req.body?.data ?? req.body?.payload ?? req.body?.variables ?? req.body ?? {}) as Record<string, unknown>;
-    const department = String(
+    const rawDept = String(
       req.query.department ?? req.query.service ?? req.query.selected_service ??
       data.department ?? data.service ?? data.selected_service ?? data.service_name ?? ""
     ).trim();
-    const dates = await getAvailableDates(department || "OT");
+    const department = normalizeDepartment(rawDept);
+    const dates = await getAvailableDates(department || "Counselling");
     res.status(200).json({ success: true, status: "success", data: dates });
   } catch (error) {
     next(error);
@@ -46,17 +47,18 @@ msg91BookingRouter.post("/dates", handleDates);
 const handleSlots = async (req: any, res: any, next: any) => {
   try {
     const data = (req.body?.data ?? req.body?.payload ?? req.body?.variables ?? req.body ?? {}) as Record<string, unknown>;
-    const department = String(
+    const rawDept = String(
       req.query.department ?? req.query.service ?? req.query.selected_service ??
       data.department ?? data.service ?? data.selected_service ?? data.service_name ?? ""
     ).trim();
+    const department = normalizeDepartment(rawDept);
     const rawDate = String(
       req.query.date ?? req.query.appointment_date ?? req.query.selected_date ??
       data.date ?? data.appointment_date ?? data.selected_date ?? data.date_of_appointment ?? ""
     ).trim();
     const date = normalizeAppointmentDate(rawDate);
 
-    const slots = await getAvailableSlots(department || "OT", date);
+    const slots = await getAvailableSlots(department || "Counselling", date);
     const formattedSlots = slots
       .filter((s: any) => s.isAvailable !== false)
       .slice(0, 10)
@@ -102,11 +104,11 @@ msg91BookingRouter.post("/", async (req, res) => {
         isFirstSession: (appointment as any).isFirstSession,
         appointmentDate: appointment.appointmentDate || "",
         appointmentTime: appointment.appointmentTime || "",
-        department: appointment.department || appointment.therapistName || "",
+        department: appointment.department || "Counselling",
         concern: appointment.mainConcern || "",
-        assignedTherapist: appointment.therapistName || "",
-        assignedTherapistId: appointment.therapistId || "",
-        status: appointment.bookingStatus || "confirmed",
+        assignedTherapist: appointment.therapistName || "Ms. Tanu Rajput",
+        assignedTherapistId: appointment.therapistId || "roster-counselling-1",
+        status: "confirmed",
         session_frequency: appointment.session_frequency || "",
         totalSessions: appointment.totalSessions || 1,
         sessionSchedule: (appointment as any).sessionSchedule || [],
@@ -138,16 +140,16 @@ msg91BookingRouter.post("/", async (req, res) => {
                 problem: appointment.mainConcern || appointment.therapistName || undefined,
                 appointmentDate: appointment.appointmentDate,
                 appointmentTime: appointment.appointmentTime,
-                department: appointment.department || appointment.therapistName || undefined,
+                department: appointment.department || "Counselling",
                 session_frequency: appointment.session_frequency,
                 totalSessions: appointment.totalSessions,
                 sessionSchedule: (appointment as any).sessionSchedule || [],
                 sessionScheduleText: (appointment as any).sessionScheduleText || "",
                 feeCharged: appointment.feeCharged ?? (appointment as any).amount ?? 0,
               },
-              assignedTherapist: appointment.therapistName || undefined,
-              assignedTherapistId: appointment.therapistId || undefined,
-              status: appointment.bookingStatus || "confirmed",
+              assignedTherapist: appointment.therapistName || "Ms. Tanu Rajput",
+              assignedTherapistId: appointment.therapistId || "roster-counselling-1",
+              status: "confirmed",
               session_frequency: appointment.session_frequency,
               totalSessions: appointment.totalSessions,
               sessionSchedule: (appointment as any).sessionSchedule || [],
@@ -213,12 +215,13 @@ msg91BookingRouter.post("/", async (req, res) => {
 msg91BookingRouter.all("/calculate-fee", (req, res) => {
   try {
     const data = { ...(req.query || {}), ...(req.body || {}) };
-    const rawIsNew = data.isNew ?? data.is_new ?? data.is_new_patient ?? data.isNewPatient;
-    const isNew: boolean = rawIsNew === true || rawIsNew === "true" || rawIsNew === 1 || rawIsNew === "1";
+    const rawIsNew = data.isNew ?? data.is_new ?? data.is_new_patient ?? data.isNewPatient ?? data.firstSession ?? data.isFirstSession;
+    const isNew: boolean = rawIsNew === true || rawIsNew === "true" || rawIsNew === "yes" || rawIsNew === 1 || rawIsNew === "1";
     const appointmentType = String(
       data.appointmentType ?? data.appointment_type ?? data.paymentMode ?? data.payment_mode ?? data.mode ?? "in-person"
     ).trim();
-    const department = String(data.department ?? data.service ?? data.selected_service ?? "Counselling").trim() || "Counselling";
+    const rawDept = String(data.department ?? data.service ?? data.selected_service ?? "").trim();
+    const department = isNew ? "Counselling" : normalizeDepartment(rawDept);
     const session_frequency = String(data.session_frequency ?? data.sessionFrequency ?? data.frequency ?? "").trim();
 
     const { amount, totalSessions, feeCharged } = calculateAppointmentFee({

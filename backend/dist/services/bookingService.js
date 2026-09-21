@@ -49,42 +49,80 @@ function isTherapistUnavailable(name, unavailableNames) {
         return n === unNorm || n.includes(unNorm) || unNorm.includes(n);
     });
 }
+async function getTherapistLeaves(therapistIds, date) {
+    if (!therapistIds || therapistIds.length === 0)
+        return [];
+    try {
+        if (mongoose.connection.readyState === 1) {
+            return await TherapistUnavailability.find({
+                therapistId: { $in: therapistIds },
+                date,
+            }).lean();
+        }
+        const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+        if (db) {
+            return await db.collection("therapistunavailabilities").find({
+                therapistId: { $in: therapistIds },
+                date,
+            }).toArray();
+        }
+        return [];
+    }
+    catch (err) {
+        console.warn("[getTherapistLeaves] Error loading leaves:", err.message);
+        return [];
+    }
+}
 // ── Constants ────────────────────────────────────────────────────────────────
 export const SLOT_DURATION_MINUTES = 45;
 // ── Department Normalization ─────────────────────────────────────────────────
 /**
- * Normalizes input department name to one of the 7 public bookable departments.
+ * Normalizes input department name to one of the public bookable departments.
+ * If incoming department is empty, whitespace, or invalid (e.g., user concern like "Disturb"):
+ * - Do NOT use concern as the department.
+ * - Fallback default MUST be "Counselling".
+ * Normalized names:
+ * - "counseling", "counselling", "consultation" -> "Counselling"
+ * - "ot", "occupational therapy" -> "OT"
+ * - "speech", "speech therapy" -> "Speech Therapy"
+ * - "special ed", "special education" -> "Special Education"
+ * - "physio", "physiotherapy" -> "Physiotherapy"
  */
 export function normalizeDepartment(dept) {
     const d = String(dept ?? "").trim();
     if (!d)
-        return "OT";
+        return "Counselling";
+    if (/counsel|consult|home\s*prog/i.test(d))
+        return "Counselling";
     if (/speech/i.test(d))
         return "Speech Therapy";
     if (/physio/i.test(d))
         return "Physiotherapy";
     if (/special.*ed/i.test(d) || /special/i.test(d))
-        return "Special Educator";
+        return "Special Education";
     if (/physical.*th/i.test(d) || /physical/i.test(d))
         return "Physical Therapy";
     if (/academic|remedial/i.test(d))
         return "Academic Support";
-    if (/counsel|home\s*programme/i.test(d))
-        return "Counselling";
-    if (/ot|occupational/i.test(d))
+    if (/^(ot|occupational(\s*therapy)?)$/i.test(d))
         return "OT";
     // Known roster departments
     const validDepartments = [
+        "Counselling",
         "Speech Therapy",
         "Physiotherapy",
+        "Special Education",
         "Special Educator",
         "Physical Therapy",
         "Academic Support",
-        "Counselling",
         "OT",
     ];
     const exact = validDepartments.find((v) => v.toLowerCase() === d.toLowerCase());
-    return exact || d || "OT";
+    if (exact) {
+        return exact === "Special Educator" ? "Special Education" : exact;
+    }
+    // Fallback default for unknown/invalid input (like "Disturb", "Hyperactive", etc.)
+    return "Counselling";
 }
 /**
  * Clinical Roster by Department:
@@ -105,6 +143,11 @@ export const CLINIC_ROSTER_BY_DEPARTMENT = {
         { name: "Ms. Divya", role: "Physiotherapist" },
     ],
     "Special Educator": [
+        { name: "Ms. Sonia", role: "Special Educator" },
+        { name: "Ms. Shobha", role: "Special Educator" },
+        { name: "Ms. Ranjana", role: "Special Educator" },
+    ],
+    "Special Education": [
         { name: "Ms. Sonia", role: "Special Educator" },
         { name: "Ms. Shobha", role: "Special Educator" },
         { name: "Ms. Ranjana", role: "Special Educator" },
@@ -740,10 +783,7 @@ export async function getAvailableSlots(department, date) {
     }
     // 3. Load leave records for these therapists on this date
     const therapistIds = activeWorkingTherapists.map((t) => String(t._id));
-    const leaves = await TherapistUnavailability.find({
-        therapistId: { $in: therapistIds },
-        date,
-    }).lean();
+    const leaves = await getTherapistLeaves(therapistIds, date);
     // 4. Load confirmed bookings globally from appointments collection (NO department filter!)
     const activeBookings = await getActiveAppointmentsForDate(date);
     // 5. Generate candidate 45-minute slot times from working therapists on this date
@@ -856,18 +896,11 @@ export async function assignTherapist(department, date, time) {
         return null;
     const therapists = await loadTherapists(normalizedDept);
     const workingTherapists = therapists.filter((t) => getTherapistShiftForDate(t.name, date) !== null);
-    if (workingTherapists.length === 0)
-        return null;
     // Exclude therapists dynamically marked unavailable in availabilities collection
     const unavailNames = await getUnavailableTherapists(date);
     const activeWorkingTherapists = workingTherapists.filter((t) => !isTherapistUnavailable(t.name, unavailNames));
-    if (activeWorkingTherapists.length === 0)
-        return null;
     const therapistIds = activeWorkingTherapists.map((t) => String(t._id));
-    const leaves = await TherapistUnavailability.find({
-        therapistId: { $in: therapistIds },
-        date,
-    }).lean();
+    const leaves = await getTherapistLeaves(therapistIds, date);
     const activeBookings = await getActiveAppointmentsForDate(date);
     // Collect all eligible therapists globally free at this specific slot
     const eligibleTherapists = [];
@@ -893,8 +926,16 @@ export async function assignTherapist(department, date, time) {
             continue;
         eligibleTherapists.push(therapist);
     }
-    if (eligibleTherapists.length === 0)
-        return null;
+    // Safe fallback if no eligible therapists found for requested department
+    if (eligibleTherapists.length === 0) {
+        if (normalizedDept !== "Counselling") {
+            console.warn(`[assignTherapist] No therapist free for ${normalizedDept} on ${date} at ${time}. Falling back to Counselling.`);
+            const counselFallback = await assignTherapist("Counselling", date, time);
+            if (counselFallback)
+                return counselFallback;
+        }
+        return { id: "roster-counselling-1", name: "Ms. Tanu Rajput" };
+    }
     if (eligibleTherapists.length === 1) {
         return { id: String(eligibleTherapists[0]._id), name: eligibleTherapists[0].name };
     }

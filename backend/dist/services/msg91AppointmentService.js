@@ -266,9 +266,9 @@ export function parseMsg91AppointmentPayload(payload) {
     // Appointment Time:
     const rawTime = pick(data, "appointment_time", "appointmentTime", "time", "selected_time", "slot", "appointment_slot", "slot_time") ||
         pick(root, "appointmentTime", "appointment_time", "time", "slot");
-    // Department / Service: Exhaustive key check and strict normalization
-    const rawDepartment = pick(data, "department", "service", "selected_service", "concern_of_child", "service_concern", "service_name", "therapist_name", "therapistName", "doctor", "doctor_name", "mainConcern", "main_concern", "concern") ||
-        pick(root, "department", "service", "selected_service", "concern_of_child", "service_concern", "service_name", "therapistName", "doctor", "mainConcern", "concern") ||
+    // Department / Service: Extract strictly from service/department keys (NEVER from concern!)
+    const rawDepartment = pick(data, "department", "service", "selected_service", "service_name") ||
+        pick(root, "department", "service", "selected_service", "service_name") ||
         "";
     const resolvedDept = normalizeDepartment(rawDepartment);
     // Concern:
@@ -332,9 +332,18 @@ export async function saveMsg91Appointment(payload) {
         console.warn("[saveMsg91Appointment] connectMongoDb error:", connErr.message);
     }
     const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
-    // ── First Session Service Guard ─────────────────────────────────
-    let targetDepartment = input.department || normalizeDepartment(input.therapistName || "OT");
+    // ── First Session Service Guard & Strict Department Enforcement ──────────
+    let targetDepartment = "Counselling";
     let isFirstSession = true;
+    const rawFirstSession = String(input.firstSession || "").toLowerCase().trim();
+    const isExplicitFirst = rawFirstSession === "true" ||
+        rawFirstSession === "yes" ||
+        rawFirstSession === "1" ||
+        input.isFirstSession === true;
+    const isExplicitReturning = rawFirstSession === "false" ||
+        rawFirstSession === "no" ||
+        rawFirstSession === "0" ||
+        input.isFirstSession === false;
     if (db && input.phoneNumber) {
         const cleanPhone = normalizePhone(input.phoneNumber);
         const phoneQueries = [input.phoneNumber, cleanPhone];
@@ -345,51 +354,98 @@ export async function saveMsg91Appointment(payload) {
             phoneQueries.push(cleanPhone.slice(2), `+${cleanPhone}`);
         }
         try {
-            const existingCount = await db.collection(appointmentCollection).countDocuments({
-                phoneNumber: { $in: phoneQueries },
-            });
-            const requestedDept = input.department ? normalizeDepartment(input.department) : "";
-            if (existingCount === 0) {
-                isFirstSession = input.firstSession === "false" || input.firstSession === "no" ? false : true;
-                targetDepartment = requestedDept || "Counselling";
-                input.department = targetDepartment;
-                input.firstSession = isFirstSession ? "true" : "false";
-                input.isFirstSession = isFirstSession;
-                console.log(`[First Session Guard] New patient (${cleanPhone}) -> Department: ${targetDepartment}, isFirstSession: ${isFirstSession}`);
+            const [existingAppts, existingWebhooks] = await Promise.all([
+                db.collection(appointmentCollection).countDocuments({
+                    phoneNumber: { $in: phoneQueries },
+                    bookingStatus: { $nin: ["cancelled", "rejected"] },
+                }).catch(() => 0),
+                db.collection("webhookmessages").countDocuments({
+                    phone: { $in: phoneQueries },
+                    status: { $nin: ["cancelled", "rejected"] },
+                }).catch(() => 0),
+            ]);
+            const priorBookings = (existingAppts || 0) + (existingWebhooks || 0);
+            // 1. Strict First Session Rule:
+            // If isFirstSession === true OR patient is a new patient (no prior bookings):
+            // department MUST ALWAYS be strictly set to "Counselling".
+            // Ignore any incoming department or concern text for first sessions and lock it to "Counselling".
+            if (priorBookings === 0 || isExplicitFirst || !isExplicitReturning) {
+                isFirstSession = true;
+                targetDepartment = "Counselling";
+                input.department = "Counselling";
+                input.firstSession = "true";
+                input.isFirstSession = true;
+                console.log(`[First Session Guard] New patient/First session (${cleanPhone}, priorBookings=${priorBookings}) -> Locked department="Counselling", isFirstSession=true`);
             }
             else {
-                // Returning patient: Keep chosen service as-is and set isFirstSession = false
+                // Returning patient with prior bookings: sanitize requested department
                 isFirstSession = false;
-                targetDepartment = requestedDept || targetDepartment;
+                targetDepartment = normalizeDepartment(input.department || "");
                 input.department = targetDepartment;
                 input.firstSession = "false";
                 input.isFirstSession = false;
-                console.log(`[First Session Guard] Returning patient (${cleanPhone}) with ${existingCount} prior booking(s) -> Retained department: ${targetDepartment}, isFirstSession: false`);
+                console.log(`[First Session Guard] Returning patient (${cleanPhone}, priorBookings=${priorBookings}) -> Department: ${targetDepartment}, isFirstSession=false`);
             }
         }
         catch (countErr) {
-            console.warn("[First Session Guard] Error checking existingCount:", countErr.message);
-            input.isFirstSession = input.firstSession === "true" || input.firstSession === "yes" || input.firstSession === "1";
+            console.warn("[First Session Guard] Error checking prior bookings:", countErr.message);
+            isFirstSession = true;
+            targetDepartment = "Counselling";
+            input.department = "Counselling";
+            input.firstSession = "true";
+            input.isFirstSession = true;
         }
     }
     else {
-        input.isFirstSession = input.firstSession === "true" || input.firstSession === "yes" || input.firstSession === "1";
+        isFirstSession = true;
+        targetDepartment = "Counselling";
+        input.department = "Counselling";
+        input.firstSession = "true";
+        input.isFirstSession = true;
     }
-    // Check availability on date
-    const availableSlots = await getAvailableSlots(targetDepartment, input.appointmentDate);
+    // 3. Safe Therapist Lookup:
+    // If matched therapists list is empty or unavailable, fallback to an active therapist
+    // assigned to "Counselling" (e.g., "Ms. Tanu Rajput") so the appointment is NEVER dropped or rejected.
+    let availableSlots = [];
+    try {
+        availableSlots = await getAvailableSlots(targetDepartment, input.appointmentDate);
+    }
+    catch (slotsErr) {
+        console.warn(`[saveMsg91Appointment] Error getting slots for ${targetDepartment}:`, slotsErr.message);
+    }
     if (!availableSlots || availableSlots.length === 0) {
-        console.warn(`[saveMsg91Appointment] No therapists/slots available for ${targetDepartment} on ${input.appointmentDate}`);
-        throw new NoSlotsAvailableError(`All therapists for ${targetDepartment} are marked as unavailable on ${input.appointmentDate}. Please choose another date.`);
+        if (targetDepartment !== "Counselling") {
+            try {
+                availableSlots = await getAvailableSlots("Counselling", input.appointmentDate);
+            }
+            catch (counselSlotsErr) {
+                console.warn("[saveMsg91Appointment] Error getting Counselling slots:", counselSlotsErr.message);
+            }
+        }
     }
-    // If appointmentTime is missing or empty, pick first available slot
+    // If appointmentTime is missing or empty, pick first available slot or default to 10:00
     if (!input.appointmentTime || input.appointmentTime.trim() === "") {
-        input.appointmentTime = availableSlots[0]?.time || "10:00";
+        input.appointmentTime = availableSlots?.[0]?.time || "10:00";
     }
-    // Assign a free therapist using balanced alternating logic across eligible doctors
-    const assigned = await assignTherapist(targetDepartment, input.appointmentDate, input.appointmentTime);
+    // Assign therapist safely: try targetDepartment, fallback to Counselling, fallback to "Ms. Tanu Rajput"
+    let assigned = null;
+    try {
+        assigned = await assignTherapist(targetDepartment, input.appointmentDate, input.appointmentTime);
+    }
+    catch (assignErr) {
+        console.warn(`[saveMsg91Appointment] Error assigning therapist for ${targetDepartment}:`, assignErr.message);
+    }
+    if (!assigned && targetDepartment !== "Counselling") {
+        console.warn(`[saveMsg91Appointment] Fallback therapist lookup for Counselling on ${input.appointmentDate} at ${input.appointmentTime}`);
+        try {
+            assigned = await assignTherapist("Counselling", input.appointmentDate, input.appointmentTime);
+        }
+        catch (fallbackErr) {
+            console.warn("[saveMsg91Appointment] Fallback assignTherapist error:", fallbackErr.message);
+        }
+    }
     if (!assigned) {
-        console.warn(`[saveMsg91Appointment] Collision detected: No therapist available for ${targetDepartment} on ${input.appointmentDate} at ${input.appointmentTime}`);
-        throw new NoSlotsAvailableError(`Slot ${input.appointmentTime} on ${input.appointmentDate} is already booked. Please choose another available slot.`);
+        assigned = { id: "roster-counselling-1", name: "Ms. Tanu Rajput" };
     }
     input.department = targetDepartment;
     input.therapistId = assigned.id;
@@ -414,6 +470,7 @@ export async function saveMsg91Appointment(payload) {
     const document = {
         ...input,
         bookingId,
+        bookingStatus: "confirmed",
         amount,
         totalSessions,
         feeCharged,
@@ -443,15 +500,58 @@ export async function saveMsg91Appointment(payload) {
             await collection.updateOne({ _id: existing._id }, {
                 $set: {
                     ...document,
+                    bookingStatus: "confirmed",
                     updatedAt: now,
                 },
             });
             console.log(`[saveMsg91Appointment] Updated existing appointment record: ${bookingId}`);
+        }
+        else {
+            const result = await collection.insertOne(document);
+            console.log(`[saveMsg91Appointment] Inserted new appointment in MongoDB: ${result.insertedId}`);
+        }
+        // Also guarantee save in webhookmessages collection with status: 'confirmed'
+        try {
+            await db.collection("webhookmessages").updateOne({
+                $or: [
+                    { "rawData.bookingId": bookingId },
+                    { phone: input.phoneNumber, appointmentDate: input.appointmentDate, appointmentTime: input.appointmentTime },
+                ],
+            }, {
+                $set: {
+                    rawData: payload,
+                    phone: input.phoneNumber || "",
+                    childName: input.patientName || "Not specified",
+                    parentName: input.parentName || "",
+                    age: input.age !== undefined && input.age !== null ? String(input.age) : "",
+                    firstSession: input.firstSession || "",
+                    isFirstSession: input.isFirstSession,
+                    appointmentDate: input.appointmentDate || "",
+                    appointmentTime: input.appointmentTime || "",
+                    department: input.department || "Counselling",
+                    concern: input.mainConcern || "",
+                    assignedTherapist: input.therapistName || "Ms. Tanu Rajput",
+                    assignedTherapistId: input.therapistId || "roster-counselling-1",
+                    status: "confirmed",
+                    bookingStatus: "confirmed",
+                    session_frequency: input.session_frequency || "",
+                    totalSessions: totalSessions || 1,
+                    sessionSchedule: sessionSchedule || [],
+                    sessionScheduleText: sessionScheduleText || "",
+                    feeCharged: feeCharged ?? 0,
+                    amount: amount || 0,
+                    bookingSource: "whatsapp",
+                    receivedAt: now,
+                },
+            }, { upsert: true });
+        }
+        catch (whErr) {
+            console.warn("[saveMsg91Appointment] Failed to sync webhookmessages:", whErr.message);
+        }
+        if (existing) {
             return { appointment: normalizeMongoAppointment({ ...existing, ...document }), duplicate: true, isPreliminary: false };
         }
-        const result = await collection.insertOne(document);
-        console.log(`[saveMsg91Appointment] Inserted new appointment in MongoDB: ${result.insertedId}`);
-        return { appointment: { id: result.insertedId.toString(), ...document }, duplicate: false, isPreliminary: false };
+        return { appointment: { id: bookingId, ...document }, duplicate: false, isPreliminary: false };
     }
     async function readStoredAppointments() {
         try {
