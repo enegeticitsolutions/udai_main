@@ -263,50 +263,55 @@ msg91BookingRouter.all("/calculate-fee", async (req, res) => {
     }
 });
 /**
- * ALL /api/msg91/check-patient-status
+ * ALL /api/msg91/check-patient-status and /msg91/check-patient-status
+ * Handles both GET and POST requests.
  * Checks whether a phone number has any existing (non-cancelled/non-rejected)
  * appointments or bookings.
- * Resiliently extracts phone from body, query, nested payload, or customerNumber.
+ * Resiliently extracts phone from query, body, params, nested payload, or customerNumber.
  * Never throws 400: defaults gracefully to isNew=true if phone is missing or invalid.
  */
-msg91BookingRouter.all("/check-patient-status", async (req, res) => {
+msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"], async (req, res) => {
     try {
         await connectMongoDb().catch(() => { });
         const body = req.body || {};
         const query = req.query || {};
+        const params = req.params || {};
         const nested = body.data || body.payload || body.variables || {};
-        // 1. Normalize phone extraction across all possible keys from MSG91 bot flows
-        const rawCandidate = body.phone ||
-            body.phoneNumber ||
+        // 1. Extract phone from req.body, req.query, params, or nested data
+        const rawCandidate = body.phoneNumber ||
+            body.customerNumber ||
+            body.phone ||
+            query.phoneNumber ||
+            query.customerNumber ||
+            query.phone ||
+            params.phoneNumber ||
+            params.customerNumber ||
+            params.phone ||
             body.mobile ||
             body.contact ||
             body.sender ||
             (body.data && (body.data.phone || body.data.phoneNumber || body.data.contact || body.data.sender || body.data.customerNumber)) ||
             nested.phone ||
             nested.phoneNumber ||
+            nested.customerNumber ||
             nested.mobile ||
             nested.contact ||
             nested.sender ||
-            nested.customerNumber ||
             nested.customer_number ||
             nested.from ||
-            body.customerNumber ||
             body.customer_number ||
             body.customer_no ||
             body.mobile_number ||
             body.phone_number ||
             body.from ||
             body.number ||
-            query.phone ||
-            query.phoneNumber ||
             query.mobile ||
             query.contact ||
             query.sender ||
-            query.customerNumber ||
             query.customer_number ||
             query.from ||
             "";
-        let rawPhone = String(rawCandidate || "").trim();
+        let rawPhone = (rawCandidate || "").toString().trim();
         // Fallback if candidate was empty but raw body is string containing phone digits
         if (!rawPhone && typeof req.body === "string") {
             const match = req.body.match(/\d{10,12}/);
