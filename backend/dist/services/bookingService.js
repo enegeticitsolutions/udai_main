@@ -143,46 +143,46 @@ export function normalizeDepartment(dept) {
  */
 export const CLINIC_ROSTER_BY_DEPARTMENT = {
     "Child and Parental Counselling": [
-        { name: "Ms. Tanu Rajput", role: "Psychological Counsellor" },
-        { name: "Ms. Harsimran", role: "Counsellor" },
-        { name: "Ms. Sonia", role: "Counsellor" },
+        { name: "Ms Tanu Rajput", role: "Psychological Counsellor" },
+        { name: "Ms Harsimran", role: "Counsellor" },
+        { name: "Ms Sonia", role: "Counsellor" },
     ],
     "Counselling": [
-        { name: "Ms. Tanu Rajput", role: "Psychological Counsellor" },
-        { name: "Ms. Harsimran", role: "Counsellor" },
-        { name: "Ms. Sonia", role: "Counsellor" },
+        { name: "Ms Tanu Rajput", role: "Psychological Counsellor" },
+        { name: "Ms Harsimran", role: "Counsellor" },
+        { name: "Ms Sonia", role: "Counsellor" },
     ],
     "Occupational Therapy": [
-        { name: "Ms. Nikki", role: "Occupational Therapist" },
-        { name: "Ms. Harsimran", role: "Occupational Therapist" },
+        { name: "Ms Harsimran Kaur", role: "Occupational Therapist" },
+        { name: "Ms Nikki", role: "Occupational Therapist" },
     ],
     "OT": [
-        { name: "Ms. Nikki", role: "Occupational Therapist" },
-        { name: "Ms. Harsimran", role: "Occupational Therapist" },
+        { name: "Ms Harsimran Kaur", role: "Occupational Therapist" },
+        { name: "Ms Nikki", role: "Occupational Therapist" },
     ],
     "Physiotherapy": [
         { name: "Ms. Divya", role: "Physiotherapist" },
     ],
     "Special Educator": [
-        { name: "Ms. Sonia", role: "Special Educator" },
-        { name: "Ms. Shobha", role: "Special Educator" },
-        { name: "Ms. Ranjana", role: "Special Educator" },
+        { name: "Ms Sonia", role: "Special Educator" },
+        { name: "Ms Shobha", role: "Special Educator" },
+        { name: "Ms Ranjana", role: "Special Educator" },
     ],
     "Special Education": [
-        { name: "Ms. Sonia", role: "Special Educator" },
-        { name: "Ms. Shobha", role: "Special Educator" },
-        { name: "Ms. Ranjana", role: "Special Educator" },
+        { name: "Ms Sonia", role: "Special Educator" },
+        { name: "Ms Shobha", role: "Special Educator" },
+        { name: "Ms Ranjana", role: "Special Educator" },
     ],
     "Speech Therapy": [
-        { name: "Ms. Sakshi", role: "Speech Therapist" },
-        { name: "Mr. Atal", role: "Speech Therapist" },
+        { name: "Ms Sakshi", role: "Speech Therapist" },
+        { name: "Mr Atal", role: "Speech Therapist" },
     ],
     "Physical Therapy": [
-        { name: "Mr. Durgesh", role: "Physical Therapist" },
+        { name: "Mr Durgesh", role: "Physical Therapist" },
     ],
     "Academic Support": [
-        { name: "Ms. Sonia", role: "Academic Support Specialist" },
-        { name: "Ms. Shobha", role: "Academic Support Specialist" },
+        { name: "Ms Sonia", role: "Academic Support Specialist" },
+        { name: "Ms Shobha", role: "Academic Support Specialist" },
     ],
 };
 // ── Helpers ──────────────────────────────────────────────────────────────────

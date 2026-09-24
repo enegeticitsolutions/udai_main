@@ -6,7 +6,19 @@ import mongoose from "mongoose";
 import { config } from "../config.js";
 import { readJsonFile, writeJsonFile } from "../lib/fileStore.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
-import { assignTherapist, getAvailableSlots } from "./bookingService.js";
+import { getAvailableSlots } from "./bookingService.js";
+/**
+ * EXACT CLINIC ROSTER (Single Source of Truth)
+ */
+export const CLINIC_ROSTER = {
+    "Occupational Therapy": ["Ms Harsimran Kaur", "Ms Nikki"],
+    "Physiotherapy": ["Ms. Divya"],
+    "Physical Therapy": ["Mr Durgesh"],
+    "Special Education": ["Ms Sonia", "Ms Shobha", "Ms Ranjana"],
+    "Speech Therapy": ["Ms Sakshi", "Mr Atal"],
+    "Academic Support": ["Ms Sonia", "Ms Shobha"],
+    "Child and Parental Counselling": ["Ms Tanu Rajput", "Ms Harsimran", "Ms Sonia"]
+};
 export class NoSlotsAvailableError extends Error {
     constructor(message = "No appointment slots available for the selected date.") {
         super(message);
@@ -335,6 +347,74 @@ function normalizeMongoAppointment(document) {
         id: _id ? String(_id) : String(appointment.id ?? ""),
     };
 }
+/**
+ * Cross-service therapist conflict check (Global busy check):
+ * Even if a therapist is booked for service A at slot X, they are globally busy across all services at slot X.
+ */
+export async function allocateTherapistForBooking(department, date, time) {
+    let deptKey = department;
+    for (const k of Object.keys(CLINIC_ROSTER)) {
+        if (k.toLowerCase() === department.toLowerCase()) {
+            deptKey = k;
+            break;
+        }
+    }
+    const candidateTherapists = CLINIC_ROSTER[deptKey] || CLINIC_ROSTER["Child and Parental Counselling"];
+    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+    if (!db) {
+        const fallbackName = candidateTherapists[0] || "Ms Tanu Rajput";
+        return {
+            name: fallbackName,
+            id: `roster-${deptKey.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-1`,
+        };
+    }
+    // Query db.collection("appointments") for ANY confirmed booking on this date and time
+    const busyTherapists = await db.collection("appointments").distinct("therapistName", {
+        appointmentDate: date,
+        appointmentTime: time,
+        status: { $ne: "cancelled" },
+    });
+    const busyAssigned = await db.collection("appointments").distinct("assignedTherapist", {
+        appointmentDate: date,
+        appointmentTime: time,
+        bookingStatus: { $nin: ["cancelled", "rejected"] },
+    });
+    const allBusy = Array.from(new Set([...busyTherapists, ...busyAssigned].filter(Boolean)));
+    const isTherapistBusy = (candidate) => {
+        const cleanCand = candidate.toLowerCase().replace(/[^a-z]/g, "");
+        return allBusy.some((b) => {
+            const cleanB = String(b).toLowerCase().replace(/[^a-z]/g, "");
+            return cleanCand === cleanB || cleanCand.includes(cleanB) || cleanB.includes(cleanCand);
+        });
+    };
+    const availableTherapists = candidateTherapists.filter((t) => !allBusy.includes(t) && !isTherapistBusy(t));
+    let assignedName;
+    if (availableTherapists.length > 0) {
+        assignedName = availableTherapists[0];
+        console.log(`[Therapist Allocation] Assigned available therapist "${assignedName}" for ${deptKey} on ${date} at ${time} (Busy: [${allBusy.join(", ")}])`);
+    }
+    else {
+        // If all therapists in this department are busy at this slot, pick least-loaded therapist
+        console.warn(`[Therapist Allocation] All therapists busy for ${deptKey} on ${date} at ${time}. Finding least-loaded therapist...`);
+        const loadCounts = await Promise.all(candidateTherapists.map(async (t) => {
+            const cleanT = t.toLowerCase().replace(/[^a-z]/g, "");
+            const count = await db.collection("appointments").countDocuments({
+                appointmentDate: date,
+                bookingStatus: { $nin: ["cancelled", "rejected"] },
+                $or: [
+                    { therapistName: new RegExp(cleanT, "i") },
+                    { assignedTherapist: new RegExp(cleanT, "i") },
+                ],
+            }).catch(() => 0);
+            return { name: t, count };
+        }));
+        loadCounts.sort((a, b) => a.count - b.count);
+        assignedName = loadCounts[0]?.name || candidateTherapists[0];
+        console.log(`[Therapist Allocation] Assigned least-loaded therapist "${assignedName}" (${loadCounts[0]?.count ?? 0} bookings today)`);
+    }
+    const assignedId = `roster-${deptKey.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${assignedName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+    return { name: assignedName, id: assignedId };
+}
 export async function saveMsg91Appointment(payload) {
     const { input } = parseMsg91AppointmentPayload(payload);
     // Connect to MongoDB targeting explicit database
@@ -466,25 +546,16 @@ export async function saveMsg91Appointment(payload) {
     if (!input.appointmentTime || input.appointmentTime.trim() === "") {
         input.appointmentTime = availableSlots?.[0]?.time || "10:00";
     }
-    // Assign therapist safely: try targetDepartment, fallback to Child and Parental Counselling, fallback to "Ms. Tanu Rajput"
+    // Cross-Service Therapist Conflict Check (Global Busy Check)
     let assigned = null;
     try {
-        assigned = await assignTherapist(targetDepartment, input.appointmentDate, input.appointmentTime);
+        assigned = await allocateTherapistForBooking(targetDepartment, input.appointmentDate, input.appointmentTime);
     }
     catch (assignErr) {
-        console.warn(`[saveMsg91Appointment] Error assigning therapist for ${targetDepartment}:`, assignErr.message);
-    }
-    if (!assigned && targetDepartment !== "Child and Parental Counselling") {
-        console.warn(`[saveMsg91Appointment] Fallback therapist lookup for Child and Parental Counselling on ${input.appointmentDate} at ${input.appointmentTime}`);
-        try {
-            assigned = await assignTherapist("Child and Parental Counselling", input.appointmentDate, input.appointmentTime);
-        }
-        catch (fallbackErr) {
-            console.warn("[saveMsg91Appointment] Fallback assignTherapist error:", fallbackErr.message);
-        }
+        console.warn(`[saveMsg91Appointment] Error in allocateTherapistForBooking for ${targetDepartment}:`, assignErr.message);
     }
     if (!assigned) {
-        assigned = { id: "roster-counselling-1", name: "Ms. Tanu Rajput" };
+        assigned = { id: "roster-counselling-1", name: "Ms Tanu Rajput" };
     }
     input.department = targetDepartment;
     input.rawDepartment = targetDepartment;

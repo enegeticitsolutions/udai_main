@@ -31,6 +31,13 @@ export function recordRecentDepartmentSelection(phone, department) {
         timestamp: Date.now(),
     });
 }
+export function clearRecentDepartmentSelection(phone) {
+    const digits = String(phone || "").replace(/\D/g, "");
+    const clean = digits.length >= 10 ? digits.slice(-10) : "";
+    if (clean) {
+        recentServiceSelectionMap.delete(clean);
+    }
+}
 export function getRecentDepartmentSelection(phone) {
     const digits = String(phone || "").replace(/\D/g, "");
     const clean = digits.length >= 10 ? digits.slice(-10) : "";
@@ -46,101 +53,88 @@ export function getRecentDepartmentSelection(phone) {
     return entry.department;
 }
 /**
+ * Match WhatsApp interactive clicked title (list_reply.title or button_reply.title)
+ */
+export function matchDepartmentFromTitle(title) {
+    if (!title || typeof title !== "string")
+        return null;
+    const str = title.trim();
+    if (!str || str.includes("@") || str.includes("{{"))
+        return null;
+    if (/Physiotherapy|Physio/i.test(str))
+        return "Physiotherapy";
+    if (/Physical\s*Therapy/i.test(str))
+        return "Physical Therapy";
+    if (/Occupational\s*Therapy|\bOT\b/i.test(str))
+        return "Occupational Therapy";
+    if (/Speech\s*Therapy|\bSpeech\b/i.test(str))
+        return "Speech Therapy";
+    if (/Special\s*Educat/i.test(str))
+        return "Special Education";
+    if (/Academic\s*Support|Remedial/i.test(str))
+        return "Academic Support";
+    if (/Counsell/i.test(str))
+        return "Child and Parental Counselling";
+    return null;
+}
+/**
  * Auto-detect chosen department from recent WhatsApp messages in db.collection("webhookmessages")
- * if incoming department is empty, undefined, contains '@', contains '{{', or equals 'Child and Parental Counselling'.
+ * Always queries the absolute latest interactive webhook first to prevent stale cache leakage.
  */
 export async function detectDepartmentFromRecentMessages(cleanPhone, incomingDept) {
     const dept = String(incomingDept || "").trim();
-    const needsResolution = !dept ||
-        dept === "undefined" ||
-        dept === "null" ||
-        dept.includes("@") ||
-        dept.includes("{{") ||
-        dept.toLowerCase() === "child and parental counselling" ||
-        dept.toLowerCase() === "counselling";
-    if (!needsResolution || !cleanPhone) {
-        return dept ? dept.trim() : null;
-    }
-    // First check in-memory intent cache from recent /dates or /slots requests
-    const cachedDept = getRecentDepartmentSelection(cleanPhone);
-    if (cachedDept) {
-        return cachedDept.trim();
+    const directMatch = matchDepartmentFromTitle(dept);
+    if (directMatch) {
+        recordRecentDepartmentSelection(cleanPhone, directMatch);
+        return directMatch;
     }
     try {
         await connectMongoDb().catch(() => { });
         const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
-        if (!db)
-            return null;
-        const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-        let recentMsgs = await db
-            .collection("webhookmessages")
-            .find({
-            $or: [
-                { phone: { $regex: cleanPhone + "$" } },
-                { phoneNumber: { $regex: cleanPhone + "$" } },
-                { "rawData.customerNumber": { $regex: cleanPhone + "$" } },
-                { "rawData.phoneNumber": { $regex: cleanPhone + "$" } },
-            ],
-        })
-            .sort({ createdAt: -1, receivedAt: -1, _id: -1 })
-            .limit(10)
-            .toArray();
-        if (!recentMsgs || recentMsgs.length === 0) {
-            return null;
-        }
-        // Filter messages from the last 15 minutes
-        const msgsWithin15Mins = recentMsgs.filter((msg) => {
-            const ts = msg.createdAt || msg.receivedAt;
-            if (ts) {
-                const d = new Date(ts);
-                if (!isNaN(d.getTime()))
-                    return d >= fifteenMinutesAgo;
-            }
-            if (msg._id && typeof msg._id.getTimestamp === "function") {
-                const d = msg._id.getTimestamp();
-                if (d && !isNaN(d.getTime()))
-                    return d >= fifteenMinutesAgo;
-            }
-            return false;
-        });
-        if (msgsWithin15Mins.length === 0) {
-            return null;
-        }
-        const extractExactTitle = (text) => {
-            if (!text || typeof text !== "string")
-                return null;
-            const str = text.trim();
-            if (!str || str.includes("@") || str.includes("{{"))
-                return null;
-            // Match known WhatsApp service choices and return the EXACT STRING as clicked by the user
-            if (/academic\s*support/i.test(str) ||
-                /occupational\s*therapy|\bot\b/i.test(str) ||
-                /speech/i.test(str) ||
-                /special\s*educat/i.test(str) ||
-                /physio/i.test(str) ||
-                /counsel/i.test(str)) {
-                return str;
-            }
-            return null;
-        };
-        for (const msg of msgsWithin15Mins) {
-            // Look directly at interactive list reply, button reply, text body, or message
-            const priorityCandidates = [
-                msg.rawData?.interactive?.list_reply?.title,
-                msg.rawData?.interactive?.button_reply?.title,
-                msg.rawData?.list_reply?.title,
-                msg.rawData?.button_reply?.title,
-                msg.rawData?.text?.body,
-                msg.message,
-                msg.rawData?.message,
-                msg.rawData?.service,
-                msg.concern,
-            ];
-            for (const candidate of priorityCandidates) {
-                const match = extractExactTitle(candidate);
-                if (match) {
-                    console.log(`[Real-Time WhatsApp Extraction] Captured exact user selection: "${match}" for phone ${cleanPhone}`);
-                    return match;
+        if (db && cleanPhone) {
+            const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+            // Query the absolute latest interactive webhook in db.collection("webhookmessages") for this user's phone
+            const recentMsgs = await db
+                .collection("webhookmessages")
+                .find({
+                $or: [
+                    { phone: { $regex: cleanPhone + "$" } },
+                    { phoneNumber: { $regex: cleanPhone + "$" } },
+                    { "rawData.customerNumber": { $regex: cleanPhone + "$" } },
+                    { "rawData.phoneNumber": { $regex: cleanPhone + "$" } },
+                    { "rawData.phone": { $regex: cleanPhone + "$" } },
+                    { "rawData.from": { $regex: cleanPhone + "$" } },
+                ],
+            })
+                .sort({ receivedAt: -1, createdAt: -1, _id: -1 })
+                .limit(10)
+                .toArray();
+            for (const msg of recentMsgs) {
+                const ts = msg.receivedAt || msg.createdAt;
+                if (ts) {
+                    const d = new Date(ts);
+                    if (!isNaN(d.getTime()) && d < fifteenMinutesAgo)
+                        continue;
+                }
+                const interactiveCandidates = [
+                    msg.rawData?.interactive?.list_reply?.title,
+                    msg.rawData?.interactive?.button_reply?.title,
+                    msg.rawData?.list_reply?.title,
+                    msg.rawData?.button_reply?.title,
+                    msg.rawData?.text?.body,
+                    msg.message,
+                    msg.rawData?.service,
+                    msg.rawData?.department,
+                    msg.rawData?.message,
+                ];
+                for (const candidate of interactiveCandidates) {
+                    const match = matchDepartmentFromTitle(candidate);
+                    if (match) {
+                        console.log(`[Real-Time WhatsApp Extraction] Matched department "${match}" from "${candidate}" for phone ${cleanPhone}`);
+                        // Overwrite any stale cached department with real-time selection
+                        recordRecentDepartmentSelection(cleanPhone, match);
+                        return match;
+                    }
                 }
             }
         }
@@ -148,7 +142,13 @@ export async function detectDepartmentFromRecentMessages(cleanPhone, incomingDep
     catch (err) {
         console.warn("[detectDepartmentFromRecentMessages] Error:", err.message || err);
     }
-    return null;
+    // Fallback to recent in-memory selection
+    const cachedDept = getRecentDepartmentSelection(cleanPhone);
+    if (cachedDept) {
+        const matchedCached = matchDepartmentFromTitle(cachedDept) || cachedDept.trim();
+        return matchedCached;
+    }
+    return dept && !dept.includes("@") && !dept.includes("{{") ? dept.trim() : null;
 }
 /**
  * Expose available dates for a department (GET or POST)
@@ -162,13 +162,12 @@ const handleDates = async (req, res, next) => {
         const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
         let rawDept = String(req.query.department ?? req.query.service ?? req.query.selected_service ??
             data.department ?? data.service ?? data.selected_service ?? data.service_name ?? "").trim();
-        if (cleanPhone && rawDept && !rawDept.includes("@") && !rawDept.includes("{{")) {
-            const trimmed = rawDept.trim();
-            if (trimmed && trimmed.toLowerCase() !== "child and parental counselling") {
-                recordRecentDepartmentSelection(cleanPhone, trimmed);
-            }
+        const matched = matchDepartmentFromTitle(rawDept);
+        if (cleanPhone && matched) {
+            recordRecentDepartmentSelection(cleanPhone, matched);
+            rawDept = matched;
         }
-        if (cleanPhone && (!rawDept || rawDept.includes("@") || rawDept.includes("{{") || rawDept.toLowerCase() === "child and parental counselling")) {
+        else if (cleanPhone && (!rawDept || rawDept.includes("@") || rawDept.includes("{{") || rawDept.toLowerCase() === "child and parental counselling")) {
             const detected = await detectDepartmentFromRecentMessages(cleanPhone, rawDept);
             if (detected)
                 rawDept = detected;
@@ -195,13 +194,12 @@ const handleSlots = async (req, res, next) => {
         const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
         let rawDept = String(req.query.department ?? req.query.service ?? req.query.selected_service ??
             data.department ?? data.service ?? data.selected_service ?? data.service_name ?? "").trim();
-        if (cleanPhone && rawDept && !rawDept.includes("@") && !rawDept.includes("{{")) {
-            const trimmed = rawDept.trim();
-            if (trimmed && trimmed.toLowerCase() !== "child and parental counselling") {
-                recordRecentDepartmentSelection(cleanPhone, trimmed);
-            }
+        const matched = matchDepartmentFromTitle(rawDept);
+        if (cleanPhone && matched) {
+            recordRecentDepartmentSelection(cleanPhone, matched);
+            rawDept = matched;
         }
-        if (cleanPhone && (!rawDept || rawDept.includes("@") || rawDept.includes("{{") || rawDept.toLowerCase() === "child and parental counselling")) {
+        else if (cleanPhone && (!rawDept || rawDept.includes("@") || rawDept.includes("{{") || rawDept.toLowerCase() === "child and parental counselling")) {
             const detected = await detectDepartmentFromRecentMessages(cleanPhone, rawDept);
             if (detected)
                 rawDept = detected;
@@ -374,8 +372,18 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
                         apptFilters.push({ phoneNumber: { $regex: cleanPhone + "$" }, appointmentDate: appointment.appointmentDate });
                     }
                     if (apptFilters.length > 0) {
-                        await db.collection("appointments").updateMany({ $or: apptFilters }, { $set: { department: finalDepartment, rawDepartment: finalDepartment, updatedAt: new Date().toISOString() } });
-                        console.log(`[MSG91 Booking] Updated department "${finalDepartment}" in db.collection("appointments")`);
+                        await db.collection("appointments").updateMany({ $or: apptFilters }, {
+                            $set: {
+                                department: finalDepartment,
+                                rawDepartment: finalDepartment,
+                                therapistName: appointment.therapistName,
+                                therapistId: appointment.therapistId,
+                                assignedTherapist: appointment.therapistName,
+                                assignedTherapistId: appointment.therapistId,
+                                updatedAt: new Date().toISOString(),
+                            },
+                        });
+                        console.log(`[MSG91 Booking] Updated department "${finalDepartment}" and therapist "${appointment.therapistName}" in db.collection("appointments")`);
                     }
                 }
                 // Save to db.collection("webhookmessages")
@@ -394,8 +402,15 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
                     whFilters.push({ phoneNumber: { $regex: ph + "$" } });
                 }
                 if (whFilters.length > 0) {
-                    await db.collection("webhookmessages").updateMany({ $or: whFilters }, { $set: { department: finalDepartment, service: finalDepartment } });
-                    console.log(`[MSG91 Booking] Updated department "${finalDepartment}" and service in db.collection("webhookmessages")`);
+                    await db.collection("webhookmessages").updateMany({ $or: whFilters }, {
+                        $set: {
+                            department: finalDepartment,
+                            service: finalDepartment,
+                            assignedTherapist: appointment.therapistName,
+                            assignedTherapistId: appointment.therapistId,
+                        },
+                    });
+                    console.log(`[MSG91 Booking] Updated department "${finalDepartment}", service, and therapist in db.collection("webhookmessages")`);
                 }
             }
         }
@@ -422,13 +437,14 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
                             appointmentTime: appointment.appointmentTime,
                             department: finalDepartment,
                             service: finalDepartment,
+                            assignedTherapist: appointment.therapistName || "Ms Tanu Rajput",
                             session_frequency: appointment.session_frequency,
                             totalSessions: appointment.totalSessions,
                             sessionSchedule: appointment.sessionSchedule || [],
                             sessionScheduleText: appointment.sessionScheduleText || "",
                             feeCharged: appointment.feeCharged ?? appointment.amount ?? 0,
                         },
-                        assignedTherapist: appointment.therapistName || "Ms. Tanu Rajput",
+                        assignedTherapist: appointment.therapistName || "Ms Tanu Rajput",
                         assignedTherapistId: appointment.therapistId || "roster-counselling-1",
                         status: "confirmed",
                         session_frequency: appointment.session_frequency,
@@ -451,6 +467,8 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
         catch (submissionsErr) {
             console.error("[MSG91 Booking] Failed to sync chatbotsubmissions:", submissionsErr.message);
         }
+        // Clear stale in-memory cached department so past selections never leak into future sessions
+        clearRecentDepartmentSelection(cleanPhone);
         res.status(200).json({
             success: true,
             status: "success",
