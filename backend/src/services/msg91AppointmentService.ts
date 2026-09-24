@@ -479,6 +479,104 @@ function normalizeMongoAppointment(document: Record<string, unknown>): Appointme
 }
 
 /**
+ * Match WhatsApp interactive clicked title (list_reply.title or button_reply.title) or message
+ */
+export function matchDepartmentFromTitle(title: unknown): string | null {
+  if (!title || typeof title !== "string") return null;
+  const str = title.trim();
+  if (!str || str.startsWith("@") || str.startsWith("{{") || str.includes("@") || str.includes("{{")) return null;
+
+  if (/Physical\s*Therapy/i.test(str)) return "Physical Therapy";
+  if (/Physiotherapy|Physio/i.test(str)) return "Physiotherapy";
+  if (/Occupational\s*Therapy|\bOT\b/i.test(str)) return "Occupational Therapy";
+  if (/Speech\s*Therapy|\bSpeech\b/i.test(str)) return "Speech Therapy";
+  if (/Special\s*Educat/i.test(str)) return "Special Education";
+  if (/Academic\s*Support|Remedial/i.test(str)) return "Academic Support";
+  if (/Counsell/i.test(str)) return "Child and Parental Counselling";
+
+  return null;
+}
+
+/**
+ * Auto-detect chosen department from recent WhatsApp messages in db.collection("webhookmessages")
+ * within the last 15 minutes.
+ */
+export async function detectDepartmentFromRecentMessages(
+  cleanPhone: string,
+  incomingDept?: string
+): Promise<string | null> {
+  const dept = String(incomingDept || "").trim();
+  const isInvalid = !dept || dept.startsWith("@") || dept.startsWith("{{") || dept.includes("@") || dept.includes("{{");
+
+  if (!isInvalid) {
+    const directMatch = matchDepartmentFromTitle(dept);
+    if (directMatch) {
+      return directMatch;
+    }
+  }
+
+  try {
+    await connectMongoDb().catch(() => {});
+    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+    if (db && cleanPhone) {
+      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+      // Query the latest incoming user message in db.collection("webhookmessages") for this user's phone within the last 15 minutes
+      const recentMsgs = await db
+        .collection("webhookmessages")
+        .find({
+          $or: [
+            { phone: { $regex: cleanPhone + "$" } },
+            { phoneNumber: { $regex: cleanPhone + "$" } },
+            { "rawData.customerNumber": { $regex: cleanPhone + "$" } },
+            { "rawData.phoneNumber": { $regex: cleanPhone + "$" } },
+            { "rawData.phone": { $regex: cleanPhone + "$" } },
+            { "rawData.from": { $regex: cleanPhone + "$" } },
+            { "rawData.sender": { $regex: cleanPhone + "$" } },
+          ],
+        })
+        .sort({ receivedAt: -1, createdAt: -1, _id: -1 })
+        .limit(15)
+        .toArray();
+
+      for (const msg of recentMsgs) {
+        const ts = msg.receivedAt || msg.createdAt;
+        if (ts) {
+          const d = new Date(ts);
+          if (!isNaN(d.getTime()) && d < fifteenMinutesAgo) continue;
+        }
+
+        const candidates = [
+          msg.rawData?.interactive?.list_reply?.title,
+          msg.rawData?.interactive?.button_reply?.title,
+          msg.rawData?.text?.body,
+          msg.message,
+          msg.rawData?.list_reply?.title,
+          msg.rawData?.button_reply?.title,
+          msg.rawData?.message,
+          msg.rawData?.service,
+          msg.rawData?.department,
+        ];
+
+        for (const candidate of candidates) {
+          const match = matchDepartmentFromTitle(candidate);
+          if (match) {
+            console.log(
+              `[Real-Time WhatsApp Detection] Matched department "${match}" from "${candidate}" for phone ${cleanPhone}`
+            );
+            return match;
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn("[detectDepartmentFromRecentMessages] Error:", err.message || err);
+  }
+
+  return null;
+}
+
+/**
  * Cross-service therapist conflict check (Global busy check):
  * Even if a therapist is booked for service A at slot X, they are globally busy across all services at slot X.
  */
@@ -505,58 +603,39 @@ export async function allocateTherapistForBooking(
     };
   }
 
-  // Query db.collection("appointments") for ANY confirmed booking on this date and time
+  // Find all therapists already booked at this exact date & time across ALL appointments
   const busyTherapists = await db.collection("appointments").distinct("therapistName", {
     appointmentDate: date,
     appointmentTime: time,
     status: { $ne: "cancelled" },
+    bookingStatus: { $nin: ["cancelled", "Cancelled", "rejected", "Rejected"] },
   });
 
   const busyAssigned = await db.collection("appointments").distinct("assignedTherapist", {
     appointmentDate: date,
     appointmentTime: time,
-    bookingStatus: { $nin: ["cancelled", "rejected"] },
+    status: { $ne: "cancelled" },
+    bookingStatus: { $nin: ["cancelled", "Cancelled", "rejected", "Rejected"] },
   });
 
   const allBusy = Array.from(new Set([...busyTherapists, ...busyAssigned].filter(Boolean)));
 
   const isTherapistBusy = (candidate: string) => {
+    if (allBusy.includes(candidate)) return true;
     const cleanCand = candidate.toLowerCase().replace(/[^a-z]/g, "");
-    return allBusy.some((b: string) => {
+    return allBusy.some((b: any) => {
       const cleanB = String(b).toLowerCase().replace(/[^a-z]/g, "");
       return cleanCand === cleanB || cleanCand.includes(cleanB) || cleanB.includes(cleanCand);
     });
   };
 
-  const availableTherapists = candidateTherapists.filter((t) => !allBusy.includes(t) && !isTherapistBusy(t));
+  // From CLINIC_ROSTER[resolvedDepartment], pick the first therapist NOT in busyTherapists
+  const availableTherapists = candidateTherapists.filter((t) => !isTherapistBusy(t));
+  const assignedName = availableTherapists.length > 0 ? availableTherapists[0] : candidateTherapists[0];
 
-  let assignedName: string;
-  if (availableTherapists.length > 0) {
-    assignedName = availableTherapists[0];
-    console.log(
-      `[Therapist Allocation] Assigned available therapist "${assignedName}" for ${deptKey} on ${date} at ${time} (Busy: [${allBusy.join(", ")}])`
-    );
-  } else {
-    // If all therapists in this department are busy at this slot, pick least-loaded therapist
-    console.warn(`[Therapist Allocation] All therapists busy for ${deptKey} on ${date} at ${time}. Finding least-loaded therapist...`);
-    const loadCounts = await Promise.all(
-      candidateTherapists.map(async (t) => {
-        const cleanT = t.toLowerCase().replace(/[^a-z]/g, "");
-        const count = await db.collection("appointments").countDocuments({
-          appointmentDate: date,
-          bookingStatus: { $nin: ["cancelled", "rejected"] },
-          $or: [
-            { therapistName: new RegExp(cleanT, "i") },
-            { assignedTherapist: new RegExp(cleanT, "i") },
-          ],
-        }).catch(() => 0);
-        return { name: t, count };
-      })
-    );
-    loadCounts.sort((a, b) => a.count - b.count);
-    assignedName = loadCounts[0]?.name || candidateTherapists[0];
-    console.log(`[Therapist Allocation] Assigned least-loaded therapist "${assignedName}" (${loadCounts[0]?.count ?? 0} bookings today)`);
-  }
+  console.log(
+    `[Therapist Allocation] Resolved Dept: "${deptKey}", Date: "${date}", Time: "${time}" -> Assigned: "${assignedName}" (Candidates: [${candidateTherapists.join(", ")}], Busy: [${allBusy.join(", ")}])`
+  );
 
   const assignedId = `roster-${deptKey.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${assignedName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   return { name: assignedName, id: assignedId };
@@ -593,7 +672,6 @@ export async function saveMsg91Appointment(payload: unknown) {
   const digitsOnly = String(input.phoneNumber || "").replace(/\D/g, "");
   const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
   let priorBookings = 0;
-  let latestPriorRecord: any = null;
 
   if (db && cleanPhone) {
     const phoneRegex = new RegExp(`${cleanPhone}$`);
@@ -617,29 +695,26 @@ export async function saveMsg91Appointment(payload: unknown) {
     };
 
     try {
-      const [existingAppts, existingWebhooks, latestAppt, latestWebhook] = await Promise.all([
+      const [existingAppts, existingWebhooks] = await Promise.all([
         db.collection(appointmentCollection).countDocuments(apptFilter).catch(() => 0),
         db.collection("webhookmessages").countDocuments(webhookFilter).catch(() => 0),
-        db.collection(appointmentCollection).findOne(apptFilter, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
-        db.collection("webhookmessages").findOne(webhookFilter, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
       ]);
 
       priorBookings = (existingAppts || 0) + (existingWebhooks || 0);
-      latestPriorRecord = latestAppt || latestWebhook;
     } catch (countErr: any) {
       console.warn("[First Session Guard] Error checking prior bookings:", countErr.message);
     }
   }
 
   // 1. Returning vs New Patient Determination:
-  // ONLY enforce "Child and Parental Counselling" when isFirstSession === true AND count === 0.
   // If ANY existing record exists (priorBookings > 0), isFirstSession MUST BE false and patient tag MUST BE Returning!
   const isReturningPatient = priorBookings > 0 || isExplicitReturning;
   const isStrictNewPatient = !isReturningPatient && (priorBookings === 0 || isExplicitFirst);
 
   const rawPayloadData = payloadData(payload);
-  const rawDept = String(
+  let rawDept = String(
     input.rawDepartment ||
+    input.department ||
     pick(
       rawPayloadData,
       "service",
@@ -672,36 +747,39 @@ export async function saveMsg91Appointment(payload: unknown) {
     ""
   ).trim();
 
-  if (rawDept && !rawDept.includes("@") && !rawDept.includes("{{")) {
-    targetDepartment = rawDept.trim();
-    input.department = targetDepartment;
-    input.rawDepartment = targetDepartment;
-    isFirstSession = isStrictNewPatient;
-    input.firstSession = isFirstSession ? "true" : "false";
-    input.isFirstSession = isFirstSession;
-    console.log(`[Department Selection] Exact user department selected: "${targetDepartment}" (${cleanPhone})`);
-  } else if (isStrictNewPatient) {
-    isFirstSession = true;
-    targetDepartment = "Child and Parental Counselling";
-    input.department = "Child and Parental Counselling";
-    input.rawDepartment = "Child and Parental Counselling";
-    input.firstSession = "true";
-    input.isFirstSession = true;
-    console.log(`[First Session Guard] New patient (${cleanPhone}) -> Defaulted department="Child and Parental Counselling", isFirstSession=true`);
-  } else {
-    // Returning patient with no explicit department:
-    isFirstSession = false;
-    input.firstSession = "false";
-    input.isFirstSession = false;
-    if (latestPriorRecord?.department) {
-      targetDepartment = latestPriorRecord.department.trim();
-    } else {
-      targetDepartment = "Child and Parental Counselling";
+  // 2. REAL-TIME WHATSAPP SERVICE DETECTION:
+  // If req.body.department is empty (""), undefined, starts with "@", or starts with "{{":
+  // Look up latest incoming user message in db.collection("webhookmessages") for this user's phone within the last 15 mins.
+  const isInvalidDept = !rawDept || rawDept.startsWith("@") || rawDept.startsWith("{{") || rawDept.includes("@") || rawDept.includes("{{");
+
+  if (isInvalidDept || (rawDept.toLowerCase() === "child and parental counselling" && isReturningPatient)) {
+    const detected = await detectDepartmentFromRecentMessages(cleanPhone, rawDept);
+    if (detected) {
+      rawDept = detected;
+      console.log(`[Department Detection] Detected real-time WhatsApp department: "${detected}" (${cleanPhone})`);
     }
-    input.department = targetDepartment;
-    input.rawDepartment = targetDepartment;
-    console.log(`[First Session Guard] Returning patient (${cleanPhone}) -> Retained Department: "${targetDepartment}", isFirstSession=false`);
+  } else {
+    const matched = matchDepartmentFromTitle(rawDept);
+    if (matched) {
+      rawDept = matched;
+    }
   }
+
+  // Final department resolution:
+  // A returning patient booking a new appointment MUST NEVER inherit the previous child's or previous session's service.
+  if (rawDept && !rawDept.startsWith("@") && !rawDept.startsWith("{{") && !rawDept.includes("@") && !rawDept.includes("{{")) {
+    targetDepartment = matchDepartmentFromTitle(rawDept) || rawDept.trim();
+  } else {
+    // Default to Child and Parental Counselling without inheriting from prior bookings
+    targetDepartment = "Child and Parental Counselling";
+  }
+
+  isFirstSession = isStrictNewPatient;
+  input.firstSession = isFirstSession ? "true" : "false";
+  input.isFirstSession = isFirstSession;
+  input.department = targetDepartment;
+  input.rawDepartment = targetDepartment;
+  console.log(`[Department Resolution] Final department: "${targetDepartment}", isReturningPatient=${isReturningPatient}, isFirstSession=${isFirstSession} (${cleanPhone})`);
 
   // 3. Safe Therapist Lookup:
   // If matched therapists list is empty or unavailable, fallback to an active therapist

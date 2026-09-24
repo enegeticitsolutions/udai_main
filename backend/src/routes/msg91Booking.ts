@@ -61,10 +61,10 @@ export function getRecentDepartmentSelection(phone: string): string | null {
 export function matchDepartmentFromTitle(title: unknown): string | null {
   if (!title || typeof title !== "string") return null;
   const str = title.trim();
-  if (!str || str.includes("@") || str.includes("{{")) return null;
+  if (!str || str.startsWith("@") || str.startsWith("{{") || str.includes("@") || str.includes("{{")) return null;
 
-  if (/Physiotherapy|Physio/i.test(str)) return "Physiotherapy";
   if (/Physical\s*Therapy/i.test(str)) return "Physical Therapy";
+  if (/Physiotherapy|Physio/i.test(str)) return "Physiotherapy";
   if (/Occupational\s*Therapy|\bOT\b/i.test(str)) return "Occupational Therapy";
   if (/Speech\s*Therapy|\bSpeech\b/i.test(str)) return "Speech Therapy";
   if (/Special\s*Educat/i.test(str)) return "Special Education";
@@ -83,10 +83,14 @@ export async function detectDepartmentFromRecentMessages(
   incomingDept?: string
 ): Promise<string | null> {
   const dept = String(incomingDept || "").trim();
-  const directMatch = matchDepartmentFromTitle(dept);
-  if (directMatch) {
-    recordRecentDepartmentSelection(cleanPhone, directMatch);
-    return directMatch;
+  const isInvalid = !dept || dept.startsWith("@") || dept.startsWith("{{") || dept.includes("@") || dept.includes("{{");
+
+  if (!isInvalid) {
+    const directMatch = matchDepartmentFromTitle(dept);
+    if (directMatch) {
+      recordRecentDepartmentSelection(cleanPhone, directMatch);
+      return directMatch;
+    }
   }
 
   try {
@@ -106,10 +110,11 @@ export async function detectDepartmentFromRecentMessages(
             { "rawData.phoneNumber": { $regex: cleanPhone + "$" } },
             { "rawData.phone": { $regex: cleanPhone + "$" } },
             { "rawData.from": { $regex: cleanPhone + "$" } },
+            { "rawData.sender": { $regex: cleanPhone + "$" } },
           ],
         })
         .sort({ receivedAt: -1, createdAt: -1, _id: -1 })
-        .limit(10)
+        .limit(15)
         .toArray();
 
       for (const msg of recentMsgs) {
@@ -122,10 +127,10 @@ export async function detectDepartmentFromRecentMessages(
         const interactiveCandidates = [
           msg.rawData?.interactive?.list_reply?.title,
           msg.rawData?.interactive?.button_reply?.title,
-          msg.rawData?.list_reply?.title,
-          msg.rawData?.button_reply?.title,
           msg.rawData?.text?.body,
           msg.message,
+          msg.rawData?.list_reply?.title,
+          msg.rawData?.button_reply?.title,
           msg.rawData?.service,
           msg.rawData?.department,
           msg.rawData?.message,
@@ -155,7 +160,7 @@ export async function detectDepartmentFromRecentMessages(
     return matchedCached;
   }
 
-  return dept && !dept.includes("@") && !dept.includes("{{") ? dept.trim() : null;
+  return dept && !dept.startsWith("@") && !dept.startsWith("{{") && !dept.includes("@") && !dept.includes("{{") ? dept.trim() : null;
 }
 
 /**

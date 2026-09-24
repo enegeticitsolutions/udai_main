@@ -59,12 +59,12 @@ export function matchDepartmentFromTitle(title) {
     if (!title || typeof title !== "string")
         return null;
     const str = title.trim();
-    if (!str || str.includes("@") || str.includes("{{"))
+    if (!str || str.startsWith("@") || str.startsWith("{{") || str.includes("@") || str.includes("{{"))
         return null;
-    if (/Physiotherapy|Physio/i.test(str))
-        return "Physiotherapy";
     if (/Physical\s*Therapy/i.test(str))
         return "Physical Therapy";
+    if (/Physiotherapy|Physio/i.test(str))
+        return "Physiotherapy";
     if (/Occupational\s*Therapy|\bOT\b/i.test(str))
         return "Occupational Therapy";
     if (/Speech\s*Therapy|\bSpeech\b/i.test(str))
@@ -83,10 +83,13 @@ export function matchDepartmentFromTitle(title) {
  */
 export async function detectDepartmentFromRecentMessages(cleanPhone, incomingDept) {
     const dept = String(incomingDept || "").trim();
-    const directMatch = matchDepartmentFromTitle(dept);
-    if (directMatch) {
-        recordRecentDepartmentSelection(cleanPhone, directMatch);
-        return directMatch;
+    const isInvalid = !dept || dept.startsWith("@") || dept.startsWith("{{") || dept.includes("@") || dept.includes("{{");
+    if (!isInvalid) {
+        const directMatch = matchDepartmentFromTitle(dept);
+        if (directMatch) {
+            recordRecentDepartmentSelection(cleanPhone, directMatch);
+            return directMatch;
+        }
     }
     try {
         await connectMongoDb().catch(() => { });
@@ -104,10 +107,11 @@ export async function detectDepartmentFromRecentMessages(cleanPhone, incomingDep
                     { "rawData.phoneNumber": { $regex: cleanPhone + "$" } },
                     { "rawData.phone": { $regex: cleanPhone + "$" } },
                     { "rawData.from": { $regex: cleanPhone + "$" } },
+                    { "rawData.sender": { $regex: cleanPhone + "$" } },
                 ],
             })
                 .sort({ receivedAt: -1, createdAt: -1, _id: -1 })
-                .limit(10)
+                .limit(15)
                 .toArray();
             for (const msg of recentMsgs) {
                 const ts = msg.receivedAt || msg.createdAt;
@@ -119,10 +123,10 @@ export async function detectDepartmentFromRecentMessages(cleanPhone, incomingDep
                 const interactiveCandidates = [
                     msg.rawData?.interactive?.list_reply?.title,
                     msg.rawData?.interactive?.button_reply?.title,
-                    msg.rawData?.list_reply?.title,
-                    msg.rawData?.button_reply?.title,
                     msg.rawData?.text?.body,
                     msg.message,
+                    msg.rawData?.list_reply?.title,
+                    msg.rawData?.button_reply?.title,
                     msg.rawData?.service,
                     msg.rawData?.department,
                     msg.rawData?.message,
@@ -148,7 +152,7 @@ export async function detectDepartmentFromRecentMessages(cleanPhone, incomingDep
         const matchedCached = matchDepartmentFromTitle(cachedDept) || cachedDept.trim();
         return matchedCached;
     }
-    return dept && !dept.includes("@") && !dept.includes("{{") ? dept.trim() : null;
+    return dept && !dept.startsWith("@") && !dept.startsWith("{{") && !dept.includes("@") && !dept.includes("{{") ? dept.trim() : null;
 }
 /**
  * Expose available dates for a department (GET or POST)
