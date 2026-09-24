@@ -22,15 +22,183 @@ msg91BookingRouter.get("/departments", handleDepartments);
 msg91BookingRouter.post("/departments", handleDepartments);
 
 /**
+ * Auto-detect chosen department from recent WhatsApp messages in db.collection("webhookmessages")
+ * if incoming department is empty, undefined, contains '@', contains '{{', or equals 'Child and Parental Counselling'.
+ */
+export async function detectDepartmentFromRecentMessages(
+  cleanPhone: string,
+  incomingDept?: string
+): Promise<string | null> {
+  const dept = String(incomingDept || "").trim();
+  const needsResolution =
+    !dept ||
+    dept === "undefined" ||
+    dept === "null" ||
+    dept.includes("@") ||
+    dept.includes("{{") ||
+    dept.toLowerCase() === "child and parental counselling" ||
+    dept.toLowerCase() === "counselling";
+
+  if (!needsResolution || !cleanPhone) {
+    return null;
+  }
+
+  try {
+    await connectMongoDb().catch(() => {});
+    const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+    if (!db) return null;
+
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+    let recentMsgs = await db
+      .collection("webhookmessages")
+      .find({
+        phone: { $regex: cleanPhone + "$" },
+      })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(10)
+      .toArray();
+
+    if (!recentMsgs || recentMsgs.length === 0) {
+      recentMsgs = await db
+        .collection("webhookmessages")
+        .find({
+          $or: [
+            { phoneNumber: { $regex: cleanPhone + "$" } },
+            { "rawData.customerNumber": { $regex: cleanPhone + "$" } },
+            { "rawData.phoneNumber": { $regex: cleanPhone + "$" } },
+          ],
+        })
+        .sort({ createdAt: -1, receivedAt: -1, _id: -1 })
+        .limit(10)
+        .toArray();
+    }
+
+    if (!recentMsgs || recentMsgs.length === 0) {
+      return null;
+    }
+
+    // Inspect messages from the last 15 minutes if available
+    const msgsWithin15Mins = recentMsgs.filter((msg: any) => {
+      const ts = msg.createdAt || msg.receivedAt;
+      if (ts) {
+        const d = new Date(ts);
+        if (!isNaN(d.getTime())) return d >= fifteenMinutesAgo;
+      }
+      if (msg._id && typeof msg._id.getTimestamp === "function") {
+        const d = msg._id.getTimestamp();
+        if (d && !isNaN(d.getTime())) return d >= fifteenMinutesAgo;
+      }
+      return true;
+    });
+
+    const candidates = msgsWithin15Mins.length > 0 ? msgsWithin15Mins : recentMsgs;
+
+    const scanServiceKeyword = (text: unknown): string | null => {
+      if (!text || typeof text !== "string") return null;
+      const str = text.trim();
+      if (!str) return null;
+      if (/Occupational\s*Therapy|\bOT\b/i.test(str)) {
+        return "Occupational Therapy";
+      }
+      if (/Speech\s*Therapy|\bSpeech\b/i.test(str)) {
+        return "Speech Therapy";
+      }
+      if (/Special\s*Educat/i.test(str)) {
+        return "Special Education";
+      }
+      if (/Physio/i.test(str)) {
+        return "Physiotherapy";
+      }
+      return null;
+    };
+
+    const extractAllStrings = (obj: any, depth = 4): string[] => {
+      if (!obj || depth <= 0) return [];
+      if (typeof obj === "string") return [obj];
+      if (Array.isArray(obj)) {
+        return obj.flatMap((item) => extractAllStrings(item, depth - 1));
+      }
+      if (typeof obj === "object") {
+        const results: string[] = [];
+        for (const key of Object.keys(obj)) {
+          results.push(...extractAllStrings(obj[key], depth - 1));
+        }
+        return results;
+      }
+      return [];
+    };
+
+    for (const msg of candidates) {
+      // 1. Structured priority fields
+      const priorityStrings = [
+        msg.rawData?.interactive?.list_reply?.title,
+        msg.rawData?.interactive?.list_reply?.id,
+        msg.rawData?.interactive?.button_reply?.title,
+        msg.rawData?.list_reply?.title,
+        msg.rawData?.button_reply?.title,
+        msg.rawData?.service,
+        msg.rawData?.department,
+        msg.rawData?.selectedService,
+        msg.rawData?.selected_service,
+        msg.rawData?.service_name,
+        msg.rawData?.therapy,
+        msg.rawData?.therapy_type,
+        msg.department && msg.department !== "Child and Parental Counselling" ? msg.department : "",
+        msg.message,
+        msg.rawData?.text?.body,
+        msg.rawData?.message,
+        msg.concern,
+      ];
+
+      for (const s of priorityStrings) {
+        const match = scanServiceKeyword(s);
+        if (match) return match;
+      }
+
+      // 2. Deep scan across all fields in rawData and message fields
+      const allStrings = extractAllStrings(msg.rawData).concat(
+        extractAllStrings({
+          message: msg.message,
+          concern: msg.concern,
+          department: msg.department && msg.department !== "Child and Parental Counselling" ? msg.department : "",
+        })
+      );
+
+      for (const s of allStrings) {
+        const match = scanServiceKeyword(s);
+        if (match) return match;
+      }
+    }
+  } catch (err: any) {
+    console.warn("[detectDepartmentFromRecentMessages] Error:", err.message || err);
+  }
+
+  return null;
+}
+
+/**
  * Expose available dates for a department (GET or POST)
  */
 const handleDates = async (req: any, res: any, next: any) => {
   try {
     const data = (req.body?.data ?? req.body?.payload ?? req.body?.variables ?? req.body ?? {}) as Record<string, unknown>;
-    const rawDept = String(
+    const rawCandidatePhone =
+      req.query?.phone ?? req.query?.phoneNumber ?? req.query?.customerNumber ??
+      data.phone ?? data.phoneNumber ?? data.customerNumber ?? data.mobile ?? "";
+    const digitsOnly = String(rawCandidatePhone || "").replace(/\D/g, "");
+    const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
+
+    let rawDept = String(
       req.query.department ?? req.query.service ?? req.query.selected_service ??
       data.department ?? data.service ?? data.selected_service ?? data.service_name ?? ""
     ).trim();
+
+    if (cleanPhone && (!rawDept || rawDept.includes("@") || rawDept.includes("{{") || rawDept.toLowerCase() === "child and parental counselling")) {
+      const detected = await detectDepartmentFromRecentMessages(cleanPhone, rawDept);
+      if (detected) rawDept = detected;
+    }
+
     const department = normalizeDepartment(rawDept);
     const dates = await getAvailableDates(department || "Child and Parental Counselling");
     res.status(200).json({ success: true, status: "success", data: dates });
@@ -47,10 +215,22 @@ msg91BookingRouter.post("/dates", handleDates);
 const handleSlots = async (req: any, res: any, next: any) => {
   try {
     const data = (req.body?.data ?? req.body?.payload ?? req.body?.variables ?? req.body ?? {}) as Record<string, unknown>;
-    const rawDept = String(
+    const rawCandidatePhone =
+      req.query?.phone ?? req.query?.phoneNumber ?? req.query?.customerNumber ??
+      data.phone ?? data.phoneNumber ?? data.customerNumber ?? data.mobile ?? "";
+    const digitsOnly = String(rawCandidatePhone || "").replace(/\D/g, "");
+    const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
+
+    let rawDept = String(
       req.query.department ?? req.query.service ?? req.query.selected_service ??
       data.department ?? data.service ?? data.selected_service ?? data.service_name ?? ""
     ).trim();
+
+    if (cleanPhone && (!rawDept || rawDept.includes("@") || rawDept.includes("{{") || rawDept.toLowerCase() === "child and parental counselling")) {
+      const detected = await detectDepartmentFromRecentMessages(cleanPhone, rawDept);
+      if (detected) rawDept = detected;
+    }
+
     const department = normalizeDepartment(rawDept);
     const rawDate = String(
       req.query.date ?? req.query.appointment_date ?? req.query.selected_date ??
@@ -83,47 +263,110 @@ msg91BookingRouter.get("/slots", handleSlots);
 msg91BookingRouter.post("/slots", handleSlots);
 
 /**
- * POST /api/msg91-booking
+ * POST /api/msg91-booking and /msg91/booking
  * Receives incoming appointment booking requests from MSG91 bot flows.
  */
-msg91BookingRouter.post("/", async (req, res) => {
+msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
   console.log("==> Incoming MSG91 Booking Payload:", req.body);
   try {
     const rawBody = (req.body ?? {}) as Record<string, any>;
     const nestedData = (rawBody.data ?? rawBody.payload ?? rawBody.variables ?? {}) as Record<string, any>;
 
+    // Extract phone to clean last 10 digits
+    const rawCandidatePhone =
+      rawBody.phoneNumber ||
+      rawBody.customerNumber ||
+      rawBody.phone ||
+      rawBody.mobile ||
+      rawBody.contact ||
+      rawBody.sender ||
+      nestedData.phoneNumber ||
+      nestedData.customerNumber ||
+      nestedData.phone ||
+      nestedData.mobile ||
+      nestedData.contact ||
+      nestedData.sender ||
+      nestedData.customer_number ||
+      nestedData.from ||
+      rawBody.customer_number ||
+      rawBody.from ||
+      req.query?.phone ||
+      req.query?.phoneNumber ||
+      req.query?.customerNumber ||
+      "";
+    const digitsOnly = String(rawCandidatePhone || "").replace(/\D/g, "");
+    let cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
+    if (!cleanPhone && typeof req.body === "string") {
+      const match = (req.body as string).match(/\d{10,12}/);
+      if (match) cleanPhone = match[0].slice(-10);
+    }
+
     // 1. Extract chosen service title / department from interactive list replies and standard keys
-    const chosenService = String(
+    let chosenService = String(
       rawBody.service ||
       rawBody.department ||
       rawBody.selectedService ||
+      rawBody.service_name ||
+      rawBody.selected_service ||
+      rawBody.selected_department ||
       rawBody.interactive?.list_reply?.title ||
       rawBody.list_reply?.title ||
       nestedData.service ||
       nestedData.department ||
       nestedData.selectedService ||
+      nestedData.service_name ||
+      nestedData.selected_service ||
+      nestedData.selected_department ||
       nestedData.interactive?.list_reply?.title ||
       nestedData.list_reply?.title ||
       ""
     ).trim();
 
+    // 1 & 2. Check if incoming department is empty, undefined, contains '@', contains '{{', or equals 'Child and Parental Counselling'
+    // If it needs resolution, auto-detect chosen department from recent WhatsApp messages in db.collection("webhookmessages")
+    const detectedDept = await detectDepartmentFromRecentMessages(cleanPhone, chosenService);
+    if (detectedDept) {
+      console.log(`[MSG91 Booking] Auto-detected department "${detectedDept}" from recent WhatsApp chat history for phone ${cleanPhone}`);
+      chosenService = detectedDept;
+    }
+
     if (chosenService) {
       rawBody.service = chosenService;
       rawBody.department = chosenService;
+      rawBody.rawDepartment = chosenService;
       if (typeof rawBody.data === "object" && rawBody.data !== null) {
         rawBody.data.service = chosenService;
         rawBody.data.department = chosenService;
+        rawBody.data.rawDepartment = chosenService;
+      }
+      if (typeof rawBody.payload === "object" && rawBody.payload !== null) {
+        rawBody.payload.service = chosenService;
+        rawBody.payload.department = chosenService;
+        rawBody.payload.rawDepartment = chosenService;
+      }
+      if (typeof rawBody.variables === "object" && rawBody.variables !== null) {
+        rawBody.variables.service = chosenService;
+        rawBody.variables.department = chosenService;
+        rawBody.variables.rawDepartment = chosenService;
       }
     }
 
     const { appointment, duplicate } = await saveMsg91Appointment(rawBody);
     console.info(`[MSG91 Booking] ${duplicate ? "Existing booking updated" : "New booking created"}: ${appointment.bookingId}`);
 
+    // Final appointment department (detected service if matched, or appointment department)
+    const finalDepartment = detectedDept || appointment.department || (chosenService ? normalizeDepartment(chosenService) : "Child and Parental Counselling");
+    appointment.department = finalDepartment;
+
+    // 5. Ensure this updated department is saved in both:
+    // - db.collection("appointments")
+    // - db.collection("webhookmessages")
+
     // 1. Log to WebhookMessage (for WhatsApp Messages dashboard)
     try {
       await WebhookMessage.create({
         rawData: req.body,
-        phone: appointment.phoneNumber || "",
+        phone: appointment.phoneNumber || cleanPhone || "",
         childName: appointment.patientName || "Not specified",
         parentName: appointment.parentName || "",
         age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "",
@@ -131,7 +374,7 @@ msg91BookingRouter.post("/", async (req, res) => {
         isFirstSession: (appointment as any).isFirstSession,
         appointmentDate: appointment.appointmentDate || "",
         appointmentTime: appointment.appointmentTime || "",
-        department: appointment.department || (chosenService ? normalizeDepartment(chosenService) : "Child and Parental Counselling"),
+        department: finalDepartment,
         concern: appointment.mainConcern || "",
         assignedTherapist: appointment.therapistName || "Ms. Tanu Rajput",
         assignedTherapistId: appointment.therapistId || "roster-counselling-1",
@@ -144,21 +387,62 @@ msg91BookingRouter.post("/", async (req, res) => {
         amount: (appointment as any).amount || 0,
         bookingSource: "whatsapp",
       });
-      console.log(`[MSG91 Booking] Logged appointment payload to WebhookMessage`);
+      console.log(`[MSG91 Booking] Logged appointment payload to WebhookMessage with department "${finalDepartment}"`);
     } catch (dbErr: any) {
       console.error("[MSG91 Booking] Failed to log WebhookMessage:", dbErr.message);
     }
 
-    // 2. Sync to chatbotsubmissions (for WhatsApp Appointments dashboard)
+    // 2. Guarantee department is saved in both db.collection("appointments") and db.collection("webhookmessages")
+    try {
+      const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+      if (db) {
+        // Save to db.collection("appointments")
+        if (appointment.bookingId || appointment.phoneNumber) {
+          const apptFilters = [];
+          if (appointment.bookingId) apptFilters.push({ bookingId: appointment.bookingId });
+          if (appointment.id) apptFilters.push({ id: appointment.id });
+          if (appointment.phoneNumber && appointment.appointmentDate) {
+            apptFilters.push({ phoneNumber: appointment.phoneNumber, appointmentDate: appointment.appointmentDate });
+          }
+          if (cleanPhone && appointment.appointmentDate) {
+            apptFilters.push({ phoneNumber: { $regex: cleanPhone + "$" }, appointmentDate: appointment.appointmentDate });
+          }
+          if (apptFilters.length > 0) {
+            await db.collection("appointments").updateMany(
+              { $or: apptFilters },
+              { $set: { department: finalDepartment, updatedAt: new Date().toISOString() } }
+            );
+            console.log(`[MSG91 Booking] Updated department "${finalDepartment}" in db.collection("appointments")`);
+          }
+        }
+
+        // Save to db.collection("webhookmessages")
+        const ph = cleanPhone || (appointment.phoneNumber ? appointment.phoneNumber.replace(/\D/g, "").slice(-10) : "");
+        const whFilters = [];
+        if (appointment.bookingId) whFilters.push({ "rawData.bookingId": appointment.bookingId });
+        if (ph) whFilters.push({ phone: { $regex: ph + "$" } });
+        if (whFilters.length > 0) {
+          await db.collection("webhookmessages").updateMany(
+            { $or: whFilters },
+            { $set: { department: finalDepartment } }
+          );
+          console.log(`[MSG91 Booking] Updated department "${finalDepartment}" in db.collection("webhookmessages")`);
+        }
+      }
+    } catch (updateErr: any) {
+      console.error("[MSG91 Booking] Failed to update department in collections:", updateErr.message);
+    }
+
+    // 3. Sync to chatbotsubmissions (for WhatsApp Appointments dashboard)
     try {
       const db = mongoose.connection.db;
-      if (db && appointment.phoneNumber) {
+      if (db && (appointment.phoneNumber || cleanPhone)) {
         const txnId = appointment.bookingId || `MSG91-${Date.now()}`;
         await db.collection("chatbotsubmissions").updateOne(
           { transactionId: txnId },
           {
             $set: {
-              phone: appointment.phoneNumber,
+              phone: appointment.phoneNumber || cleanPhone,
               message: appointment.mainConcern || `Appointment for ${appointment.patientName}`,
               userDetails: {
                 name: appointment.patientName || undefined,
@@ -167,7 +451,7 @@ msg91BookingRouter.post("/", async (req, res) => {
                 problem: appointment.mainConcern || appointment.therapistName || undefined,
                 appointmentDate: appointment.appointmentDate,
                 appointmentTime: appointment.appointmentTime,
-                department: appointment.department || "Child and Parental Counselling",
+                department: finalDepartment,
                 session_frequency: appointment.session_frequency,
                 totalSessions: appointment.totalSessions,
                 sessionSchedule: (appointment as any).sessionSchedule || [],

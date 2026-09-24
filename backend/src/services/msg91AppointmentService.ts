@@ -574,6 +574,11 @@ export async function saveMsg91Appointment(payload: unknown) {
   ).trim();
 
   const isExplicitOT = /^(ot|occupational(\s*therapy)?)$/i.test(rawDept) || /occupational/i.test(rawDept);
+  const isExplicitService =
+    isExplicitOT ||
+    /speech/i.test(rawDept) ||
+    /special\s*educat/i.test(rawDept) ||
+    /physio/i.test(rawDept);
 
   if (isExplicitOT) {
     // If department is provided as "Occupational Therapy" or "OT", save it as "Occupational Therapy"
@@ -583,13 +588,13 @@ export async function saveMsg91Appointment(payload: unknown) {
     input.firstSession = isFirstSession ? "true" : "false";
     input.isFirstSession = isFirstSession;
     console.log(`[Department Selection] Occupational Therapy selected (${cleanPhone}, priorBookings=${priorBookings}) -> Saved as "Occupational Therapy"`);
-  } else if (rawDept && isReturningPatient) {
+  } else if (rawDept && (isReturningPatient || isExplicitService)) {
     targetDepartment = normalizeDepartment(rawDept);
     input.department = targetDepartment;
-    isFirstSession = false;
-    input.firstSession = "false";
-    input.isFirstSession = false;
-    console.log(`[Department Selection] Returning patient chose "${rawDept}" -> Saved as "${targetDepartment}"`);
+    isFirstSession = isStrictNewPatient;
+    input.firstSession = isFirstSession ? "true" : "false";
+    input.isFirstSession = isFirstSession;
+    console.log(`[Department Selection] Department chosen "${rawDept}" (${cleanPhone}, priorBookings=${priorBookings}) -> Saved as "${targetDepartment}"`);
   } else if (isStrictNewPatient) {
     isFirstSession = true;
     targetDepartment = "Child and Parental Counselling";
