@@ -11,6 +11,7 @@ import availabilityRouter from "./routes/availability.js";
 import { WebhookMessage } from "./models/WebhookMessage.js";
 import { assignTherapist, getAvailableSlots, normalizeDepartment } from "./services/bookingService.js";
 import { handleMsg91PaymentWebhook } from "./controllers/msg91PaymentWebhookController.js";
+import paymentWebhookRouter from "./routes/paymentWebhook.js";
 
 // ── MongoDB Connection & Lifecycle Logging ──────────────────────────
 // Uses config.mongoUri (from MONGODB_URI env) with explicit dbName
@@ -46,7 +47,13 @@ export function createApp() {
       },
     }),
   );
-  app.use(express.json());
+  app.use(
+    express.json({
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf.toString("utf8");
+      },
+    })
+  );
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan("dev"));
   app.use("/uploads", express.static(path.join(config.storageDir, "uploads")));
@@ -74,6 +81,10 @@ export function createApp() {
   app.post("/api/msg91/payment-webhook", handleMsg91PaymentWebhook);
   app.post("/msg91/payment-webhook", handleMsg91PaymentWebhook);
   app.post("/api/msg91", handleMsg91PaymentWebhook);
+
+  // ── Razorpay Payment Webhook Direct Route ────────────────────────
+  app.use("/api/payment-webhook", paymentWebhookRouter);
+  app.use("/payment-webhook", paymentWebhookRouter);
 
 
   // ── Webhook: receive MSG91 data & save to MongoDB ─────────────────

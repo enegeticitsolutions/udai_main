@@ -1,5 +1,7 @@
 import { Router } from "express";
 import mongoose from "mongoose";
+import Razorpay from "razorpay";
+import { config } from "../config.js";
 import { calculateAppointmentFee, normalizeAppointmentDate, saveMsg91Appointment } from "../services/msg91AppointmentService.js";
 import { getAvailableDates, getAvailableSlots, getDepartments, normalizeDepartment } from "../services/bookingService.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
@@ -530,10 +532,82 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
         }
         // Clear stale in-memory cached department so past selections never leak into future sessions
         clearRecentDepartmentSelection(cleanPhone);
+        // 5. Razorpay dynamic payment link integration
+        let paymentUrl = "";
+        let paymentLinkId = "";
+        const fee = appointment.feeCharged ?? appointment.amount ?? 800;
+        try {
+            const keyId = process.env.RAZORPAY_KEY_ID || config.razorpayKeyId;
+            const keySecret = process.env.RAZORPAY_KEY_SECRET || config.razorpayKeySecret;
+            if (keyId && keySecret) {
+                const razorpay = new Razorpay({
+                    key_id: keyId,
+                    key_secret: keySecret,
+                });
+                const customerContact = cleanPhone
+                    ? (cleanPhone.startsWith("+") ? cleanPhone : `+91${cleanPhone.slice(-10)}`)
+                    : undefined;
+                const customerName = appointment.parentName || appointment.patientName || "Parent";
+                const paymentLinkPayload = {
+                    amount: Math.round(Number(fee) * 100),
+                    currency: "INR",
+                    accept_partial: false,
+                    description: `Appointment Booking for ${appointment.patientName || "Patient"} (${appointment.bookingId})`,
+                    customer: {
+                        name: customerName,
+                        contact: customerContact,
+                        ...(rawBody.email || nestedData.email ? { email: rawBody.email || nestedData.email } : {}),
+                    },
+                    notify: {
+                        sms: false,
+                        email: false,
+                    },
+                    reminder_enable: false,
+                    notes: {
+                        bookingId: appointment.bookingId,
+                        childName: appointment.patientName || "",
+                        department: finalDepartment,
+                    },
+                };
+                const paymentLink = await razorpay.paymentLink.create(paymentLinkPayload);
+                paymentUrl = paymentLink?.short_url || "";
+                paymentLinkId = paymentLink?.id || "";
+                console.log(`✅ [MSG91 Booking] Razorpay Payment Link Created: ${paymentLinkId} -> ${paymentUrl}`);
+                if (db && appointment.bookingId && paymentUrl) {
+                    await db.collection("appointments").updateOne({ bookingId: appointment.bookingId }, {
+                        $set: {
+                            paymentUrl,
+                            paymentLinkId,
+                            paymentStatus: "pending",
+                            updatedAt: new Date().toISOString(),
+                        },
+                    });
+                    if (targetWebhookId) {
+                        await db.collection("webhookmessages").updateOne({ _id: targetWebhookId }, { $set: { paymentUrl, paymentLinkId, updatedAt: new Date().toISOString() } });
+                    }
+                    await db.collection("chatbotsubmissions").updateOne({ transactionId: appointment.bookingId }, { $set: { paymentUrl, paymentLinkId, updatedAt: new Date() } });
+                }
+            }
+            else {
+                console.warn("⚠️ [MSG91 Booking] RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is not configured");
+            }
+        }
+        catch (rzpErr) {
+            console.error("❌ [MSG91 Booking] Failed to create Razorpay payment link:", rzpErr?.message || rzpErr);
+        }
         res.status(200).json({
             success: true,
             status: "success",
-            data: appointment,
+            bookingId: appointment.bookingId,
+            fee: fee,
+            paymentUrl: paymentUrl,
+            paymentLinkId: paymentLinkId,
+            data: {
+                ...appointment,
+                paymentUrl,
+                paymentLinkId,
+                fee,
+            },
             message: duplicate ? "Booking record updated successfully" : "Booking saved successfully",
         });
     }
