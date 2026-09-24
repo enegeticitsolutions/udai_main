@@ -255,17 +255,12 @@ export async function handleMsg91PaymentWebhook(req: Request, res: Response): Pr
         transactionId: effectiveTxnId,
       });
 
-      // Also sync updates to chatbotsubmissions collection if present
+      // Also sync updates to chatbotsubmissions collection for this single transaction
       try {
-        const phone = appointment.phoneNumber || cleanPhone;
-        if (phone) {
-          await db.collection("chatbotsubmissions").updateMany(
-            {
-              $or: [
-                { phone: { $in: phoneVariants } },
-                { transactionId: appointment.bookingId || effectiveTxnId },
-              ],
-            },
+        const txnTarget = appointment.bookingId || effectiveTxnId;
+        if (txnTarget) {
+          await db.collection("chatbotsubmissions").updateOne(
+            { transactionId: txnTarget },
             {
               $set: {
                 paymentStatus: "completed",
@@ -280,19 +275,40 @@ export async function handleMsg91PaymentWebhook(req: Request, res: Response): Pr
         console.warn("⚠️ [MSG91 Payment Webhook] chatbotsubmissions sync warning:", syncErr.message);
       }
 
-      // Also sync to webhookmessages collection if present
+      // Also sync to webhookmessages collection for ONLY this specific session document
       try {
-        if (phoneVariants.length > 0) {
-          await db.collection("webhookmessages").updateMany(
-            { phone: { $in: phoneVariants } },
+        const bookingKey = appointment.bookingId || orderId || effectiveTxnId;
+        let targetWh: any = null;
+        if (bookingKey) {
+          targetWh = await db.collection("webhookmessages").findOne({
+            $or: [
+              { bookingId: bookingKey },
+              { "rawData.bookingId": bookingKey },
+              { transactionId: effectiveTxnId },
+            ],
+          });
+        }
+        if (!targetWh && phoneVariants.length > 0) {
+          // Find ONLY the single matching webhook document for this appointment
+          const whFilter: any = { phone: { $in: phoneVariants } };
+          if (appointment.appointmentDate) {
+            whFilter.appointmentDate = appointment.appointmentDate;
+          }
+          targetWh = await db.collection("webhookmessages").findOne(whFilter, { sort: { receivedAt: -1, createdAt: -1, _id: -1 } });
+        }
+        if (targetWh) {
+          await db.collection("webhookmessages").updateOne(
+            { _id: targetWh._id },
             {
               $set: {
                 status: "confirmed",
                 paymentStatus: "completed",
+                ...(effectiveTxnId ? { transactionId: effectiveTxnId } : {}),
                 updatedAt: nowDate,
               },
             }
           );
+          console.log(`✅ [MSG91 Payment Webhook] Updated specific webhook message (_id: ${targetWh._id})`);
         }
       } catch (syncErr: any) {
         console.warn("⚠️ [MSG91 Payment Webhook] webhookmessages sync warning:", syncErr.message);
