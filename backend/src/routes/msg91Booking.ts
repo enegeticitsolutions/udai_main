@@ -66,13 +66,13 @@ export async function detectDepartmentFromRecentMessages(
     dept.toLowerCase() === "counselling";
 
   if (!needsResolution || !cleanPhone) {
-    return null;
+    return dept ? dept.trim() : null;
   }
 
   // First check in-memory intent cache from recent /dates or /slots requests
   const cachedDept = getRecentDepartmentSelection(cleanPhone);
   if (cachedDept) {
-    return cachedDept;
+    return cachedDept.trim();
   }
 
   try {
@@ -85,32 +85,22 @@ export async function detectDepartmentFromRecentMessages(
     let recentMsgs = await db
       .collection("webhookmessages")
       .find({
-        phone: { $regex: cleanPhone + "$" },
+        $or: [
+          { phone: { $regex: cleanPhone + "$" } },
+          { phoneNumber: { $regex: cleanPhone + "$" } },
+          { "rawData.customerNumber": { $regex: cleanPhone + "$" } },
+          { "rawData.phoneNumber": { $regex: cleanPhone + "$" } },
+        ],
       })
       .sort({ createdAt: -1, receivedAt: -1, _id: -1 })
       .limit(10)
       .toArray();
 
     if (!recentMsgs || recentMsgs.length === 0) {
-      recentMsgs = await db
-        .collection("webhookmessages")
-        .find({
-          $or: [
-            { phoneNumber: { $regex: cleanPhone + "$" } },
-            { "rawData.customerNumber": { $regex: cleanPhone + "$" } },
-            { "rawData.phoneNumber": { $regex: cleanPhone + "$" } },
-          ],
-        })
-        .sort({ createdAt: -1, receivedAt: -1, _id: -1 })
-        .limit(10)
-        .toArray();
-    }
-
-    if (!recentMsgs || recentMsgs.length === 0) {
       return null;
     }
 
-    // Strictly filter messages from the last 15 minutes
+    // Filter messages from the last 15 minutes
     const msgsWithin15Mins = recentMsgs.filter((msg: any) => {
       const ts = msg.createdAt || msg.receivedAt;
       if (ts) {
@@ -121,85 +111,52 @@ export async function detectDepartmentFromRecentMessages(
         const d = msg._id.getTimestamp();
         if (d && !isNaN(d.getTime())) return d >= fifteenMinutesAgo;
       }
-      return false; // Strictly discard messages older than 15 minutes!
+      return false;
     });
 
     if (msgsWithin15Mins.length === 0) {
       return null;
     }
 
-    const scanServiceKeyword = (text: unknown): string | null => {
+    const extractExactTitle = (text: unknown): string | null => {
       if (!text || typeof text !== "string") return null;
       const str = text.trim();
-      if (!str) return null;
-      if (/Occupational\s*Therapy|\bOT\b/i.test(str)) {
-        return "Occupational Therapy";
-      }
-      if (/Speech\s*Therapy|\bSpeech\b/i.test(str)) {
-        return "Speech Therapy";
-      }
-      if (/Special\s*Educat/i.test(str)) {
-        return "Special Education";
-      }
-      if (/Physio/i.test(str)) {
-        return "Physiotherapy";
+      if (!str || str.includes("@") || str.includes("{{")) return null;
+
+      // Match known WhatsApp service choices and return the EXACT STRING as clicked by the user
+      if (
+        /academic\s*support/i.test(str) ||
+        /occupational\s*therapy|\bot\b/i.test(str) ||
+        /speech/i.test(str) ||
+        /special\s*educat/i.test(str) ||
+        /physio/i.test(str) ||
+        /counsel/i.test(str)
+      ) {
+        return str;
       }
       return null;
     };
 
-    const extractAllStrings = (obj: any, depth = 4): string[] => {
-      if (!obj || depth <= 0) return [];
-      if (typeof obj === "string") return [obj];
-      if (Array.isArray(obj)) {
-        return obj.flatMap((item) => extractAllStrings(item, depth - 1));
-      }
-      if (typeof obj === "object") {
-        const results: string[] = [];
-        for (const key of Object.keys(obj)) {
-          results.push(...extractAllStrings(obj[key], depth - 1));
-        }
-        return results;
-      }
-      return [];
-    };
-
     for (const msg of msgsWithin15Mins) {
-      // 1. Structured priority fields (exclude msg.department DB column to avoid echoing past appointment types)
-      const priorityStrings = [
+      // Look directly at interactive list reply, button reply, text body, or message
+      const priorityCandidates = [
         msg.rawData?.interactive?.list_reply?.title,
-        msg.rawData?.interactive?.list_reply?.description,
-        msg.rawData?.interactive?.list_reply?.id,
         msg.rawData?.interactive?.button_reply?.title,
         msg.rawData?.list_reply?.title,
         msg.rawData?.button_reply?.title,
-        msg.rawData?.service,
-        msg.rawData?.selectedService,
-        msg.rawData?.selected_service,
-        msg.rawData?.service_name,
-        msg.rawData?.therapy,
-        msg.rawData?.therapy_type,
-        msg.message,
         msg.rawData?.text?.body,
+        msg.message,
         msg.rawData?.message,
+        msg.rawData?.service,
         msg.concern,
       ];
 
-      for (const s of priorityStrings) {
-        const match = scanServiceKeyword(s);
-        if (match) return match;
-      }
-
-      // 2. Deep scan across all fields in rawData and message fields
-      const allStrings = extractAllStrings(msg.rawData).concat(
-        extractAllStrings({
-          message: msg.message,
-          concern: msg.concern,
-        })
-      );
-
-      for (const s of allStrings) {
-        const match = scanServiceKeyword(s);
-        if (match) return match;
+      for (const candidate of priorityCandidates) {
+        const match = extractExactTitle(candidate);
+        if (match) {
+          console.log(`[Real-Time WhatsApp Extraction] Captured exact user selection: "${match}" for phone ${cleanPhone}`);
+          return match;
+        }
       }
     }
   } catch (err: any) {
@@ -227,9 +184,9 @@ const handleDates = async (req: any, res: any, next: any) => {
     ).trim();
 
     if (cleanPhone && rawDept && !rawDept.includes("@") && !rawDept.includes("{{")) {
-      const normalized = normalizeDepartment(rawDept);
-      if (normalized && normalized !== "Child and Parental Counselling") {
-        recordRecentDepartmentSelection(cleanPhone, normalized);
+      const trimmed = rawDept.trim();
+      if (trimmed && trimmed.toLowerCase() !== "child and parental counselling") {
+        recordRecentDepartmentSelection(cleanPhone, trimmed);
       }
     }
 
@@ -266,9 +223,9 @@ const handleSlots = async (req: any, res: any, next: any) => {
     ).trim();
 
     if (cleanPhone && rawDept && !rawDept.includes("@") && !rawDept.includes("{{")) {
-      const normalized = normalizeDepartment(rawDept);
-      if (normalized && normalized !== "Child and Parental Counselling") {
-        recordRecentDepartmentSelection(cleanPhone, normalized);
+      const trimmed = rawDept.trim();
+      if (trimmed && trimmed.toLowerCase() !== "child and parental counselling") {
+        recordRecentDepartmentSelection(cleanPhone, trimmed);
       }
     }
 
@@ -370,14 +327,7 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
 
     // 1 & 2. Check if incoming department is empty, undefined, contains '@', contains '{{', or equals 'Child and Parental Counselling'
     // If it needs resolution, auto-detect chosen department from recent WhatsApp messages in db.collection("webhookmessages")
-    let detectedDept = await detectDepartmentFromRecentMessages(cleanPhone, chosenService);
-
-    // Slot 09:30 is exclusive to Special Education on the clinic schedule
-    const incomingTime = String(rawBody.appointmentTime || nestedData.appointmentTime || "").replace(/\s*[AP]M/i, "").trim();
-    if (!detectedDept && (incomingTime === "09:30" || incomingTime === "9:30")) {
-      detectedDept = "Special Education";
-      console.log(`[MSG91 Booking] Slot 09:30 is exclusive to Special Education. Auto-detected department = "Special Education" for phone ${cleanPhone}`);
-    }
+    const detectedDept = await detectDepartmentFromRecentMessages(cleanPhone, chosenService);
 
     if (detectedDept) {
       console.log(`[MSG91 Booking] Auto-detected department "${detectedDept}" from recent WhatsApp chat history for phone ${cleanPhone}`);
@@ -408,19 +358,16 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
     const { appointment, duplicate } = await saveMsg91Appointment(rawBody);
     console.info(`[MSG91 Booking] ${duplicate ? "Existing booking updated" : "New booking created"}: ${appointment.bookingId}`);
 
-    // Final appointment department (detected service if matched, or appointment department)
-    let finalDepartment = detectedDept || appointment.department || (chosenService ? normalizeDepartment(chosenService) : "Child and Parental Counselling");
-
-    // Guarantee alignment with Special Education if slot is 09:30 or assigned therapist is a Special Educator
-    const therapistLower = (appointment.therapistName || "").toLowerCase();
-    if (incomingTime === "09:30" || incomingTime === "9:30" || therapistLower.includes("sonia") || therapistLower.includes("shobha") || therapistLower.includes("ranjana")) {
-      finalDepartment = "Special Education";
-    }
+    // Final appointment department: preserve the exact user selection without overrides
+    const finalDepartment = (
+      detectedDept ||
+      chosenService ||
+      appointment.rawDepartment ||
+      appointment.department ||
+      "Child and Parental Counselling"
+    ).trim();
     appointment.department = finalDepartment;
-
-    // 5. Ensure this updated department is saved in both:
-    // - db.collection("appointments")
-    // - db.collection("webhookmessages")
+    appointment.rawDepartment = finalDepartment;
 
     // 1. Log to WebhookMessage (for WhatsApp Messages dashboard)
     try {
@@ -435,6 +382,7 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
         appointmentDate: appointment.appointmentDate || "",
         appointmentTime: appointment.appointmentTime || "",
         department: finalDepartment,
+        service: finalDepartment,
         concern: appointment.mainConcern || "",
         assignedTherapist: appointment.therapistName || "Ms. Tanu Rajput",
         assignedTherapistId: appointment.therapistId || "roster-counselling-1",
@@ -447,12 +395,12 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
         amount: (appointment as any).amount || 0,
         bookingSource: "whatsapp",
       });
-      console.log(`[MSG91 Booking] Logged appointment payload to WebhookMessage with department "${finalDepartment}"`);
+      console.log(`[MSG91 Booking] Logged appointment payload to WebhookMessage with department "${finalDepartment}" and service "${finalDepartment}"`);
     } catch (dbErr: any) {
       console.error("[MSG91 Booking] Failed to log WebhookMessage:", dbErr.message);
     }
 
-    // 2. Guarantee department is saved in both db.collection("appointments") and db.collection("webhookmessages")
+    // 2. Guarantee department and service are saved in both db.collection("appointments") and db.collection("webhookmessages")
     try {
       const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
       if (db) {
@@ -470,7 +418,7 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
           if (apptFilters.length > 0) {
             await db.collection("appointments").updateMany(
               { $or: apptFilters },
-              { $set: { department: finalDepartment, updatedAt: new Date().toISOString() } }
+              { $set: { department: finalDepartment, rawDepartment: finalDepartment, updatedAt: new Date().toISOString() } }
             );
             console.log(`[MSG91 Booking] Updated department "${finalDepartment}" in db.collection("appointments")`);
           }
@@ -479,14 +427,23 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
         // Save to db.collection("webhookmessages")
         const ph = cleanPhone || (appointment.phoneNumber ? appointment.phoneNumber.replace(/\D/g, "").slice(-10) : "");
         const whFilters = [];
-        if (appointment.bookingId) whFilters.push({ "rawData.bookingId": appointment.bookingId });
-        if (ph) whFilters.push({ phone: { $regex: ph + "$" } });
+        if (appointment.bookingId) {
+          whFilters.push({ "rawData.bookingId": appointment.bookingId });
+          whFilters.push({ bookingId: appointment.bookingId });
+        }
+        if (ph && appointment.appointmentDate) {
+          whFilters.push({ phone: { $regex: ph + "$" }, appointmentDate: appointment.appointmentDate });
+          whFilters.push({ phoneNumber: { $regex: ph + "$" }, appointmentDate: appointment.appointmentDate });
+        } else if (ph) {
+          whFilters.push({ phone: { $regex: ph + "$" } });
+          whFilters.push({ phoneNumber: { $regex: ph + "$" } });
+        }
         if (whFilters.length > 0) {
           await db.collection("webhookmessages").updateMany(
             { $or: whFilters },
-            { $set: { department: finalDepartment } }
+            { $set: { department: finalDepartment, service: finalDepartment } }
           );
-          console.log(`[MSG91 Booking] Updated department "${finalDepartment}" in db.collection("webhookmessages")`);
+          console.log(`[MSG91 Booking] Updated department "${finalDepartment}" and service in db.collection("webhookmessages")`);
         }
       }
     } catch (updateErr: any) {
@@ -504,6 +461,8 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
             $set: {
               phone: appointment.phoneNumber || cleanPhone,
               message: appointment.mainConcern || `Appointment for ${appointment.patientName}`,
+              department: finalDepartment,
+              service: finalDepartment,
               userDetails: {
                 name: appointment.patientName || undefined,
                 age: appointment.age || undefined,
@@ -512,6 +471,7 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
                 appointmentDate: appointment.appointmentDate,
                 appointmentTime: appointment.appointmentTime,
                 department: finalDepartment,
+                service: finalDepartment,
                 session_frequency: appointment.session_frequency,
                 totalSessions: appointment.totalSessions,
                 sessionSchedule: (appointment as any).sessionSchedule || [],

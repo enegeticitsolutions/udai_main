@@ -13,6 +13,7 @@ export interface IWebhookMessage {
   appointmentDate?: string;
   appointmentTime?: string;
   department?: string;
+  service?: string;
   concern?: string;
   /** ID of the assigned therapist (TherapistModel._id as string) */
   assignedTherapistId?: string;
@@ -50,6 +51,7 @@ const WebhookMessageSchema = new mongoose.Schema<IWebhookMessage>(
     appointmentDate: { type: String, default: "" },
     appointmentTime: { type: String, default: "" },
     department: { type: String, default: "" },
+    service: { type: String, default: "" },
     concern: { type: String, default: "" },
     assignedTherapistId: { type: String, default: "" },
     assignedTherapist: { type: String, default: "" },

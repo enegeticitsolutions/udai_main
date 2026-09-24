@@ -15,6 +15,7 @@ const WebhookMessageSchema = new mongoose.Schema({
     appointmentDate: { type: String, default: "" },
     appointmentTime: { type: String, default: "" },
     department: { type: String, default: "" },
+    service: { type: String, default: "" },
     concern: { type: String, default: "" },
     assignedTherapistId: { type: String, default: "" },
     assignedTherapist: { type: String, default: "" },

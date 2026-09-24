@@ -369,6 +369,7 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
       data,
       "service",
       "department",
+      "rawDepartment",
       "selectedService",
       "selected_service",
       "service_name",
@@ -382,6 +383,7 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
       root,
       "service",
       "department",
+      "rawDepartment",
       "selectedService",
       "selected_service",
       "service_name",
@@ -395,7 +397,7 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
     (root as any)?.interactive?.list_reply?.title ||
     (root as any)?.list_reply?.title ||
     "";
-  const resolvedDept = rawDepartment ? normalizeDepartment(rawDepartment) : "";
+  const exactDept = rawDepartment.trim();
 
   // Therapist Name:
   const rawTherapistName =
@@ -430,10 +432,10 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
     gender: rawGender || undefined,
     city: rawCity || undefined,
     preferredLanguage: rawLang || "English",
-    department: resolvedDept || "Child and Parental Counselling",
-    rawDepartment: rawDepartment || undefined,
+    department: exactDept || "Child and Parental Counselling",
+    rawDepartment: exactDept || undefined,
     therapistId: pick(data, "therapist_id", "therapistId", "doctor_id", "doctorId") || null,
-    therapistName: rawTherapistName || resolvedDept || "Ms. Tanu Rajput",
+    therapistName: rawTherapistName || exactDept || "Ms. Tanu Rajput",
     appointmentDate: normalizeAppointmentDate(rawDate),
     appointmentTime: normalizeAppointmentTime(rawTime),
     appointmentType: normalizeAppointmentType(pick(data, "appointment_type", "appointmentType", "visit_type") || "in-person"),
@@ -573,73 +575,35 @@ export async function saveMsg91Appointment(payload: unknown) {
     ""
   ).trim();
 
-  const isExplicitOT = /^(ot|occupational(\s*therapy)?)$/i.test(rawDept) || /occupational/i.test(rawDept);
-  const isExplicitService =
-    isExplicitOT ||
-    /speech/i.test(rawDept) ||
-    /special\s*educat/i.test(rawDept) ||
-    /physio/i.test(rawDept);
-
-  if (isExplicitOT) {
-    // If department is provided as "Occupational Therapy" or "OT", save it as "Occupational Therapy"
-    targetDepartment = "Occupational Therapy";
-    input.department = "Occupational Therapy";
-    isFirstSession = isStrictNewPatient;
-    input.firstSession = isFirstSession ? "true" : "false";
-    input.isFirstSession = isFirstSession;
-    console.log(`[Department Selection] Occupational Therapy selected (${cleanPhone}, priorBookings=${priorBookings}) -> Saved as "Occupational Therapy"`);
-  } else if (rawDept && (isReturningPatient || isExplicitService)) {
-    targetDepartment = normalizeDepartment(rawDept);
+  if (rawDept && !rawDept.includes("@") && !rawDept.includes("{{")) {
+    targetDepartment = rawDept.trim();
     input.department = targetDepartment;
+    input.rawDepartment = targetDepartment;
     isFirstSession = isStrictNewPatient;
     input.firstSession = isFirstSession ? "true" : "false";
     input.isFirstSession = isFirstSession;
-    console.log(`[Department Selection] Department chosen "${rawDept}" (${cleanPhone}, priorBookings=${priorBookings}) -> Saved as "${targetDepartment}"`);
+    console.log(`[Department Selection] Exact user department selected: "${targetDepartment}" (${cleanPhone})`);
   } else if (isStrictNewPatient) {
     isFirstSession = true;
     targetDepartment = "Child and Parental Counselling";
     input.department = "Child and Parental Counselling";
+    input.rawDepartment = "Child and Parental Counselling";
     input.firstSession = "true";
     input.isFirstSession = true;
-    console.log(`[First Session Guard] New patient/First session (${cleanPhone}, priorBookings=${priorBookings}) -> Defaulted department="Child and Parental Counselling", isFirstSession=true`);
+    console.log(`[First Session Guard] New patient (${cleanPhone}) -> Defaulted department="Child and Parental Counselling", isFirstSession=true`);
   } else {
     // Returning patient with no explicit department:
     isFirstSession = false;
     input.firstSession = "false";
     input.isFirstSession = false;
-
-    // Check if a therapist name was chosen:
-    const rawTherapist = String(
-      input.therapistName ||
-      pick(rawPayloadData, "therapistName", "therapist_name", "therapist", "doctor", "doctor_name") ||
-      pick((payload ?? {}) as Record<string, unknown>, "therapistName", "therapist_name", "therapist", "doctor") ||
-      ""
-    ).toLowerCase();
-
-    const normSlotTime = String(input.appointmentTime || "").replace(/\s*[AP]M/i, "").trim();
-
-    if (rawTherapist.includes("nikki") || rawTherapist.includes("harsimran")) {
-      targetDepartment = "Occupational Therapy";
-    } else if (rawTherapist.includes("sakshi") || rawTherapist.includes("atal")) {
-      targetDepartment = "Speech Therapy";
-    } else if (rawTherapist.includes("divya")) {
-      targetDepartment = "Physiotherapy";
-    } else if (rawTherapist.includes("durgesh")) {
-      targetDepartment = "Physical Therapy";
-    } else if (rawTherapist.includes("sonia") || rawTherapist.includes("shobha") || rawTherapist.includes("ranjana")) {
-      targetDepartment = "Special Education";
-    } else if (rawTherapist.includes("tanu")) {
-      targetDepartment = "Child and Parental Counselling";
-    } else if (normSlotTime === "09:30" || normSlotTime === "9:30") {
-      targetDepartment = "Special Education";
-    } else if (latestPriorRecord?.department) {
-      targetDepartment = normalizeDepartment(latestPriorRecord.department);
+    if (latestPriorRecord?.department) {
+      targetDepartment = latestPriorRecord.department.trim();
     } else {
-      targetDepartment = "Occupational Therapy"; // Safe clinical therapy default instead of forced counselling
+      targetDepartment = "Child and Parental Counselling";
     }
-
     input.department = targetDepartment;
-    console.log(`[First Session Guard] Returning patient (${cleanPhone}, priorBookings=${priorBookings}) -> Retained Department: "${targetDepartment}", isFirstSession=false`);
+    input.rawDepartment = targetDepartment;
+    console.log(`[First Session Guard] Returning patient (${cleanPhone}) -> Retained Department: "${targetDepartment}", isFirstSession=false`);
   }
 
   // 3. Safe Therapist Lookup:
@@ -688,16 +652,8 @@ export async function saveMsg91Appointment(payload: unknown) {
     assigned = { id: "roster-counselling-1", name: "Ms. Tanu Rajput" };
   }
 
-  // If assigned therapist is a Special Educator, align targetDepartment with Special Education
-  const assignedNameLower = (assigned.name || "").toLowerCase();
-  if (assignedNameLower.includes("sonia") || assignedNameLower.includes("shobha") || assignedNameLower.includes("ranjana")) {
-    const normSlotTime = String(input.appointmentTime || "").replace(/\s*[AP]M/i, "").trim();
-    if (normSlotTime === "09:30" || normSlotTime === "9:30" || !["Speech Therapy", "Physiotherapy", "Occupational Therapy"].includes(targetDepartment)) {
-      targetDepartment = "Special Education";
-    }
-  }
-
   input.department = targetDepartment;
+  input.rawDepartment = targetDepartment;
   input.therapistId = assigned.id;
   input.therapistName = assigned.name;
 
@@ -795,6 +751,7 @@ export async function saveMsg91Appointment(payload: unknown) {
             appointmentDate: input.appointmentDate || "",
             appointmentTime: input.appointmentTime || "",
             department: input.department || "Child and Parental Counselling",
+            service: input.department || "Child and Parental Counselling",
             concern: input.mainConcern || "",
             assignedTherapist: input.therapistName || "Ms. Tanu Rajput",
             assignedTherapistId: input.therapistId || "roster-counselling-1",
