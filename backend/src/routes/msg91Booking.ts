@@ -131,8 +131,6 @@ export async function detectDepartmentFromRecentMessages(
           msg.message,
           msg.rawData?.list_reply?.title,
           msg.rawData?.button_reply?.title,
-          msg.rawData?.service,
-          msg.rawData?.department,
           msg.rawData?.message,
         ];
 
@@ -383,8 +381,6 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
             msg.message,
             msg.rawData?.list_reply?.title,
             msg.rawData?.button_reply?.title,
-            msg.rawData?.service,
-            msg.rawData?.department,
           ];
 
           for (const candidate of candidates) {

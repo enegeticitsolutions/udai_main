@@ -444,8 +444,6 @@ export async function detectDepartmentFromRecentMessages(cleanPhone, incomingDep
                     msg.message,
                     msg.rawData?.list_reply?.title,
                     msg.rawData?.button_reply?.title,
-                    msg.rawData?.service,
-                    msg.rawData?.department,
                 ];
                 for (const candidate of candidates) {
                     const match = matchDepartmentFromTitle(candidate);
