@@ -21,6 +21,32 @@ const handleDepartments = async (_req: any, res: any, next: any) => {
 msg91BookingRouter.get("/departments", handleDepartments);
 msg91BookingRouter.post("/departments", handleDepartments);
 
+// In-memory intent map for recent service selections (keyed by clean 10-digit phone, expires in 20 mins)
+const recentServiceSelectionMap = new Map<string, { department: string; timestamp: number }>();
+
+export function recordRecentDepartmentSelection(phone: string, department: string) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  const clean = digits.length >= 10 ? digits.slice(-10) : "";
+  if (!clean || !department) return;
+  recentServiceSelectionMap.set(clean, {
+    department,
+    timestamp: Date.now(),
+  });
+}
+
+export function getRecentDepartmentSelection(phone: string): string | null {
+  const digits = String(phone || "").replace(/\D/g, "");
+  const clean = digits.length >= 10 ? digits.slice(-10) : "";
+  if (!clean) return null;
+  const entry = recentServiceSelectionMap.get(clean);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > 20 * 60 * 1000) {
+    recentServiceSelectionMap.delete(clean);
+    return null;
+  }
+  return entry.department;
+}
+
 /**
  * Auto-detect chosen department from recent WhatsApp messages in db.collection("webhookmessages")
  * if incoming department is empty, undefined, contains '@', contains '{{', or equals 'Child and Parental Counselling'.
@@ -43,6 +69,12 @@ export async function detectDepartmentFromRecentMessages(
     return null;
   }
 
+  // First check in-memory intent cache from recent /dates or /slots requests
+  const cachedDept = getRecentDepartmentSelection(cleanPhone);
+  if (cachedDept) {
+    return cachedDept;
+  }
+
   try {
     await connectMongoDb().catch(() => {});
     const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
@@ -55,7 +87,7 @@ export async function detectDepartmentFromRecentMessages(
       .find({
         phone: { $regex: cleanPhone + "$" },
       })
-      .sort({ createdAt: -1, _id: -1 })
+      .sort({ createdAt: -1, receivedAt: -1, _id: -1 })
       .limit(10)
       .toArray();
 
@@ -78,7 +110,7 @@ export async function detectDepartmentFromRecentMessages(
       return null;
     }
 
-    // Inspect messages from the last 15 minutes if available
+    // Strictly filter messages from the last 15 minutes
     const msgsWithin15Mins = recentMsgs.filter((msg: any) => {
       const ts = msg.createdAt || msg.receivedAt;
       if (ts) {
@@ -89,10 +121,12 @@ export async function detectDepartmentFromRecentMessages(
         const d = msg._id.getTimestamp();
         if (d && !isNaN(d.getTime())) return d >= fifteenMinutesAgo;
       }
-      return true;
+      return false; // Strictly discard messages older than 15 minutes!
     });
 
-    const candidates = msgsWithin15Mins.length > 0 ? msgsWithin15Mins : recentMsgs;
+    if (msgsWithin15Mins.length === 0) {
+      return null;
+    }
 
     const scanServiceKeyword = (text: unknown): string | null => {
       if (!text || typeof text !== "string") return null;
@@ -129,22 +163,21 @@ export async function detectDepartmentFromRecentMessages(
       return [];
     };
 
-    for (const msg of candidates) {
-      // 1. Structured priority fields
+    for (const msg of msgsWithin15Mins) {
+      // 1. Structured priority fields (exclude msg.department DB column to avoid echoing past appointment types)
       const priorityStrings = [
         msg.rawData?.interactive?.list_reply?.title,
+        msg.rawData?.interactive?.list_reply?.description,
         msg.rawData?.interactive?.list_reply?.id,
         msg.rawData?.interactive?.button_reply?.title,
         msg.rawData?.list_reply?.title,
         msg.rawData?.button_reply?.title,
         msg.rawData?.service,
-        msg.rawData?.department,
         msg.rawData?.selectedService,
         msg.rawData?.selected_service,
         msg.rawData?.service_name,
         msg.rawData?.therapy,
         msg.rawData?.therapy_type,
-        msg.department && msg.department !== "Child and Parental Counselling" ? msg.department : "",
         msg.message,
         msg.rawData?.text?.body,
         msg.rawData?.message,
@@ -161,7 +194,6 @@ export async function detectDepartmentFromRecentMessages(
         extractAllStrings({
           message: msg.message,
           concern: msg.concern,
-          department: msg.department && msg.department !== "Child and Parental Counselling" ? msg.department : "",
         })
       );
 
@@ -194,6 +226,13 @@ const handleDates = async (req: any, res: any, next: any) => {
       data.department ?? data.service ?? data.selected_service ?? data.service_name ?? ""
     ).trim();
 
+    if (cleanPhone && rawDept && !rawDept.includes("@") && !rawDept.includes("{{")) {
+      const normalized = normalizeDepartment(rawDept);
+      if (normalized && normalized !== "Child and Parental Counselling") {
+        recordRecentDepartmentSelection(cleanPhone, normalized);
+      }
+    }
+
     if (cleanPhone && (!rawDept || rawDept.includes("@") || rawDept.includes("{{") || rawDept.toLowerCase() === "child and parental counselling")) {
       const detected = await detectDepartmentFromRecentMessages(cleanPhone, rawDept);
       if (detected) rawDept = detected;
@@ -225,6 +264,13 @@ const handleSlots = async (req: any, res: any, next: any) => {
       req.query.department ?? req.query.service ?? req.query.selected_service ??
       data.department ?? data.service ?? data.selected_service ?? data.service_name ?? ""
     ).trim();
+
+    if (cleanPhone && rawDept && !rawDept.includes("@") && !rawDept.includes("{{")) {
+      const normalized = normalizeDepartment(rawDept);
+      if (normalized && normalized !== "Child and Parental Counselling") {
+        recordRecentDepartmentSelection(cleanPhone, normalized);
+      }
+    }
 
     if (cleanPhone && (!rawDept || rawDept.includes("@") || rawDept.includes("{{") || rawDept.toLowerCase() === "child and parental counselling")) {
       const detected = await detectDepartmentFromRecentMessages(cleanPhone, rawDept);
@@ -324,7 +370,15 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
 
     // 1 & 2. Check if incoming department is empty, undefined, contains '@', contains '{{', or equals 'Child and Parental Counselling'
     // If it needs resolution, auto-detect chosen department from recent WhatsApp messages in db.collection("webhookmessages")
-    const detectedDept = await detectDepartmentFromRecentMessages(cleanPhone, chosenService);
+    let detectedDept = await detectDepartmentFromRecentMessages(cleanPhone, chosenService);
+
+    // Slot 09:30 is exclusive to Special Education on the clinic schedule
+    const incomingTime = String(rawBody.appointmentTime || nestedData.appointmentTime || "").replace(/\s*[AP]M/i, "").trim();
+    if (!detectedDept && (incomingTime === "09:30" || incomingTime === "9:30")) {
+      detectedDept = "Special Education";
+      console.log(`[MSG91 Booking] Slot 09:30 is exclusive to Special Education. Auto-detected department = "Special Education" for phone ${cleanPhone}`);
+    }
+
     if (detectedDept) {
       console.log(`[MSG91 Booking] Auto-detected department "${detectedDept}" from recent WhatsApp chat history for phone ${cleanPhone}`);
       chosenService = detectedDept;
@@ -355,7 +409,13 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
     console.info(`[MSG91 Booking] ${duplicate ? "Existing booking updated" : "New booking created"}: ${appointment.bookingId}`);
 
     // Final appointment department (detected service if matched, or appointment department)
-    const finalDepartment = detectedDept || appointment.department || (chosenService ? normalizeDepartment(chosenService) : "Child and Parental Counselling");
+    let finalDepartment = detectedDept || appointment.department || (chosenService ? normalizeDepartment(chosenService) : "Child and Parental Counselling");
+
+    // Guarantee alignment with Special Education if slot is 09:30 or assigned therapist is a Special Educator
+    const therapistLower = (appointment.therapistName || "").toLowerCase();
+    if (incomingTime === "09:30" || incomingTime === "9:30" || therapistLower.includes("sonia") || therapistLower.includes("shobha") || therapistLower.includes("ranjana")) {
+      finalDepartment = "Special Education";
+    }
     appointment.department = finalDepartment;
 
     // 5. Ensure this updated department is saved in both:

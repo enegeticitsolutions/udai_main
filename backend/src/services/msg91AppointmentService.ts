@@ -616,6 +616,8 @@ export async function saveMsg91Appointment(payload: unknown) {
       ""
     ).toLowerCase();
 
+    const normSlotTime = String(input.appointmentTime || "").replace(/\s*[AP]M/i, "").trim();
+
     if (rawTherapist.includes("nikki") || rawTherapist.includes("harsimran")) {
       targetDepartment = "Occupational Therapy";
     } else if (rawTherapist.includes("sakshi") || rawTherapist.includes("atal")) {
@@ -628,6 +630,8 @@ export async function saveMsg91Appointment(payload: unknown) {
       targetDepartment = "Special Education";
     } else if (rawTherapist.includes("tanu")) {
       targetDepartment = "Child and Parental Counselling";
+    } else if (normSlotTime === "09:30" || normSlotTime === "9:30") {
+      targetDepartment = "Special Education";
     } else if (latestPriorRecord?.department) {
       targetDepartment = normalizeDepartment(latestPriorRecord.department);
     } else {
@@ -682,6 +686,15 @@ export async function saveMsg91Appointment(payload: unknown) {
 
   if (!assigned) {
     assigned = { id: "roster-counselling-1", name: "Ms. Tanu Rajput" };
+  }
+
+  // If assigned therapist is a Special Educator, align targetDepartment with Special Education
+  const assignedNameLower = (assigned.name || "").toLowerCase();
+  if (assignedNameLower.includes("sonia") || assignedNameLower.includes("shobha") || assignedNameLower.includes("ranjana")) {
+    const normSlotTime = String(input.appointmentTime || "").replace(/\s*[AP]M/i, "").trim();
+    if (normSlotTime === "09:30" || normSlotTime === "9:30" || !["Speech Therapy", "Physiotherapy", "Occupational Therapy"].includes(targetDepartment)) {
+      targetDepartment = "Special Education";
+    }
   }
 
   input.department = targetDepartment;
