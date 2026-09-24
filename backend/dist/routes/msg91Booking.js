@@ -290,12 +290,103 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
             nestedData.interactive?.list_reply?.title ||
             nestedData.list_reply?.title ||
             "").trim();
-        // 1 & 2. Check if incoming department is empty, undefined, contains '@', contains '{{', or equals 'Child and Parental Counselling'
-        // If it needs resolution, auto-detect chosen department from recent WhatsApp messages in db.collection("webhookmessages")
-        const detectedDept = await detectDepartmentFromRecentMessages(cleanPhone, chosenService);
-        if (detectedDept) {
-            console.log(`[MSG91 Booking] Auto-detected department "${detectedDept}" from recent WhatsApp chat history for phone ${cleanPhone}`);
+        // 1 & 2. Identify the user's clicked service and target incoming webhook for THIS specific flow run
+        let targetWebhookId = null;
+        let detectedDept = null;
+        const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+        if (db && cleanPhone) {
+            const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+            const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+            const recentMsgs = await db
+                .collection("webhookmessages")
+                .find({
+                $or: [
+                    { phone: { $regex: cleanPhone + "$" } },
+                    { phoneNumber: { $regex: cleanPhone + "$" } },
+                    { "rawData.customerNumber": { $regex: cleanPhone + "$" } },
+                    { "rawData.phoneNumber": { $regex: cleanPhone + "$" } },
+                    { "rawData.phone": { $regex: cleanPhone + "$" } },
+                    { "rawData.from": { $regex: cleanPhone + "$" } },
+                    { "rawData.sender": { $regex: cleanPhone + "$" } },
+                ],
+            })
+                .sort({ receivedAt: -1, createdAt: -1, _id: -1 })
+                .limit(10)
+                .toArray();
+            // Priority 1: inspect interactive list_reply / button_reply within the last 2 minutes
+            for (const msg of recentMsgs) {
+                const ts = msg.receivedAt || msg.createdAt;
+                const msgDate = ts ? new Date(ts) : null;
+                if (msgDate && !isNaN(msgDate.getTime()) && msgDate < twoMinutesAgo)
+                    continue;
+                const interactiveCandidates = [
+                    msg.rawData?.interactive?.list_reply?.title,
+                    msg.rawData?.interactive?.button_reply?.title,
+                    msg.rawData?.text?.body,
+                    msg.message,
+                    msg.rawData?.list_reply?.title,
+                    msg.rawData?.button_reply?.title,
+                ];
+                for (const candidate of interactiveCandidates) {
+                    const match = matchDepartmentFromTitle(candidate);
+                    if (match) {
+                        detectedDept = match;
+                        targetWebhookId = msg._id;
+                        console.log(`[MSG91 Booking] Matched department "${match}" from session webhook _id=${msg._id} within last 2 minutes`);
+                        break;
+                    }
+                }
+                if (detectedDept)
+                    break;
+            }
+            // Priority 2: fallback up to 15 minutes if not detected in last 2 minutes
+            if (!detectedDept) {
+                for (const msg of recentMsgs) {
+                    const ts = msg.receivedAt || msg.createdAt;
+                    const msgDate = ts ? new Date(ts) : null;
+                    if (msgDate && !isNaN(msgDate.getTime()) && msgDate < fifteenMinutesAgo)
+                        continue;
+                    const candidates = [
+                        msg.rawData?.interactive?.list_reply?.title,
+                        msg.rawData?.interactive?.button_reply?.title,
+                        msg.rawData?.text?.body,
+                        msg.message,
+                        msg.rawData?.list_reply?.title,
+                        msg.rawData?.button_reply?.title,
+                        msg.rawData?.service,
+                        msg.rawData?.department,
+                    ];
+                    for (const candidate of candidates) {
+                        const match = matchDepartmentFromTitle(candidate);
+                        if (match) {
+                            detectedDept = match;
+                            targetWebhookId = msg._id;
+                            console.log(`[MSG91 Booking] Matched department "${match}" from session webhook _id=${msg._id} (fallback)`);
+                            break;
+                        }
+                    }
+                    if (detectedDept)
+                        break;
+                }
+            }
+            // If no interactive match was found, still associate with the latest session message _id within 2 minutes
+            if (!targetWebhookId && recentMsgs.length > 0) {
+                const latest = recentMsgs[0];
+                const ts = latest.receivedAt || latest.createdAt;
+                const msgDate = ts ? new Date(ts) : null;
+                if (msgDate && !isNaN(msgDate.getTime()) && msgDate >= twoMinutesAgo) {
+                    targetWebhookId = latest._id;
+                }
+            }
+        }
+        const isInvalidChosen = !chosenService || chosenService.startsWith("@") || chosenService.startsWith("{{") || chosenService.includes("@") || chosenService.includes("{{");
+        if (detectedDept && (isInvalidChosen || chosenService.toLowerCase() === "child and parental counselling")) {
             chosenService = detectedDept;
+        }
+        else {
+            const direct = matchDepartmentFromTitle(chosenService);
+            if (direct)
+                chosenService = direct;
         }
         if (chosenService) {
             rawBody.service = chosenService;
@@ -320,110 +411,80 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
         const { appointment, duplicate } = await saveMsg91Appointment(rawBody);
         console.info(`[MSG91 Booking] ${duplicate ? "Existing booking updated" : "New booking created"}: ${appointment.bookingId}`);
         // Final appointment department: preserve the exact user selection without overrides
-        const finalDepartment = (detectedDept ||
-            chosenService ||
+        const finalDepartment = (chosenService ||
             appointment.rawDepartment ||
             appointment.department ||
             "Child and Parental Counselling").trim();
         appointment.department = finalDepartment;
         appointment.rawDepartment = finalDepartment;
-        // 1. Log to WebhookMessage (for WhatsApp Messages dashboard)
+        // 3. Update ONLY the specific incoming webhook document for this session in db.collection("webhookmessages") using its exact _id
         try {
-            await WebhookMessage.create({
-                rawData: req.body,
-                phone: appointment.phoneNumber || cleanPhone || "",
-                childName: appointment.patientName || "Not specified",
-                parentName: appointment.parentName || "",
-                age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "",
-                firstSession: appointment.firstSession || "",
-                isFirstSession: appointment.isFirstSession,
-                appointmentDate: appointment.appointmentDate || "",
-                appointmentTime: appointment.appointmentTime || "",
-                department: finalDepartment,
-                service: finalDepartment,
-                concern: appointment.mainConcern || "",
-                assignedTherapist: appointment.therapistName || "Ms. Tanu Rajput",
-                assignedTherapistId: appointment.therapistId || "roster-counselling-1",
-                status: "confirmed",
-                session_frequency: appointment.session_frequency || "",
-                totalSessions: appointment.totalSessions || 1,
-                sessionSchedule: appointment.sessionSchedule || [],
-                sessionScheduleText: appointment.sessionScheduleText || "",
-                feeCharged: appointment.feeCharged ?? appointment.amount ?? 0,
-                amount: appointment.amount || 0,
-                bookingSource: "whatsapp",
-            });
-            console.log(`[MSG91 Booking] Logged appointment payload to WebhookMessage with department "${finalDepartment}" and service "${finalDepartment}"`);
-        }
-        catch (dbErr) {
-            console.error("[MSG91 Booking] Failed to log WebhookMessage:", dbErr.message);
-        }
-        // 2. Guarantee department and service are saved in both db.collection("appointments") and db.collection("webhookmessages")
-        try {
-            const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
-            if (db) {
-                // Save to db.collection("appointments")
-                if (appointment.bookingId || appointment.phoneNumber) {
-                    const apptFilters = [];
-                    if (appointment.bookingId)
-                        apptFilters.push({ bookingId: appointment.bookingId });
-                    if (appointment.id)
-                        apptFilters.push({ id: appointment.id });
-                    if (appointment.phoneNumber && appointment.appointmentDate) {
-                        apptFilters.push({ phoneNumber: appointment.phoneNumber, appointmentDate: appointment.appointmentDate });
-                    }
-                    if (cleanPhone && appointment.appointmentDate) {
-                        apptFilters.push({ phoneNumber: { $regex: cleanPhone + "$" }, appointmentDate: appointment.appointmentDate });
-                    }
-                    if (apptFilters.length > 0) {
-                        await db.collection("appointments").updateMany({ $or: apptFilters }, {
-                            $set: {
-                                department: finalDepartment,
-                                rawDepartment: finalDepartment,
-                                therapistName: appointment.therapistName,
-                                therapistId: appointment.therapistId,
-                                assignedTherapist: appointment.therapistName,
-                                assignedTherapistId: appointment.therapistId,
-                                updatedAt: new Date().toISOString(),
-                            },
-                        });
-                        console.log(`[MSG91 Booking] Updated department "${finalDepartment}" and therapist "${appointment.therapistName}" in db.collection("appointments")`);
-                    }
-                }
-                // Save to db.collection("webhookmessages")
-                const ph = cleanPhone || (appointment.phoneNumber ? appointment.phoneNumber.replace(/\D/g, "").slice(-10) : "");
-                const whFilters = [];
-                if (appointment.bookingId) {
-                    whFilters.push({ "rawData.bookingId": appointment.bookingId });
-                    whFilters.push({ bookingId: appointment.bookingId });
-                }
-                if (ph && appointment.appointmentDate) {
-                    whFilters.push({ phone: { $regex: ph + "$" }, appointmentDate: appointment.appointmentDate });
-                    whFilters.push({ phoneNumber: { $regex: ph + "$" }, appointmentDate: appointment.appointmentDate });
-                }
-                else if (ph) {
-                    whFilters.push({ phone: { $regex: ph + "$" } });
-                    whFilters.push({ phoneNumber: { $regex: ph + "$" } });
-                }
-                if (whFilters.length > 0) {
-                    await db.collection("webhookmessages").updateMany({ $or: whFilters }, {
-                        $set: {
-                            department: finalDepartment,
-                            service: finalDepartment,
-                            assignedTherapist: appointment.therapistName,
-                            assignedTherapistId: appointment.therapistId,
-                        },
-                    });
-                    console.log(`[MSG91 Booking] Updated department "${finalDepartment}", service, and therapist in db.collection("webhookmessages")`);
-                }
+            if (db && targetWebhookId) {
+                await db.collection("webhookmessages").updateOne({ _id: targetWebhookId }, {
+                    $set: {
+                        phone: appointment.phoneNumber || cleanPhone || "",
+                        childName: appointment.patientName || "Not specified",
+                        parentName: appointment.parentName || "",
+                        age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "",
+                        firstSession: appointment.firstSession || "",
+                        isFirstSession: appointment.isFirstSession,
+                        appointmentDate: appointment.appointmentDate || "",
+                        appointmentTime: appointment.appointmentTime || "",
+                        department: finalDepartment,
+                        service: finalDepartment,
+                        concern: appointment.mainConcern || "",
+                        assignedTherapist: appointment.therapistName,
+                        assignedTherapistId: appointment.therapistId,
+                        status: "confirmed",
+                        bookingStatus: "confirmed",
+                        session_frequency: appointment.session_frequency || "",
+                        totalSessions: appointment.totalSessions || 1,
+                        sessionSchedule: appointment.sessionSchedule || [],
+                        sessionScheduleText: appointment.sessionScheduleText || "",
+                        feeCharged: appointment.feeCharged ?? appointment.amount ?? 0,
+                        amount: appointment.amount || 0,
+                        bookingSource: "whatsapp",
+                        bookingId: appointment.bookingId,
+                        updatedAt: new Date().toISOString(),
+                    },
+                });
+                console.log(`[MSG91 Booking] Updated specific webhook document (_id: ${targetWebhookId}) with department "${finalDepartment}" and therapist "${appointment.therapistName}"`);
+            }
+            else {
+                // If no prior webhook document in this session, create a single new one
+                await WebhookMessage.create({
+                    rawData: req.body,
+                    phone: appointment.phoneNumber || cleanPhone || "",
+                    childName: appointment.patientName || "Not specified",
+                    parentName: appointment.parentName || "",
+                    age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "",
+                    firstSession: appointment.firstSession || "",
+                    isFirstSession: appointment.isFirstSession,
+                    appointmentDate: appointment.appointmentDate || "",
+                    appointmentTime: appointment.appointmentTime || "",
+                    department: finalDepartment,
+                    service: finalDepartment,
+                    concern: appointment.mainConcern || "",
+                    assignedTherapist: appointment.therapistName,
+                    assignedTherapistId: appointment.therapistId || undefined,
+                    status: "confirmed",
+                    session_frequency: appointment.session_frequency || "",
+                    totalSessions: appointment.totalSessions || 1,
+                    sessionSchedule: appointment.sessionSchedule || [],
+                    sessionScheduleText: appointment.sessionScheduleText || "",
+                    feeCharged: appointment.feeCharged ?? appointment.amount ?? 0,
+                    amount: appointment.amount || 0,
+                    bookingSource: "whatsapp",
+                    bookingId: appointment.bookingId,
+                });
+                console.log(`[MSG91 Booking] Created isolated WebhookMessage with department "${finalDepartment}" and therapist "${appointment.therapistName}"`);
             }
         }
-        catch (updateErr) {
-            console.error("[MSG91 Booking] Failed to update department in collections:", updateErr.message);
+        catch (whErr) {
+            console.error("[MSG91 Booking] Failed to save/update WebhookMessage:", whErr.message);
         }
-        // 3. Sync to chatbotsubmissions (for WhatsApp Appointments dashboard)
+        // 4. Sync ONLY this single transaction to chatbotsubmissions (for WhatsApp Appointments dashboard)
         try {
-            const db = mongoose.connection.db;
             if (db && (appointment.phoneNumber || cleanPhone)) {
                 const txnId = appointment.bookingId || `MSG91-${Date.now()}`;
                 await db.collection("chatbotsubmissions").updateOne({ transactionId: txnId }, {

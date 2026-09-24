@@ -464,10 +464,7 @@ export function parseMsg91AppointmentPayload(payload: unknown) {
 }
 
 function generatedBookingId(input: any) {
-  return `MSG91-${createHash("sha256")
-    .update(`${input.phoneNumber}|${input.appointmentDate}|${input.appointmentTime}|${input.therapistId ?? input.therapistName}`)
-    .digest("hex")
-    .slice(0, 20)}`;
+  return `MSG91-${Date.now()}-${randomUUID().slice(0, 8)}`;
 }
 
 function normalizeMongoAppointment(document: Record<string, unknown>): AppointmentRecord {
@@ -519,9 +516,10 @@ export async function detectDepartmentFromRecentMessages(
     await connectMongoDb().catch(() => {});
     const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
     if (db && cleanPhone) {
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
-      // Query the latest incoming user message in db.collection("webhookmessages") for this user's phone within the last 15 minutes
+      // Query the latest incoming user message in db.collection("webhookmessages") for this user's phone
       const recentMsgs = await db
         .collection("webhookmessages")
         .find({
@@ -536,9 +534,38 @@ export async function detectDepartmentFromRecentMessages(
           ],
         })
         .sort({ receivedAt: -1, createdAt: -1, _id: -1 })
-        .limit(15)
+        .limit(10)
         .toArray();
 
+      // First pass: messages within the last 2 minutes
+      for (const msg of recentMsgs) {
+        const ts = msg.receivedAt || msg.createdAt;
+        if (ts) {
+          const d = new Date(ts);
+          if (!isNaN(d.getTime()) && d < twoMinutesAgo) continue;
+        }
+
+        const candidates = [
+          msg.rawData?.interactive?.list_reply?.title,
+          msg.rawData?.interactive?.button_reply?.title,
+          msg.rawData?.text?.body,
+          msg.message,
+          msg.rawData?.list_reply?.title,
+          msg.rawData?.button_reply?.title,
+        ];
+
+        for (const candidate of candidates) {
+          const match = matchDepartmentFromTitle(candidate);
+          if (match) {
+            console.log(
+              `[Real-Time WhatsApp Detection] Matched department "${match}" from "${candidate}" within 2 mins for phone ${cleanPhone}`
+            );
+            return match;
+          }
+        }
+      }
+
+      // Second pass: fallback up to 15 minutes
       for (const msg of recentMsgs) {
         const ts = msg.receivedAt || msg.createdAt;
         if (ts) {
@@ -553,7 +580,6 @@ export async function detectDepartmentFromRecentMessages(
           msg.message,
           msg.rawData?.list_reply?.title,
           msg.rawData?.button_reply?.title,
-          msg.rawData?.message,
           msg.rawData?.service,
           msg.rawData?.department,
         ];
@@ -562,7 +588,7 @@ export async function detectDepartmentFromRecentMessages(
           const match = matchDepartmentFromTitle(candidate);
           if (match) {
             console.log(
-              `[Real-Time WhatsApp Detection] Matched department "${match}" from "${candidate}" for phone ${cleanPhone}`
+              `[Real-Time WhatsApp Detection] Matched department "${match}" from "${candidate}" (fallback) for phone ${cleanPhone}`
             );
             return match;
           }
@@ -865,21 +891,14 @@ export async function saveMsg91Appointment(payload: unknown) {
   if (db) {
     const collection = db.collection(appointmentCollection);
     
-    // Check if an appointment with this bookingId or phone + slot exists
-    const filter = {
-      $or: [
-        { bookingId },
-        {
-          phoneNumber: input.phoneNumber,
-          appointmentDate: input.appointmentDate,
-          appointmentTime: input.appointmentTime,
-        },
-      ],
-    };
+    // Only update if an explicit bookingId was provided and already exists in MongoDB
+    let existing = null;
+    if (input.bookingId) {
+      existing = await collection.findOne({ bookingId: input.bookingId });
+    }
 
-    const existing = await collection.findOne(filter);
+    let insertedId: any = null;
     if (existing) {
-      // Update existing record
       await collection.updateOne(
         { _id: existing._id },
         {
@@ -892,57 +911,16 @@ export async function saveMsg91Appointment(payload: unknown) {
       );
       console.log(`[saveMsg91Appointment] Updated existing appointment record: ${bookingId}`);
     } else {
+      // Insert ONLY this single appointment record into db.collection("appointments") with its own unique _id
       const result = await collection.insertOne(document);
-      console.log(`[saveMsg91Appointment] Inserted new appointment in MongoDB: ${result.insertedId}`);
-    }
-
-    // Also guarantee save in webhookmessages collection with status: 'confirmed'
-    try {
-      await db.collection("webhookmessages").updateOne(
-        {
-          $or: [
-            { "rawData.bookingId": bookingId },
-            { phone: input.phoneNumber, appointmentDate: input.appointmentDate, appointmentTime: input.appointmentTime },
-          ],
-        },
-        {
-          $set: {
-            rawData: payload,
-            phone: input.phoneNumber || "",
-            childName: input.patientName || "Not specified",
-            parentName: input.parentName || "",
-            age: input.age !== undefined && input.age !== null ? String(input.age) : "",
-            firstSession: input.firstSession || "",
-            isFirstSession: input.isFirstSession,
-            appointmentDate: input.appointmentDate || "",
-            appointmentTime: input.appointmentTime || "",
-            department: input.department || "Child and Parental Counselling",
-            service: input.department || "Child and Parental Counselling",
-            concern: input.mainConcern || "",
-            assignedTherapist: input.therapistName || "Ms. Tanu Rajput",
-            assignedTherapistId: input.therapistId || "roster-counselling-1",
-            status: "confirmed",
-            bookingStatus: "confirmed",
-            session_frequency: input.session_frequency || "",
-            totalSessions: totalSessions || 1,
-            sessionSchedule: sessionSchedule || [],
-            sessionScheduleText: sessionScheduleText || "",
-            feeCharged: feeCharged ?? 0,
-            amount: amount || 0,
-            bookingSource: "whatsapp",
-            receivedAt: now,
-          },
-        },
-        { upsert: true }
-      );
-    } catch (whErr: any) {
-      console.warn("[saveMsg91Appointment] Failed to sync webhookmessages:", whErr.message);
+      insertedId = result.insertedId;
+      console.log(`[saveMsg91Appointment] Inserted new isolated appointment in MongoDB: ${result.insertedId} (${bookingId})`);
     }
 
     if (existing) {
       return { appointment: normalizeMongoAppointment({ ...existing, ...document }), duplicate: true, isPreliminary: false };
     }
-    return { appointment: { id: bookingId, ...document }, duplicate: false, isPreliminary: false };
+    return { appointment: { id: insertedId ? String(insertedId) : bookingId, _id: insertedId, ...document }, duplicate: false, isPreliminary: false };
   }
 
 async function readStoredAppointments(): Promise<AppointmentRecord[]> {

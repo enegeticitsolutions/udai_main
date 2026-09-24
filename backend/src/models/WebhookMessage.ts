@@ -23,6 +23,7 @@ export interface IWebhookMessage {
   status?: string;
   /** Origin of the booking: whatsapp | form | admin */
   bookingSource?: string;
+  bookingId?: string;
   paymentUrl?: string;
   razorpayPaymentLinkId?: string;
   paymentStatus?: string;
@@ -42,6 +43,7 @@ const WebhookMessageSchema = new mongoose.Schema<IWebhookMessage>(
   {
     rawData: { type: mongoose.Schema.Types.Mixed, required: true },
     receivedAt: { type: Date, default: Date.now },
+    bookingId: { type: String, default: "" },
     phone: { type: String, default: "" },
     childName: { type: String, default: "" },
     parentName: { type: String, default: "" },

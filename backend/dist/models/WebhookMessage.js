@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 const WebhookMessageSchema = new mongoose.Schema({
     rawData: { type: mongoose.Schema.Types.Mixed, required: true },
     receivedAt: { type: Date, default: Date.now },
+    bookingId: { type: String, default: "" },
     phone: { type: String, default: "" },
     childName: { type: String, default: "" },
     parentName: { type: String, default: "" },
