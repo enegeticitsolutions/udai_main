@@ -8,7 +8,7 @@ export function Programs() {
       title: "Education & Skills Training",
       description:
         "We believe education is the foundation of empowerment. Our programs are designed to provide inclusive learning opportunities and skill development that help individuals become self-reliant and confident.",
-      image: "/images/skill.png",
+      image: "/images/special3.png",
       services: [
         "Special education with customized curriculum",
         "Vocational training for employment readiness",
@@ -37,7 +37,6 @@ export function Programs() {
       image: "/images/mom-and-me-1.jpg",
       images: [
         "/images/mom-and-me-1.jpg",
-        "/images/mom-and-me-2.jpg",
       ],
       services: [
         "Early childhood development activities",
@@ -107,7 +106,7 @@ export function Programs() {
             {programs.map((program, index) => {
               const Icon = program.icon;
               const isEven = index % 2 === 0;
-              
+
               return (
                 <div key={index} className={`grid md:grid-cols-2 gap-8 items-center ${!isEven ? 'md:grid-flow-dense' : ''}`}>
                   <div className={!isEven ? 'md:col-start-2' : ''}>

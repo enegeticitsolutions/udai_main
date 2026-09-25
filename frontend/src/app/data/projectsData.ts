@@ -80,8 +80,8 @@ export const PROJECTS_DATA: ProjectDetailData[] = [
     image: "/images/early_intervention1.png",
     gallery: [
       "/images/early_intervention1.png",
-      "/images/early_intervention2.png",
-      "/images/early_intervention3.png"
+      "/images/early1.png",
+      "/images/early2.png"
     ]
   },
   {

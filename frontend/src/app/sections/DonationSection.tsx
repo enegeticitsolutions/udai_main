@@ -38,7 +38,7 @@ const CAUSES: CauseOption[] = [
     shortTitle: "Mid Day Meals",
     defaultPurpose: "Mid-Day Meal Initiative",
     description: "A warm, balanced meal ensures children stay focused and healthy.",
-    image: "/images/afterschool.png",
+    image: "/images/mid_day_meal.png",
     badge: "Nutrition & Care",
     color: "#c95b38",
     bgColor: "bg-[#fff4df]",
@@ -52,7 +52,7 @@ const CAUSES: CauseOption[] = [
     shortTitle: "Empower a Child",
     defaultPurpose: "Empower a Child: Future Support",
     description: "Your donation provides immediate relief and long term support for children in need.",
-    image: "/images/empowerchild.png",
+    image: "/images/empower.png",
     badge: "Holistic Development",
     color: "#df4d4d",
     bgColor: "bg-[#dceffd]",
@@ -378,11 +378,10 @@ export function DonationSection() {
                           key={cause.key}
                           type="button"
                           onClick={() => handleSelectCause(cause.key)}
-                          className={`flex flex-col items-center justify-center rounded-xl p-2.5 text-center text-xs font-semibold transition border ${
-                            isSelected
+                          className={`flex flex-col items-center justify-center rounded-xl p-2.5 text-center text-xs font-semibold transition border ${isSelected
                               ? `border-[#c95b38] bg-[#fff5f0] text-[#c95b38] ring-2 ring-[#c95b38]/20 shadow-sm`
                               : "border-[#e6d8ce] bg-white text-[#4a3e38] hover:bg-[#faf6f2]"
-                          }`}
+                            }`}
                         >
                           <span>{cause.shortTitle}</span>
                         </button>
@@ -408,11 +407,10 @@ export function DonationSection() {
                             setCustomAmount("");
                             setFeedback(null);
                           }}
-                          className={`rounded-xl py-2.5 text-center text-sm font-bold transition border ${
-                            isSelected
+                          className={`rounded-xl py-2.5 text-center text-sm font-bold transition border ${isSelected
                               ? "border-[#c95b38] bg-[#c95b38] text-white shadow-md"
                               : "border-[#e6d8ce] bg-white text-[#4a3e38] hover:bg-[#faf6f2]"
-                          }`}
+                            }`}
                         >
                           ₹{amt.toLocaleString("en-IN")}
                         </button>

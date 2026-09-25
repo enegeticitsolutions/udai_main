@@ -4,49 +4,49 @@ import { getImageUrl } from "../lib/imageUtils";
 export function AffiliationsSection() {
   const affiliations = [
     {
-      id: "pwd",
-      title: "Rights of Persons with Disabilities Act 2016",
-      image: "/images/A1.png",
-    },
-    {
       id: "trust",
-      title: "Indian Trust Act 1882",
-      image: "/images/A2.png",
+      title: "Indian Trusts Act 1882",
+      image: "/images/A8.png",
     },
     {
-      id: "12a-80g",
-      title: "Income Tax 12A & 80G Exemption",
-      image: "/images/A3.png",
+      id: "pwd",
+      title: "Public Works Department (PWD)",
+      image: "/images/A6.png",
     },
     {
-      id: "national-trust",
-      title: "The National Trust 1999",
-      image: "/images/A4.png",
+      id: "income-tax",
+      title: "Income Tax 12A & 80G Registration",
+      image: "/images/A9.png",
+    },
+    {
+      id: "fcra",
+      title: "FCRA (Foreign Contribution Regulation Act)",
+      image: "/images/A7.png",
     },
     {
       id: "niti-aayog",
       title: "NITI Aayog",
-      image: "/images/A5.png",
+      image: "/images/A4.png",
     },
     {
-      id: "mca",
-      title: "Ministry of Corporate Affairs",
-      image: "/images/A6.png",
+      id: "national-trust",
+      title: "The National Trust 1999",
+      image: "/images/A5.png",
     },
     {
       id: "scert",
       title: "SCERT Delhi",
-      image: "/images/A7.png",
+      image: "/images/A3.png",
     },
     {
       id: "msme",
-      title: "MSME",
-      image: "/images/A8.png",
+      title: "MSME (Micro, Small & Medium Enterprises)",
+      image: "/images/A2.png",
     },
     {
-      id: "fcra",
-      title: "FCRA",
-      image: "/images/A9.png",
+      id: "mca",
+      title: "Ministry of Corporate Affairs (MCA)",
+      image: "/images/A1.png",
     },
   ];
 
