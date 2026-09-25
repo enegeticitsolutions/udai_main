@@ -21,7 +21,7 @@ export function Programs() {
       title: "Community Development",
       description:
         "We work closely with communities to create sustainable growth, social inclusion, and equal opportunities for all. Our initiatives aim to strengthen communities by addressing their real needs and challenges.",
-      image: "/images/community.png",
+      image: "/images/community-outreach-1.png",
       services: [
         "Community awareness and engagement programs",
         "Support for underprivileged and marginalized groups",
