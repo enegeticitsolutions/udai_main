@@ -791,14 +791,14 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
     const params = req.params || {};
     const nested = body.data || body.payload || body.variables || {};
 
-    // 1. Extract phone from req.body, req.query, params, or nested data
+    // 1. Extract phone from req.query, req.body, params, or nested data
     const rawCandidate =
-      body.phoneNumber ||
-      body.customerNumber ||
-      body.phone ||
-      query.phoneNumber ||
+      req.query?.phone ||
+      req.query?.phoneNumber ||
+      req.body?.phone ||
+      req.body?.phoneNumber ||
+      req.body?.customerNumber ||
       query.customerNumber ||
-      query.phone ||
       params.phoneNumber ||
       params.customerNumber ||
       params.phone ||
@@ -840,39 +840,9 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
     let digitsOnly = rawPhone.replace(/\D/g, "");
     let cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
 
-    // If phone is missing from request, fallback to latest webhook or appointment in DB
-    if (!cleanPhone && db) {
-      try {
-        const [recentWebhook, recentAppt] = await Promise.all([
-          db.collection("webhookmessages").findOne({}, { sort: { receivedAt: -1, createdAt: -1, _id: -1 } }).catch(() => null),
-          db.collection("appointments").findOne({}, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
-        ]);
-
-        const fallbackPhone =
-          recentWebhook?.phone ||
-          recentWebhook?.rawData?.customerNumber ||
-          recentWebhook?.rawData?.phoneNumber ||
-          recentAppt?.phoneNumber ||
-          recentAppt?.phone ||
-          recentAppt?.rawPayload?.customerNumber ||
-          recentAppt?.rawPayload?.phoneNumber ||
-          "";
-
-        if (fallbackPhone) {
-          const fbDigits = String(fallbackPhone).replace(/\D/g, "");
-          if (fbDigits.length >= 10) {
-            cleanPhone = fbDigits.slice(-10);
-            console.log(`[check-patient-status] Phone was missing in request, fell back to latest DB record phone: ${cleanPhone}`);
-          }
-        }
-      } catch (fbErr: any) {
-        console.warn("[check-patient-status] Error fetching fallback phone:", fbErr?.message || fbErr);
-      }
-    }
-
-    // If phone is STILL missing or empty, do NOT throw 400! Log a warning and return HTTP 200 fallback
+    // If phone is missing or empty, do NOT query DB or fall back to DB records! Default immediately to new patient
     if (!cleanPhone) {
-      console.warn(`[check-patient-status] Missing or empty phone parameter: ${JSON.stringify(req.body)}. Defaulting to new patient.`);
+      console.warn(`[check-patient-status] Missing or empty phone parameter (query: ${JSON.stringify(req.query)}, body: ${JSON.stringify(req.body)}). Defaulting to new patient.`);
       return res.status(200).json({
         success: true,
         isNew: true,
