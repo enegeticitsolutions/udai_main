@@ -4,6 +4,7 @@ export interface IWebhookMessage {
   _id?: any;
   rawData: any;
   receivedAt?: Date;
+  createdAt?: Date;
   phone?: string;
   childName?: string;
   parentName?: string;
@@ -43,6 +44,7 @@ const WebhookMessageSchema = new mongoose.Schema<IWebhookMessage>(
   {
     rawData: { type: mongoose.Schema.Types.Mixed, required: true },
     receivedAt: { type: Date, default: Date.now },
+    createdAt: { type: Date, default: Date.now },
     bookingId: { type: String, default: "" },
     phone: { type: String, default: "" },
     childName: { type: String, default: "" },

@@ -482,6 +482,7 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
               amount: (appointment as any).amount || 0,
               bookingSource: "whatsapp",
               bookingId: appointment.bookingId,
+              receivedAt: new Date(),
               updatedAt: new Date().toISOString(),
             },
           }
@@ -491,6 +492,8 @@ msg91BookingRouter.post(["/", "/booking"], async (req, res) => {
         // If no prior webhook document in this session, create a single new one
         await WebhookMessage.create({
           rawData: req.body,
+          receivedAt: new Date(),
+          createdAt: new Date(),
           phone: appointment.phoneNumber || cleanPhone || "",
           childName: appointment.patientName || "Not specified",
           parentName: appointment.parentName || "",
