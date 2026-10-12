@@ -462,3 +462,63 @@ export function getCorporateInquiries() {
   return request("/corporate-inquiries");
 }
 
+// ── Recurring Slot Reservation API Methods ────────────────────────
+
+export function getSchedules(params = {}) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.therapist_id) query.set("therapist_id", params.therapist_id);
+  if (params.therapy_type) query.set("therapy_type", params.therapy_type);
+  if (params.day_of_week) query.set("day_of_week", params.day_of_week);
+  if (params.status) query.set("status", params.status);
+  const qStr = query.toString();
+  return request(`/schedules${qStr ? `?${qStr}` : ""}`);
+}
+
+export function createSchedule(payload) {
+  return request("/schedules", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function patchSchedule(id, updates) {
+  return request(`/schedules/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+}
+
+export function deleteSchedule(id) {
+  return request(`/schedules/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function bulkUploadSchedules(rows) {
+  return request("/schedules/bulk", {
+    method: "POST",
+    body: JSON.stringify({ rows }),
+  });
+}
+
+export function getAvailableSlots(date, therapistId = "") {
+  const query = new URLSearchParams({ date });
+  if (therapistId) query.set("therapist_id", therapistId);
+  return request(`/slots/available?${query.toString()}`);
+}
+
+export function verifyParentPhone(phone) {
+  return request("/whatsapp/verify-parent", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export function confirmWeeklySchedule(phone) {
+  return request("/whatsapp/confirm-weekly", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+

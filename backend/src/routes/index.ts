@@ -14,6 +14,7 @@ import therapistsRouter from "./therapists.js";
 import appointmentRouter from "./appointment.js";
 import msg91PaymentRouter from "./msg91PaymentWebhook.js";
 import availabilityRouter from "./availability.js";
+import { schedulesRouter, slotsRouter, whatsappParentRouter } from "./schedules.js";
 import { isMongoConnected } from "../lib/mongodb.js";
 
 export const apiRouter = Router();
@@ -47,3 +48,6 @@ apiRouter.use("/booking", bookingRouter);
 apiRouter.use("/therapists", therapistsRouter);
 apiRouter.use("/appointments", appointmentRouter);
 apiRouter.use("/availability", availabilityRouter);
+apiRouter.use("/schedules", schedulesRouter);
+apiRouter.use("/slots", slotsRouter);
+apiRouter.use("/whatsapp", whatsappParentRouter);

@@ -17,6 +17,7 @@ import {
   volunteers as fallbackVolunteers,
 } from "./data/mockData";
 import {
+  adminLogin,
   addSubscriber,
   createTherapist,
   deleteTherapist,
@@ -50,6 +51,7 @@ import AppointmentsPage from "./components/AppointmentsPage";
 import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
 import WhatsAppMessagesPage from "./components/WhatsAppMessagesPage";
 import AvailabilityManagerPage from "./components/AvailabilityManagerPage";
+import RecurringSlotsPage from "./components/RecurringSlotsPage";
 import DonationsPage from "./components/DonationsPage";
 import OrdersPage from "./components/OrdersPage";
 import DashboardPage from "./components/DashboardPage";
@@ -84,6 +86,7 @@ const roleSections = {
     "Volunteers",
     "Therapist Management",
     "Availability Manager",
+    "Recurring Slots",
     "Products",
     "Career Management",
     "Upcoming Events",
@@ -104,6 +107,7 @@ const roleSections = {
     "Volunteers",
     "Therapist Management",
     "Availability Manager",
+    "Recurring Slots",
     "Products",
     "Career Management",
     "Upcoming Events",
@@ -120,6 +124,7 @@ const roleSections = {
     "Corporate Inquiries",
     "Therapist Management",
     "Availability Manager",
+    "Recurring Slots",
   ],
   finance: ["Orders / Purchases", "Corporate Inquiries", "Donations", "Reports / Analytics"],
   viewer: ["Dashboard", "Orders / Purchases", "Corporate Inquiries", "Donations", "Reports / Analytics"],
@@ -2031,6 +2036,8 @@ export default function App() {
         );
       case "Availability Manager":
         return <AvailabilityManagerPage />;
+      case "Recurring Slots":
+        return <RecurringSlotsPage />;
       case "Products":
         return (
           <ProductsPage

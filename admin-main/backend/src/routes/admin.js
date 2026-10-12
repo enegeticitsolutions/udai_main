@@ -26,6 +26,16 @@ import {
   subscribeToAppointmentEvents,
   updateAppointmentStatus,
 } from "../services/appointmentService.js";
+import {
+  listSchedules,
+  createSchedule,
+  updateSchedule,
+  deleteSchedule,
+  bulkUpsertSchedules,
+  getReservedSlotsForDate,
+  verifyParent,
+  getDayOfWeekFromDate,
+} from "../services/scheduleService.js";
 
 export const adminRouter = Router();
 
@@ -1168,6 +1178,165 @@ adminRouter.delete("/corporate-inquiries/:id", async (req, res, next) => {
       return;
     }
     res.json({ success: true, data: deleted, message: "Corporate inquiry removed successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ── Recurring Slot Reservation System Endpoints ──────────────────────────
+
+adminRouter.get("/schedules", async (req, res, next) => {
+  try {
+    const schedules = await listSchedules(req.query);
+    res.json({ success: true, count: schedules.length, data: schedules });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/schedules", async (req, res, next) => {
+  try {
+    const { child_name, parent_phone } = req.body || {};
+    if (!child_name || !parent_phone) {
+      res.status(400).json({ success: false, message: "child_name and parent_phone are required" });
+      return;
+    }
+    const created = await createSchedule(req.body);
+    res.status(201).json({ success: true, data: created, message: "Child schedule created successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.patch("/schedules/:id", async (req, res, next) => {
+  try {
+    const updated = await updateSchedule(req.params.id, req.body || {});
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Schedule not found" });
+      return;
+    }
+    res.json({ success: true, data: updated, message: "Schedule updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.delete("/schedules/:id", async (req, res, next) => {
+  try {
+    await deleteSchedule(req.params.id);
+    res.json({ success: true, message: "Schedule deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/schedules/bulk", async (req, res, next) => {
+  try {
+    const rows = Array.isArray(req.body) ? req.body : req.body?.rows || [];
+    if (!rows.length) {
+      res.status(400).json({ success: false, message: "No schedule rows provided" });
+      return;
+    }
+    const inserted = await bulkUpsertSchedules(rows);
+    res.json({
+      success: true,
+      count: inserted.length,
+      data: inserted,
+      message: `Successfully processed ${inserted.length} recurring schedules`,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get("/slots/available", async (req, res, next) => {
+  try {
+    const rawDate = String(req.query.date || "").trim();
+    const therapistId = req.query.therapist_id ? String(req.query.therapist_id).trim() : "";
+    if (!rawDate) {
+      res.status(400).json({ success: false, message: "date parameter is required (YYYY-MM-DD)" });
+      return;
+    }
+
+    const dayOfWeek = getDayOfWeekFromDate(rawDate);
+    if (!dayOfWeek || dayOfWeek === "Sunday") {
+      res.json({
+        success: true,
+        date: rawDate,
+        day_of_week: dayOfWeek || "Sunday",
+        message: "Clinic is closed on Sundays",
+        reserved_slots: [],
+        available_slots: [],
+      });
+      return;
+    }
+
+    const reserved = await getReservedSlotsForDate(rawDate, therapistId);
+    const reservedTimes = new Set(reserved.map((r) => r.start_time));
+
+    // Standard clinical slots: 45 min slots from 10:00 to 18:00 excluding lunch (13:00-13:30)
+    const standardSlots = [
+      "10:00", "10:45", "11:30", "12:15",
+      "13:30", "14:15", "15:00", "15:45", "16:30", "17:15"
+    ];
+
+    const availableSlots = standardSlots
+      .filter((time) => !reservedTimes.has(time))
+      .map((time) => ({
+        time,
+        label: time,
+        isAvailable: true,
+      }));
+
+    res.json({
+      success: true,
+      date: rawDate,
+      day_of_week: dayOfWeek,
+      therapist_id: therapistId,
+      reserved_slots: Array.from(reservedTimes),
+      reserved_details: reserved,
+      available_slots: availableSlots,
+      count: availableSlots.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/whatsapp/verify-parent", async (req, res, next) => {
+  try {
+    const phone = req.body?.phone || req.body?.phoneNumber || req.body?.mobile;
+    if (!phone) {
+      res.status(400).json({ success: false, message: "Phone number is required" });
+      return;
+    }
+    const result = await verifyParent(phone);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/whatsapp/confirm-weekly", async (req, res, next) => {
+  try {
+    const phone = req.body?.phone || req.body?.phoneNumber || req.body?.mobile;
+    if (!phone) {
+      res.status(400).json({ success: false, message: "Phone number is required" });
+      return;
+    }
+    const result = await verifyParent(phone);
+    if (!result.isReturningParent) {
+      res.status(404).json({ success: false, message: "No active recurring schedule found for this phone" });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: `Weekly sessions confirmed for ${result.child_name}`,
+      child_name: result.child_name,
+      confirmed_slots: result.recurring_slots,
+      bot_response: `Thank you! ${result.child_name}'s sessions for this week (${result.slots_summary}) are all confirmed. We look forward to seeing you at UDAI!`,
+    });
   } catch (error) {
     next(error);
   }

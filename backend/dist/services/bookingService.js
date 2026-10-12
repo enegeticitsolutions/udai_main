@@ -669,7 +669,23 @@ export async function isTherapistOccupiedGlobally(therapistName, date, time, cac
                 { assignedTherapist: new RegExp(tClean, "i") },
             ],
         });
-        return count > 0;
+        if (count > 0)
+            return true;
+        // Check recurring reservations in ChildSchedule
+        const [yr, mo, dy] = date.split("-").map(Number);
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const dayOfWeek = dayNames[new Date(yr, mo - 1, dy).getDay()];
+        if (dayOfWeek && dayOfWeek !== "Sunday") {
+            const recurringCount = await db.collection("childSchedules").countDocuments({
+                status: "ACTIVE",
+                therapist_id: new RegExp(tClean, "i"),
+                "recurring_slots.day_of_week": dayOfWeek,
+                "recurring_slots.start_time": time,
+            });
+            if (recurringCount > 0)
+                return true;
+        }
+        return false;
     }
     catch (err) {
         console.warn("[isTherapistOccupiedGlobally] Error checking global occupancy:", err.message);
