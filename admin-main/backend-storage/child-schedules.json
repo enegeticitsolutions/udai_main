@@ -1,0 +1,1001 @@
+[
+  {
+    "child_name": "Advik",
+    "parent_phone": "981000001",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "10:00",
+        "end_time": "10:45"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "10:00",
+        "end_time": "10:45"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "10:00",
+        "end_time": "10:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.490Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Agastya",
+    "parent_phone": "981000002",
+    "therapist_id": "Ms. Shobha",
+    "therapy_type": "Special Education",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Language / Special Education",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Amay",
+    "parent_phone": "981000003",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Ananya",
+    "parent_phone": "981000004",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "10:00",
+        "end_time": "10:45"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "10:00",
+        "end_time": "10:45"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "10:00",
+        "end_time": "10:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Avi Raj",
+    "parent_phone": "981000005",
+    "therapist_id": "Ms. Shobha",
+    "therapy_type": "Special Education",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Language / Special Education",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Bhavya",
+    "parent_phone": "981000006",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Devansh",
+    "parent_phone": "981000007",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "17:15",
+        "end_time": "18:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Devansh Ram",
+    "parent_phone": "981000008",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "10:45",
+        "end_time": "11:30"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "10:45",
+        "end_time": "11:30"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "10:45",
+        "end_time": "11:30"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Devish",
+    "parent_phone": "981000009",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Divisha",
+    "parent_phone": "981000010",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Divyanshu",
+    "parent_phone": "981000011",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "11:30",
+        "end_time": "12:15"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "11:30",
+        "end_time": "12:15"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "11:30",
+        "end_time": "12:15"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Garima",
+    "parent_phone": "981000012",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Guntas",
+    "parent_phone": "981000013",
+    "therapist_id": "Ms. Ranjana",
+    "therapy_type": "Special Education",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Language / Special Education [Ranjana]",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Gyaanvi",
+    "parent_phone": "981000014",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Harshika",
+    "parent_phone": "981000015",
+    "therapist_id": "Ms. Shobha",
+    "therapy_type": "Special Education",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Language / Special Education",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Harshil",
+    "parent_phone": "981000016",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "10:00",
+        "end_time": "10:45"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "10:00",
+        "end_time": "10:45"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "10:00",
+        "end_time": "10:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Isaac",
+    "parent_phone": "981000017",
+    "therapist_id": "Ms. Shobha",
+    "therapy_type": "Special Education",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Language / Special Education",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Ishaan",
+    "parent_phone": "981000018",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "12:15",
+        "end_time": "13:00"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "12:15",
+        "end_time": "13:00"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "12:15",
+        "end_time": "13:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Jahan",
+    "parent_phone": "981000019",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "15:00",
+        "end_time": "15:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Joydeep",
+    "parent_phone": "981000020",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "13:30",
+        "end_time": "14:15"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "13:30",
+        "end_time": "14:15"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "13:30",
+        "end_time": "14:15"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Kartik",
+    "parent_phone": "981000021",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Kriyansh",
+    "parent_phone": "981000022",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Manraj",
+    "parent_phone": "981000023",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Nathan",
+    "parent_phone": "981000024",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "18:00",
+        "end_time": "18:45"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "18:00",
+        "end_time": "18:45"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "18:00",
+        "end_time": "18:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Nivaan",
+    "parent_phone": "981000025",
+    "therapist_id": "Ms. Ranjana",
+    "therapy_type": "Special Education",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "15:45",
+        "end_time": "16:30"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Language / Special Education [Ranjana]",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Nivid",
+    "parent_phone": "981000026",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "12:15",
+        "end_time": "13:00"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "12:15",
+        "end_time": "13:00"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "12:15",
+        "end_time": "13:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Pulkit",
+    "parent_phone": "981000027",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "10:45",
+        "end_time": "11:30"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "10:45",
+        "end_time": "11:30"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "10:45",
+        "end_time": "11:30"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Rabya",
+    "parent_phone": "981000028",
+    "therapist_id": "Ms. Shobha",
+    "therapy_type": "Special Education",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "14:15",
+        "end_time": "15:00"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "14:15",
+        "end_time": "15:00"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "14:15",
+        "end_time": "15:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Language / Special Education",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Ramesh",
+    "parent_phone": "981000029",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "09:15",
+        "end_time": "10:00"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "09:15",
+        "end_time": "10:00"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "09:15",
+        "end_time": "10:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Early Morning Speech",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Riaan",
+    "parent_phone": "981000030",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "18:00",
+        "end_time": "18:45"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "18:00",
+        "end_time": "18:45"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "18:00",
+        "end_time": "18:45"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Late Evening Speech",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Riyaan",
+    "parent_phone": "981000031",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Shivhan",
+    "parent_phone": "981000032",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "11:30",
+        "end_time": "12:15"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "11:30",
+        "end_time": "12:15"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "11:30",
+        "end_time": "12:15"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Tanush",
+    "parent_phone": "981000033",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "12:15",
+        "end_time": "13:00"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "12:15",
+        "end_time": "13:00"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "12:15",
+        "end_time": "13:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Upanshu",
+    "parent_phone": "981000034",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "13:30",
+        "end_time": "14:15"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "13:30",
+        "end_time": "14:15"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "13:30",
+        "end_time": "14:15"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Upasna",
+    "parent_phone": "981000035",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "13:30",
+        "end_time": "14:15"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "13:30",
+        "end_time": "14:15"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "13:30",
+        "end_time": "14:15"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Yash",
+    "parent_phone": "981000036",
+    "therapist_id": "Ms. Nikki",
+    "therapy_type": "Occupational Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "14:15",
+        "end_time": "15:00"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "14:15",
+        "end_time": "15:00"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "14:15",
+        "end_time": "15:00"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "MWF Occupational Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  },
+  {
+    "child_name": "Yuvi",
+    "parent_phone": "981000037",
+    "therapist_id": "Mr. Atal",
+    "therapy_type": "Speech Therapy",
+    "recurring_slots": [
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "16:30",
+        "end_time": "17:15"
+      }
+    ],
+    "status": "ACTIVE",
+    "notes": "TTS Speech Therapy",
+    "createdAt": "2026-10-12T15:00:12.494Z",
+    "updatedAt": "2026-10-12T15:00:12.494Z"
+  }
+]

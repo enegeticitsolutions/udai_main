@@ -29,6 +29,7 @@ interface CauseOption {
   accentBg: string;
   borderColor: string;
   tagColor: string;
+  imageClassName?: string;
 }
 
 const CAUSES: CauseOption[] = [
@@ -247,7 +248,7 @@ export function DonationSection() {
                   <img
                     src={getImageUrl(cause.image)}
                     alt={cause.title}
-                    className="h-44 w-full shadow-sm object-cover"
+                    className={`h-44 w-full shadow-sm ${cause.imageClassName || "object-cover"}`}
                   />
                   <span
                     className={`absolute top-2.5 right-2.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${cause.tagColor} shadow-sm backdrop-blur-md`}
