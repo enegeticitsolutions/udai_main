@@ -7,6 +7,7 @@ import { config } from "./config.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
 import msg91BookingRouter from "./routes/msg91Booking.js";
+import msg91RoutineBookingRouter from "./routes/msg91RoutineBooking.js";
 import availabilityRouter from "./routes/availability.js";
 import { WebhookMessage } from "./models/WebhookMessage.js";
 import { assignTherapist, getAvailableSlots, normalizeDepartment } from "./services/bookingService.js";
@@ -72,6 +73,7 @@ export function createApp() {
 
   app.use("/api", apiRouter);
   app.use("/msg91-booking", msg91BookingRouter);
+  app.use("/msg91-routine-booking", msg91RoutineBookingRouter);
   app.use("/msg91", msg91BookingRouter);
   app.use("/api/msg91", msg91BookingRouter);
   app.use("/availability", availabilityRouter);
