@@ -235,6 +235,10 @@ whatsappParentRouter.all(["/verify-parent", "/check-frequent", "/verify-frequent
     res.status(200).json({
       success: true,
       ...verification,
+      data: {
+        success: true,
+        ...verification,
+      },
     });
   } catch (err: any) {
     console.error("[WhatsApp Verify] Error:", err);

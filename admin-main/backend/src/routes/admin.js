@@ -1317,7 +1317,14 @@ adminRouter.all(["/whatsapp/verify-parent", "/whatsapp/check-frequent"], async (
       return;
     }
     const result = await verifyParent(String(phone));
-    res.json({ success: true, ...result });
+    res.json({
+      success: true,
+      ...result,
+      data: {
+        success: true,
+        ...result,
+      },
+    });
   } catch (error) {
     next(error);
   }
