@@ -1303,14 +1303,20 @@ adminRouter.get("/slots/available", async (req, res, next) => {
   }
 });
 
-adminRouter.post("/whatsapp/verify-parent", async (req, res, next) => {
+adminRouter.all(["/whatsapp/verify-parent", "/whatsapp/check-frequent"], async (req, res, next) => {
   try {
-    const phone = req.body?.phone || req.body?.phoneNumber || req.body?.mobile;
+    const b = req.body || {};
+    const q = req.query || {};
+    const phone =
+      b.phone || b.phoneNumber || b.sender || b.customerNumber || b.customer_number || b.mobile ||
+      q.phone || q.phoneNumber || q.sender || q.customerNumber || q.customer_number || q.mobile ||
+      b.data?.phone || b.data?.sender || b.data?.phoneNumber || b.variables?.phone || b.variables?.sender;
+
     if (!phone) {
-      res.status(400).json({ success: false, message: "Phone number is required" });
+      res.json({ success: true, isReturningParent: false, is_frequent: false, isFrequent: false, message: "No phone parameter provided" });
       return;
     }
-    const result = await verifyParent(phone);
+    const result = await verifyParent(String(phone));
     res.json({ success: true, ...result });
   } catch (error) {
     next(error);

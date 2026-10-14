@@ -183,16 +183,26 @@ slotsRouter.get("/available", async (req, res) => {
  */
 export const whatsappParentRouter = Router();
 /**
- * POST /api/whatsapp/verify-parent
- * Verifies incoming parent phone and returns recurring slot menu.
+ * GET & POST /api/whatsapp/verify-parent
+ * Verifies incoming parent phone and returns recurring slot menu & is_frequent status for MSG91.
  */
-whatsappParentRouter.post("/verify-parent", async (req, res) => {
+whatsappParentRouter.all(["/verify-parent", "/check-frequent", "/verify-frequent"], async (req, res) => {
     try {
-        const phone = req.body.phone || req.body.phoneNumber || req.body.mobile || req.body.wa_id;
+        const b = req.body || {};
+        const q = req.query || {};
+        const phone = b.phone || b.phoneNumber || b.sender || b.customerNumber || b.customer_number || b.mobile || b.wa_id ||
+            q.phone || q.phoneNumber || q.sender || q.customerNumber || q.customer_number || q.mobile ||
+            b.data?.phone || b.data?.sender || b.data?.phoneNumber || b.variables?.phone || b.variables?.sender;
         if (!phone) {
-            return res.status(400).json({ success: false, message: "Phone number is required" });
+            return res.status(200).json({
+                success: true,
+                isReturningParent: false,
+                is_frequent: false,
+                isFrequent: false,
+                message: "No phone parameter provided",
+            });
         }
-        const verification = await verifyParent(phone);
+        const verification = await verifyParent(String(phone));
         res.status(200).json({
             success: true,
             ...verification,
@@ -200,7 +210,7 @@ whatsappParentRouter.post("/verify-parent", async (req, res) => {
     }
     catch (err) {
         console.error("[WhatsApp Verify] Error:", err);
-        res.status(500).json({ success: false, message: err.message || "Failed to verify parent" });
+        res.status(500).json({ success: false, is_frequent: false, message: err.message || "Failed to verify parent" });
     }
 });
 /**

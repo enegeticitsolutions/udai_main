@@ -317,6 +317,8 @@ export async function verifyParent(phone) {
     if (!schedule) {
         return {
             isReturningParent: false,
+            is_frequent: false,
+            isFrequent: false,
             message: "No active recurring schedule found. Routing to first-time consultation intake flow.",
             route: "NEW_INTAKE_FLOW",
         };
@@ -325,12 +327,17 @@ export async function verifyParent(phone) {
     const botMessage = `Hello, here is ${schedule.child_name}'s therapy schedule for this week: ${slotsSummary}. Reply 1 to Confirm All, or Reply 2 to Request Schedule Change.`;
     return {
         isReturningParent: true,
+        is_frequent: true,
+        isFrequent: true,
         child_name: schedule.child_name,
+        childName: schedule.child_name,
         parent_phone: schedule.parent_phone,
         therapist_id: schedule.therapist_id,
         therapy_type: schedule.therapy_type,
-        recurring_slots: schedule.recurring_slots,
+        therapy_name: schedule.therapy_type,
+        routine_summary: slotsSummary,
         slots_summary: slotsSummary,
+        recurring_slots: schedule.recurring_slots,
         bot_message: botMessage,
         options: [
             { reply: "1", action: "CONFIRM_ALL", text: "Confirm All Weekly Slots" },

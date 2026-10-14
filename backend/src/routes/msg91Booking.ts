@@ -911,37 +911,43 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
         db.collection("webhookmessages").findOne(webhookFilter, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
       ]);
 
-      count = (apptCount || 0) + (webhookCount || 0);
+      let recurringChild: any = null;
+      try {
+        recurringChild = await db.collection("childSchedules").findOne({
+          status: "ACTIVE",
+          $or: [
+            { parent_phone: cleanPhone },
+            { parent_phone: `+91${cleanPhone}` },
+            { parent_phone: `91${cleanPhone}` },
+            { parent_phone: phoneRegex },
+          ],
+        });
+      } catch (childErr: any) {
+        // ignore
+      }
+
+      count = (apptCount || 0) + (webhookCount || 0) + (recurringChild ? 1 : 0);
       patientName =
+        recurringChild?.child_name ||
         latestAppt?.patientName ||
         latestWebhook?.childName ||
         latestWebhook?.patientName ||
         latestAppt?.parentName ||
         latestWebhook?.parentName ||
         "";
+
+      var routineSummary = recurringChild?.recurring_slots && Array.isArray(recurringChild.recurring_slots)
+        ? recurringChild.recurring_slots.map((s: any) => `${s.day_of_week} at ${s.start_time}${s.end_time ? `-${s.end_time}` : ""}`).join(", ")
+        : "";
+      var therapyName = recurringChild?.therapy_type || recurringChild?.therapy_name || "";
     }
 
+    const isFrequent = Boolean(count > 0 && (routineSummary || patientName));
     const existingPatient = count > 0;
     const isNew = !existingPatient;
-    console.log(`[check-patient-status] phone=${cleanPhone} existingPatient=${existingPatient} totalCount=${count} patientName="${patientName}" => isNew=${isNew}`);
+    console.log(`[check-patient-status] phone=${cleanPhone} existingPatient=${existingPatient} isFrequent=${isFrequent} totalCount=${count} patientName="${patientName}" => isNew=${isNew}`);
 
-    return res.status(200).json({
-      success: true,
-      isNew,
-      is_new: isNew,
-      is_new_patient: isNew ? "true" : "false",
-      isNewPatient: isNew,
-      is_new_patient_bool: isNew,
-      existingPatient,
-      existing_patient: existingPatient,
-      is_returning: existingPatient,
-      isReturning: existingPatient,
-      patientName,
-      childName: patientName,
-      status: isNew ? "new" : "returning",
-      phone: cleanPhone,
-      count,
-      data: {
+      return res.status(200).json({
         success: true,
         isNew,
         is_new: isNew,
@@ -952,12 +958,40 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
         existing_patient: existingPatient,
         is_returning: existingPatient,
         isReturning: existingPatient,
-        patientName,
+        is_frequent: isFrequent,
+        isFrequent: isFrequent,
+        child_name: patientName,
         childName: patientName,
+        patientName,
+        therapy_name: therapyName,
+        therapy_type: therapyName,
+        routine_summary: routineSummary,
+        slots_summary: routineSummary,
         status: isNew ? "new" : "returning",
+        phone: cleanPhone,
         count,
-      },
-    });
+        data: {
+          success: true,
+          isNew,
+          is_new: isNew,
+          is_new_patient: isNew ? "true" : "false",
+          isNewPatient: isNew,
+          is_new_patient_bool: isNew,
+          existingPatient,
+          existing_patient: existingPatient,
+          is_returning: existingPatient,
+          isReturning: existingPatient,
+          is_frequent: isFrequent,
+          isFrequent: isFrequent,
+          child_name: patientName,
+          childName: patientName,
+          patientName,
+          therapy_name: therapyName,
+          routine_summary: routineSummary,
+          status: isNew ? "new" : "returning",
+          count,
+        },
+      });
   } catch (error: any) {
     console.error("[check-patient-status] Error:", error?.message || error);
     // Never return 400 or 500 to prevent MSG91 bot from hanging
