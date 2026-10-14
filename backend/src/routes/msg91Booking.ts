@@ -96,7 +96,7 @@ export async function detectDepartmentFromRecentMessages(
   }
 
   try {
-    await connectMongoDb().catch(() => {});
+    await connectMongoDb().catch(() => { });
     const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
     if (db && cleanPhone) {
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
@@ -786,7 +786,7 @@ msg91BookingRouter.all("/calculate-fee", async (req, res) => {
  */
 msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"], async (req, res) => {
   try {
-    await connectMongoDb().catch(() => {});
+    await connectMongoDb().catch(() => { });
 
     const body = req.body || {};
     const query = req.query || {};
@@ -842,9 +842,17 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
     let digitsOnly = rawPhone.replace(/\D/g, "");
     let cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
 
+    console.log("--> MSG91 HIT: check-patient-status", {
+      method: req.method,
+      query: req.query,
+      body: req.body,
+      receivedPhone: rawPhone,
+      cleanPhone: cleanPhone,
+    });
+
     // If phone is missing or empty, do NOT query DB. Return HTTP 404 Not frequent
     if (!cleanPhone) {
-      console.warn(`[check-patient-status] Missing or empty phone parameter (query: ${JSON.stringify(req.query)}, body: ${JSON.stringify(req.body)}). Returning 404 Not frequent.`);
+      console.log("--> MSG91 HIT: Status Code sent: 404 (Missing or empty phone parameter)");
       return res.status(404).json({
         success: false,
         message: "Not frequent",
@@ -955,6 +963,7 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
     console.log(`[check-patient-status] phone=${cleanPhone} existingPatient=${existingPatient} isFrequent=${isFrequent} totalCount=${count} patientName="${patientName}" => isNew=${isNew}`);
 
     if (isFrequent) {
+      console.log(`--> MSG91 HIT: Status Code sent: 200 OK for phone=${cleanPhone} (Frequent/routine patient: "${patientName}", Therapy: "${therapyName}")`);
       return res.status(200).json({
         success: true,
         isNew: false,
@@ -1002,12 +1011,14 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
       });
     }
 
+    console.log(`--> MSG91 HIT: Status Code sent: 404 Not frequent for phone=${cleanPhone} (Not frequent or no recurring schedule found)`);
     return res.status(404).json({
       success: false,
       message: "Not frequent",
     });
   } catch (error: any) {
     console.error("[check-patient-status] Error:", error?.message || error);
+    console.log("--> MSG91 HIT: Status Code sent: 404 (due to exception/error)");
     return res.status(404).json({
       success: false,
       message: "Not frequent",
