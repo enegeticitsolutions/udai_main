@@ -780,10 +780,9 @@ msg91BookingRouter.all("/calculate-fee", async (req, res) => {
 /**
  * ALL /api/msg91/check-patient-status and /msg91/check-patient-status
  * Handles both GET and POST requests.
- * Checks whether a phone number has any existing (non-cancelled/non-rejected)
- * appointments or bookings.
- * Resiliently extracts phone from query, body, params, nested payload, or customerNumber.
- * Never throws 400: defaults gracefully to isNew=true if phone is missing or invalid.
+ * Checks whether incoming phone number is a frequent/routine patient with a schedule.
+ * Returns HTTP 200 with patient details and routine schedule summary if frequent/routine.
+ * Returns HTTP 404 with { success: false, message: 'Not frequent' } if new or no routine schedule found.
  */
 msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"], async (req, res) => {
   try {
@@ -843,45 +842,21 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
     let digitsOnly = rawPhone.replace(/\D/g, "");
     let cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
 
-    // If phone is missing or empty, do NOT query DB or fall back to DB records! Default immediately to new patient
+    // If phone is missing or empty, do NOT query DB. Return HTTP 404 Not frequent
     if (!cleanPhone) {
-      console.warn(`[check-patient-status] Missing or empty phone parameter (query: ${JSON.stringify(req.query)}, body: ${JSON.stringify(req.body)}). Defaulting to new patient.`);
-      return res.status(200).json({
-        success: true,
-        isNew: true,
-        is_new: true,
-        is_new_patient: "true",
-        isNewPatient: true,
-        is_new_patient_bool: true,
-        existingPatient: false,
-        existing_patient: false,
-        is_returning: false,
-        isReturning: false,
-        patientName: "",
-        childName: "",
-        status: "new",
-        count: 0,
-        message: "Defaulted to new patient due to missing phone parameter",
-        data: {
-          success: true,
-          isNew: true,
-          is_new: true,
-          is_new_patient: "true",
-          isNewPatient: true,
-          is_new_patient_bool: true,
-          existingPatient: false,
-          existing_patient: false,
-          patientName: "",
-          childName: "",
-          status: "new",
-          count: 0,
-        },
+      console.warn(`[check-patient-status] Missing or empty phone parameter (query: ${JSON.stringify(req.query)}, body: ${JSON.stringify(req.body)}). Returning 404 Not frequent.`);
+      return res.status(404).json({
+        success: false,
+        message: "Not frequent",
       });
     }
 
     // 3. Query DB for existing appointments/messages matching last 10 digits regex
     let count = 0;
     let patientName = "";
+    let recurringChild: any = null;
+    let routineSummary = "";
+    let therapyName = "";
 
     if (db) {
       const phoneRegex = new RegExp(`${cleanPhone}$`);
@@ -911,7 +886,6 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
         db.collection("webhookmessages").findOne(webhookFilter, { sort: { createdAt: -1, _id: -1 } }).catch(() => null),
       ]);
 
-      let recurringChild: any = null;
       try {
         recurringChild = await db.collection("childSchedules").findOne({
           status: "ACTIVE",
@@ -922,8 +896,41 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
             { parent_phone: phoneRegex },
           ],
         });
+        if (!recurringChild) {
+          recurringChild = await db.collection("childSchedules").findOne({
+            $or: [
+              { parent_phone: cleanPhone },
+              { parent_phone: `+91${cleanPhone}` },
+              { parent_phone: `91${cleanPhone}` },
+              { parent_phone: phoneRegex },
+            ],
+          });
+        }
       } catch (childErr: any) {
         // ignore
+      }
+
+      if (!recurringChild) {
+        try {
+          const routineBooking = await db.collection("routineBookings").findOne({
+            $or: [
+              { parent_phone: cleanPhone },
+              { phoneNumber: cleanPhone },
+              { parent_phone: phoneRegex },
+              { phoneNumber: phoneRegex },
+            ],
+          });
+          if (routineBooking) {
+            recurringChild = {
+              child_name: routineBooking.child_name || routineBooking.patientName || routineBooking.childName,
+              therapy_type: routineBooking.therapy_type || routineBooking.department,
+              recurring_slots: routineBooking.sessionSchedule || [],
+              status: routineBooking.status,
+            };
+          }
+        } catch (rbErr: any) {
+          // ignore
+        }
       }
 
       count = (apptCount || 0) + (webhookCount || 0) + (recurringChild ? 1 : 0);
@@ -936,30 +943,31 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
         latestWebhook?.parentName ||
         "";
 
-      var routineSummary = recurringChild?.recurring_slots && Array.isArray(recurringChild.recurring_slots)
+      routineSummary = recurringChild?.recurring_slots && Array.isArray(recurringChild.recurring_slots)
         ? recurringChild.recurring_slots.map((s: any) => `${s.day_of_week} at ${s.start_time}${s.end_time ? `-${s.end_time}` : ""}`).join(", ")
         : "";
-      var therapyName = recurringChild?.therapy_type || recurringChild?.therapy_name || "";
+      therapyName = recurringChild?.therapy_type || recurringChild?.therapy_name || "";
     }
 
-    const isFrequent = Boolean(count > 0 && (routineSummary || patientName));
+    const isFrequent = Boolean(recurringChild);
     const existingPatient = count > 0;
     const isNew = !existingPatient;
     console.log(`[check-patient-status] phone=${cleanPhone} existingPatient=${existingPatient} isFrequent=${isFrequent} totalCount=${count} patientName="${patientName}" => isNew=${isNew}`);
 
+    if (isFrequent) {
       return res.status(200).json({
         success: true,
-        isNew,
-        is_new: isNew,
-        is_new_patient: isNew ? "true" : "false",
-        isNewPatient: isNew,
-        is_new_patient_bool: isNew,
-        existingPatient,
-        existing_patient: existingPatient,
-        is_returning: existingPatient,
-        isReturning: existingPatient,
-        is_frequent: isFrequent,
-        isFrequent: isFrequent,
+        isNew: false,
+        is_new: false,
+        is_new_patient: "false",
+        isNewPatient: false,
+        is_new_patient_bool: false,
+        existingPatient: true,
+        existing_patient: true,
+        is_returning: true,
+        isReturning: true,
+        is_frequent: true,
+        isFrequent: true,
         child_name: patientName,
         childName: patientName,
         patientName,
@@ -967,67 +975,42 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
         therapy_type: therapyName,
         routine_summary: routineSummary,
         slots_summary: routineSummary,
-        status: isNew ? "new" : "returning",
+        status: "returning",
         phone: cleanPhone,
         count,
         data: {
           success: true,
-          isNew,
-          is_new: isNew,
-          is_new_patient: isNew ? "true" : "false",
-          isNewPatient: isNew,
-          is_new_patient_bool: isNew,
-          existingPatient,
-          existing_patient: existingPatient,
-          is_returning: existingPatient,
-          isReturning: existingPatient,
-          is_frequent: isFrequent,
-          isFrequent: isFrequent,
+          isNew: false,
+          is_new: false,
+          is_new_patient: "false",
+          isNewPatient: false,
+          is_new_patient_bool: false,
+          existingPatient: true,
+          existing_patient: true,
+          is_returning: true,
+          isReturning: true,
+          is_frequent: true,
+          isFrequent: true,
           child_name: patientName,
           childName: patientName,
           patientName,
           therapy_name: therapyName,
           routine_summary: routineSummary,
-          status: isNew ? "new" : "returning",
+          status: "returning",
           count,
         },
       });
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: "Not frequent",
+    });
   } catch (error: any) {
     console.error("[check-patient-status] Error:", error?.message || error);
-    // Never return 400 or 500 to prevent MSG91 bot from hanging
-    return res.status(200).json({
-      success: true,
-      isNew: true,
-      is_new: true,
-      is_new_patient: "true",
-      isNewPatient: true,
-      is_new_patient_bool: true,
-      existingPatient: false,
-      existing_patient: false,
-      is_returning: false,
-      isReturning: false,
-      patientName: "",
-      childName: "",
-      status: "new",
-      count: 0,
-      fallback: true,
-      message: "Defaulted to new patient due to missing phone parameter",
-      data: {
-        success: true,
-        isNew: true,
-        is_new: true,
-        is_new_patient: "true",
-        isNewPatient: true,
-        is_new_patient_bool: true,
-        existingPatient: false,
-        existing_patient: false,
-        is_returning: false,
-        isReturning: false,
-        patientName: "",
-        childName: "",
-        status: "new",
-        count: 0,
-      },
+    return res.status(404).json({
+      success: false,
+      message: "Not frequent",
     });
   }
 });
