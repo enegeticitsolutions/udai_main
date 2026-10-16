@@ -151,24 +151,53 @@ msg91RoutineBookingRouter.post("/", async (req: Request, res: Response) => {
 
     if (db) {
       const phoneRegex = new RegExp(`${cleanPhone}$`);
+      const phoneVariants = [
+        cleanPhone,
+        `+91${cleanPhone}`,
+        `91${cleanPhone}`,
+        `0${cleanPhone}`,
+        Number(cleanPhone),
+        Number(`91${cleanPhone}`),
+      ];
+
       const phoneFilter = {
         $or: [
-          { parent_phone: cleanPhone },
-          { parent_phone: `+91${cleanPhone}` },
-          { parent_phone: `91${cleanPhone}` },
+          ...phoneVariants.flatMap((v) => [
+            { parent_phone: v },
+            { parentPhone: v },
+            { phone: v },
+            { phoneNumber: v },
+          ]),
           { parent_phone: phoneRegex },
+          { parentPhone: phoneRegex },
+          { phone: phoneRegex },
+          { phoneNumber: phoneRegex },
         ],
       };
 
       try {
         // Check active or existing child schedules
         matchedChildSchedule = await db.collection("childSchedules").findOne({
-          status: "ACTIVE",
+          status: { $regex: /^active$/i },
           ...phoneFilter,
         });
 
         if (!matchedChildSchedule) {
           matchedChildSchedule = await db.collection("childSchedules").findOne(phoneFilter);
+        }
+
+        if (!matchedChildSchedule) {
+          const allActive = await db.collection("childSchedules").find({
+            status: { $regex: /^active$/i },
+          }).toArray().catch(() => []);
+          for (const doc of allActive) {
+            const p = String(doc.parent_phone || doc.parentPhone || doc.phone || doc.phoneNumber || "").replace(/\D/g, "");
+            if (p && p.endsWith(cleanPhone)) {
+              matchedChildSchedule = doc;
+              console.log(`[msg91-routine-booking] In-memory matched childSchedule: "${doc.child_name}" for phone: ${cleanPhone}`);
+              break;
+            }
+          }
         }
       } catch (err: any) {
         console.warn("[msg91-routine-booking] Child schedule lookup warning:", err.message);

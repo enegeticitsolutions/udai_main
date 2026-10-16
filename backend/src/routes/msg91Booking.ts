@@ -788,59 +788,58 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
   try {
     await connectMongoDb().catch(() => { });
 
-    const body = req.body || {};
-    const query = req.query || {};
-    const params = req.params || {};
-    const nested = body.data || body.payload || body.variables || {};
+    const body = (req.body && typeof req.body === "object" ? req.body : {}) as Record<string, any>;
+    const query = (req.query && typeof req.query === "object" ? req.query : {}) as Record<string, any>;
+    const params = (req.params && typeof req.params === "object" ? req.params : {}) as Record<string, any>;
+    const nestedData = (body.data && typeof body.data === "object" ? body.data : {}) as Record<string, any>;
+    const nestedVars = (body.variables && typeof body.variables === "object" ? body.variables : {}) as Record<string, any>;
+    const nestedPayload = (body.payload && typeof body.payload === "object" ? body.payload : {}) as Record<string, any>;
 
-    // 1. Extract phone from req.query, req.body, params, or nested data
-    const rawCandidate =
-      req.query?.phone ||
-      req.query?.phoneNumber ||
-      req.body?.phone ||
-      req.body?.phoneNumber ||
-      req.body?.customerNumber ||
-      query.customerNumber ||
-      params.phoneNumber ||
-      params.customerNumber ||
-      params.phone ||
-      body.mobile ||
-      body.contact ||
-      body.sender ||
-      (body.data && (body.data.phone || body.data.phoneNumber || body.data.contact || body.data.sender || body.data.customerNumber)) ||
-      nested.phone ||
-      nested.phoneNumber ||
-      nested.customerNumber ||
-      nested.mobile ||
-      nested.contact ||
-      nested.sender ||
-      nested.customer_number ||
-      nested.from ||
-      body.customer_number ||
-      body.customer_no ||
-      body.mobile_number ||
-      body.phone_number ||
-      body.from ||
-      body.number ||
-      query.mobile ||
-      query.contact ||
-      query.sender ||
-      query.customer_number ||
-      query.from ||
-      "";
+    // 1. Extract phone from all possible locations in query, body, variables, data, payload, or params
+    const phoneCandidates = [
+      query.phone, query.phoneNumber, query.phone_number, query.customerNumber, query.customer_number, query.customer_no, query.mobile, query.mobile_number, query.contact, query.sender, query.from, query.wa_id, query.wa_number, query.caller, query.user_phone, query.number, query.msisdn,
+      body.phone, body.phoneNumber, body.phone_number, body.customerNumber, body.customer_number, body.customer_no, body.mobile, body.mobile_number, body.mobile_no, body.contact, body.sender, body.from, body.wa_id, body.wa_number, body.whatsapp_number, body.caller, body.user_phone, body.number, body.msisdn,
+      nestedVars.phone, nestedVars.phoneNumber, nestedVars.phone_number, nestedVars.customerNumber, nestedVars.customer_number, nestedVars.customer_no, nestedVars.mobile, nestedVars.mobile_number, nestedVars.contact, nestedVars.sender, nestedVars.from, nestedVars.wa_id, nestedVars.wa_number, nestedVars.caller, nestedVars.user_phone, nestedVars.number,
+      nestedData.phone, nestedData.phoneNumber, nestedData.phone_number, nestedData.customerNumber, nestedData.customer_number, nestedData.customer_no, nestedData.mobile, nestedData.mobile_number, nestedData.contact, nestedData.sender, nestedData.from, nestedData.wa_id, nestedData.wa_number, nestedData.caller, nestedData.user_phone, nestedData.number,
+      nestedPayload.phone, nestedPayload.phoneNumber, nestedPayload.phone_number, nestedPayload.customerNumber, nestedPayload.customer_number, nestedPayload.customer_no, nestedPayload.mobile, nestedPayload.mobile_number, nestedPayload.contact, nestedPayload.sender, nestedPayload.from, nestedPayload.wa_id, nestedPayload.wa_number, nestedPayload.caller, nestedPayload.user_phone, nestedPayload.number,
+      params.phone, params.phoneNumber, params.customerNumber
+    ];
 
-    let rawPhone = (rawCandidate || "").toString().trim();
+    let rawPhone = "";
+    for (const c of phoneCandidates) {
+      if (c !== undefined && c !== null && String(c).trim() !== "" && !String(c).includes("{{") && !String(c).startsWith("@")) {
+        const d = String(c).replace(/\D/g, "");
+        if (d.length >= 10) {
+          rawPhone = String(c).trim();
+          break;
+        }
+      }
+    }
 
-    // Fallback if candidate was empty but raw body is string containing phone digits
+    // Fallback: check query or body values if no candidate was found
+    if (!rawPhone) {
+      const searchPool = [...Object.values(query), ...Object.values(body), ...Object.values(nestedVars), ...Object.values(nestedData)];
+      for (const val of searchPool) {
+        if (typeof val === "string" || typeof val === "number") {
+          const d = String(val).replace(/\D/g, "");
+          if (d.length >= 10 && d.length <= 13) {
+            rawPhone = String(val);
+            break;
+          }
+        }
+      }
+    }
+
+    // Fallback if raw body is string containing phone digits
     if (!rawPhone && typeof req.body === "string") {
-      const match = req.body.match(/\d{10,12}/);
+      const match = req.body.match(/\d{10,13}/);
       if (match) rawPhone = match[0];
     }
 
     // 2. Sanitize: strip non-digit characters and take the last 10 digits
     const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
-    let digitsOnly = rawPhone.replace(/\D/g, "");
-    let cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : "";
+    const digitsOnly = rawPhone.replace(/\D/g, "");
+    const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
 
     console.log("--> MSG91 HIT: check-patient-status", {
       method: req.method,
@@ -851,8 +850,8 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
     });
 
     // If phone is missing or empty, do NOT query DB. Return HTTP 404 Not frequent
-    if (!cleanPhone) {
-      console.log("--> MSG91 HIT: Status Code sent: 404 (Missing or empty phone parameter)");
+    if (!cleanPhone || cleanPhone.length < 10) {
+      console.log("--> MSG91 HIT: Status Code sent: 404 (Missing or invalid phone parameter)");
       return res.status(404).json({
         success: false,
         message: "Not frequent",
@@ -868,21 +867,54 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
 
     if (db) {
       const phoneRegex = new RegExp(`${cleanPhone}$`);
+      const phoneVariants: any[] = [
+        cleanPhone,
+        `+91${cleanPhone}`,
+        `91${cleanPhone}`,
+        `0${cleanPhone}`,
+        Number(cleanPhone),
+        Number(`91${cleanPhone}`),
+      ];
+
+      const phoneOrQueries: any[] = [];
+      for (const field of ["parent_phone", "parentPhone", "phone", "phoneNumber", "mobile", "parent_mobile"]) {
+        for (const variant of phoneVariants) {
+          phoneOrQueries.push({ [field]: variant });
+        }
+        phoneOrQueries.push({ [field]: phoneRegex });
+      }
+
       const apptFilter = {
         $or: [
+          ...phoneVariants.flatMap((v) => [
+            { phoneNumber: v },
+            { phone: v },
+            { "rawPayload.customerNumber": v },
+            { "rawPayload.phoneNumber": v },
+            { "rawPayload.phone": v },
+          ]),
           { phoneNumber: phoneRegex },
           { phone: phoneRegex },
           { "rawPayload.customerNumber": phoneRegex },
           { "rawPayload.phoneNumber": phoneRegex },
+          { "rawPayload.phone": phoneRegex },
         ],
         bookingStatus: { $nin: ["cancelled", "Cancelled", "rejected", "Rejected"] },
       };
       const webhookFilter = {
         $or: [
+          ...phoneVariants.flatMap((v) => [
+            { phone: v },
+            { phoneNumber: v },
+            { "rawData.customerNumber": v },
+            { "rawData.phoneNumber": v },
+            { "rawData.phone": v },
+          ]),
           { phone: phoneRegex },
           { phoneNumber: phoneRegex },
           { "rawData.customerNumber": phoneRegex },
           { "rawData.phoneNumber": phoneRegex },
+          { "rawData.phone": phoneRegex },
         ],
         status: { $nin: ["cancelled", "Cancelled", "rejected", "Rejected"] },
       };
@@ -896,36 +928,40 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
 
       try {
         recurringChild = await db.collection("childSchedules").findOne({
-          status: "ACTIVE",
-          $or: [
-            { parent_phone: cleanPhone },
-            { parent_phone: `+91${cleanPhone}` },
-            { parent_phone: `91${cleanPhone}` },
-            { parent_phone: phoneRegex },
-          ],
+          status: { $regex: /^active$/i },
+          $or: phoneOrQueries,
         });
         if (!recurringChild) {
           recurringChild = await db.collection("childSchedules").findOne({
-            $or: [
-              { parent_phone: cleanPhone },
-              { parent_phone: `+91${cleanPhone}` },
-              { parent_phone: `91${cleanPhone}` },
-              { parent_phone: phoneRegex },
-            ],
+            $or: phoneOrQueries,
           });
         }
+        // In-memory fallback if phone had spaces/dashes/special formatting
+        if (!recurringChild) {
+          const allActive = await db.collection("childSchedules").find({
+            status: { $regex: /^active$/i }
+          }).toArray().catch(() => []);
+          for (const doc of allActive) {
+            const p = String(doc.parent_phone || doc.parentPhone || doc.phone || doc.phoneNumber || "").replace(/\D/g, "");
+            if (p && p.endsWith(cleanPhone)) {
+              recurringChild = doc;
+              console.log(`[check-patient-status] In-memory fallback matched childSchedule: "${doc.child_name}" for phone: ${cleanPhone}`);
+              break;
+            }
+          }
+        }
       } catch (childErr: any) {
-        // ignore
+        console.warn("[check-patient-status] Child schedule lookup error:", childErr.message);
       }
 
       if (!recurringChild) {
         try {
           const routineBooking = await db.collection("routineBookings").findOne({
             $or: [
-              { parent_phone: cleanPhone },
-              { phoneNumber: cleanPhone },
+              ...phoneVariants.flatMap((v) => [{ parent_phone: v }, { phoneNumber: v }, { phone: v }]),
               { parent_phone: phoneRegex },
               { phoneNumber: phoneRegex },
+              { phone: phoneRegex },
             ],
           });
           if (routineBooking) {

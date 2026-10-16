@@ -3,20 +3,19 @@ import { ChildScheduleModel } from "../models/ChildSchedule.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 /**
- * Normalizes phone numbers for matching (removes non-digits, handles 91 prefix).
+ * Normalizes phone numbers for matching (removes non-digits, handles +91/91/0 prefix by taking last 10 digits).
  */
 export function normalizePhone(raw) {
     if (!raw)
         return "";
     const digits = String(raw).replace(/\D/g, "");
-    // If 12 digits starting with 91, extract 10 digits
-    if (digits.length === 12 && digits.startsWith("91")) {
-        return digits.slice(2);
+    if (digits.length >= 10) {
+        return digits.slice(-10);
     }
     return digits;
 }
 /**
- * Creates MongoDB phone query matching both local 10-digit and country-coded formats.
+ * Creates MongoDB phone query matching both local 10-digit, country-coded, and numeric formats.
  */
 export function getPhoneQueryVariants(rawPhone) {
     const clean = normalizePhone(rawPhone);
@@ -28,6 +27,9 @@ export function getPhoneQueryVariants(rawPhone) {
             `+91${clean}`,
             `91${clean}`,
             `+91 ${clean}`,
+            `0${clean}`,
+            Number(clean),
+            Number(`91${clean}`),
             new RegExp(clean + "$", "i"),
         ],
     };
