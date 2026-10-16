@@ -246,6 +246,30 @@ msg91BookingRouter.get("/dates", handleDates);
 msg91BookingRouter.post("/dates", handleDates);
 
 /**
+ * Helper to parse time string (24-hour "HH:mm" or 12-hour "hh:mm AM/PM") into total minutes from midnight.
+ */
+function parseTimeToMinutes(timeStr: string): number {
+  if (!timeStr) return -1;
+  const str = String(timeStr).trim();
+  const match12 = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (match12) {
+    let h = parseInt(match12[1], 10);
+    const m = parseInt(match12[2], 10);
+    const ampm = match12[3].toUpperCase();
+    if (ampm === "PM" && h < 12) h += 12;
+    if (ampm === "AM" && h === 12) h = 0;
+    return h * 60 + m;
+  }
+  const match24 = str.match(/^(\d{1,2}):(\d{2})/);
+  if (match24) {
+    const h = parseInt(match24[1], 10);
+    const m = parseInt(match24[2], 10);
+    return h * 60 + m;
+  }
+  return -1;
+}
+
+/**
  * Expose available slots for a department on a date (GET or POST)
  */
 const handleSlots = async (req: any, res: any, next: any) => {
@@ -279,8 +303,26 @@ const handleSlots = async (req: any, res: any, next: any) => {
     const date = normalizeAppointmentDate(rawDate);
 
     const slots = await getAvailableSlots(department || "Child and Parental Counselling", date);
-    const formattedSlots = slots
-      .filter((s: any) => s.isAvailable !== false)
+
+    // Same-day past slots filter (IST):
+    // If requested date is today in IST, drop slots before current time
+    const todayIST = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+    const isToday = date === todayIST;
+
+    let availableSlotsList = slots.filter((s: any) => s.isAvailable !== false);
+
+    if (isToday) {
+      const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+      const currentTotalMins = nowIST.getHours() * 60 + nowIST.getMinutes();
+
+      availableSlotsList = availableSlotsList.filter((s: any) => {
+        const slotTimeStr = String(s.time || s.label || "").trim();
+        const slotMins = parseTimeToMinutes(slotTimeStr);
+        return slotMins === -1 || slotMins > currentTotalMins;
+      });
+    }
+
+    const formattedSlots = availableSlotsList
       .slice(0, 10)
       .map((slot: any) => ({
         title: slot.label || slot.time,
