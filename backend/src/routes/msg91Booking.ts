@@ -77,6 +77,52 @@ export function matchDepartmentFromTitle(title: unknown): string | null {
 }
 
 /**
+ * Calculates upcoming dates for routine recurring slots.
+ * Format: "Mon 19 Oct, Wed 21 Oct, Fri 23 Oct"
+ */
+export function calculateNextDates(slots: any[]): string {
+  if (!Array.isArray(slots) || slots.length === 0) return "";
+  const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const shortDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const now = new Date();
+  const currentIdx = now.getDay();
+  const entries: { targetDate: Date; text: string }[] = [];
+  const seenDays = new Set<number>();
+
+  for (const slot of slots) {
+    const rawDay = typeof slot === "string" ? slot : (slot?.day_of_week || slot?.day || "");
+    if (!rawDay) continue;
+
+    const targetIdx = days.indexOf(String(rawDay).trim().toLowerCase());
+    if (targetIdx === -1) continue;
+
+    if (seenDays.has(targetIdx)) continue;
+    seenDays.add(targetIdx);
+
+    let diff = targetIdx - currentIdx;
+    if (diff <= 0) diff += 7;
+
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() + diff);
+
+    const dayName = shortDays[targetDate.getDay()];
+    const dayNum = targetDate.getDate();
+    const monthName = shortMonths[targetDate.getMonth()];
+
+    entries.push({
+      targetDate,
+      text: `${dayName} ${dayNum} ${monthName}`,
+    });
+  }
+
+  // Sort chronologically by date
+  entries.sort((a, b) => a.targetDate.getTime() - b.targetDate.getTime());
+  return entries.map((e) => e.text).join(", ");
+}
+
+/**
  * Auto-detect chosen department from recent WhatsApp messages in db.collection("webhookmessages")
  * Always queries the absolute latest interactive webhook first to prevent stale cache leakage.
  */
@@ -1020,7 +1066,11 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
     console.log(`[check-patient-status] phone=${cleanPhone} existingPatient=${existingPatient} isFrequent=${isFrequent} totalCount=${count} patientName="${patientName}" => isNew=${isNew}`);
 
     if (isFrequent) {
-      console.log(`--> MSG91 HIT: Status Code sent: 200 OK for phone=${cleanPhone} (Frequent/routine patient: "${patientName}", Therapy: "${therapyName}")`);
+      const upcomingDates = recurringChild?.recurring_slots
+        ? calculateNextDates(recurringChild.recurring_slots)
+        : "";
+
+      console.log(`--> MSG91 HIT: Status Code sent: 200 OK for phone=${cleanPhone} (Frequent/routine patient: "${patientName}", Therapy: "${therapyName}", Upcoming: "${upcomingDates}")`);
       return res.status(200).json({
         success: true,
         isNew: false,
@@ -1041,6 +1091,7 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
         therapy_type: therapyName,
         routine_summary: routineSummary,
         slots_summary: routineSummary,
+        upcoming_dates: upcomingDates,
         status: "returning",
         phone: cleanPhone,
         count,
@@ -1062,6 +1113,7 @@ msg91BookingRouter.all(["/check-patient-status", "/msg91/check-patient-status"],
           patientName,
           therapy_name: therapyName,
           routine_summary: routineSummary,
+          upcoming_dates: upcomingDates,
           status: "returning",
           count,
         },
