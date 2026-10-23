@@ -740,9 +740,59 @@ export async function isTherapistOccupiedGlobally(therapistName, date, time, cac
         if (dayOfWeek && dayOfWeek !== "Sunday") {
             const recurringCount = await db.collection("childSchedules").countDocuments({
                 status: "ACTIVE",
-                therapist_id: new RegExp(tClean, "i"),
-                "recurring_slots.day_of_week": dayOfWeek,
-                "recurring_slots.start_time": time,
+                $or: [
+                    {
+                        therapist_id: new RegExp(tClean, "i"),
+                        recurring_slots: {
+                            $elemMatch: {
+                                day_of_week: dayOfWeek,
+                                start_time: time,
+                            },
+                        },
+                    },
+                    {
+                        recurring_slots: {
+                            $elemMatch: {
+                                $and: [
+                                    {
+                                        $or: [
+                                            { therapist_id: new RegExp(tClean, "i") },
+                                            { therapistId: new RegExp(tClean, "i") },
+                                            { therapist_name: new RegExp(tClean, "i") },
+                                        ],
+                                    },
+                                    {
+                                        $or: [
+                                            { day_of_week: dayOfWeek, start_time: time },
+                                            { dayOfWeek: dayOfWeek, startTime: time },
+                                        ],
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        sessions: {
+                            $elemMatch: {
+                                $and: [
+                                    {
+                                        $or: [
+                                            { therapist_id: new RegExp(tClean, "i") },
+                                            { therapistId: new RegExp(tClean, "i") },
+                                            { therapist_name: new RegExp(tClean, "i") },
+                                        ],
+                                    },
+                                    {
+                                        $or: [
+                                            { day_of_week: dayOfWeek, start_time: time },
+                                            { dayOfWeek: dayOfWeek, startTime: time },
+                                        ],
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                ],
             });
             if (recurringCount > 0)
                 return true;

@@ -1204,6 +1204,11 @@ adminRouter.post("/schedules", async (req, res, next) => {
     const created = await createSchedule(req.body);
     res.status(201).json({ success: true, data: created, message: "Child schedule created successfully" });
   } catch (error) {
+    const isConflict = error.message?.includes("Collision detected") || error.message?.includes("Maximum 15");
+    if (isConflict) {
+      res.status(409).json({ success: false, message: error.message });
+      return;
+    }
     next(error);
   }
 });
@@ -1217,6 +1222,11 @@ adminRouter.patch("/schedules/:id", async (req, res, next) => {
     }
     res.json({ success: true, data: updated, message: "Schedule updated successfully" });
   } catch (error) {
+    const isConflict = error.message?.includes("Collision detected") || error.message?.includes("Maximum 15");
+    if (isConflict) {
+      res.status(409).json({ success: false, message: error.message });
+      return;
+    }
     next(error);
   }
 });
@@ -1245,6 +1255,11 @@ adminRouter.post("/schedules/bulk", async (req, res, next) => {
       message: `Successfully processed ${inserted.length} recurring schedules`,
     });
   } catch (error) {
+    const isConflict = error.message?.includes("Collision detected") || error.message?.includes("Maximum 15");
+    if (isConflict) {
+      res.status(409).json({ success: false, message: error.message });
+      return;
+    }
     next(error);
   }
 });
@@ -1303,32 +1318,51 @@ adminRouter.get("/slots/available", async (req, res, next) => {
   }
 });
 
-adminRouter.all(["/whatsapp/verify-parent", "/whatsapp/check-frequent"], async (req, res, next) => {
-  try {
-    const b = req.body || {};
-    const q = req.query || {};
-    const phone =
-      b.phone || b.phoneNumber || b.sender || b.customerNumber || b.customer_number || b.mobile ||
-      q.phone || q.phoneNumber || q.sender || q.customerNumber || q.customer_number || q.mobile ||
-      b.data?.phone || b.data?.sender || b.data?.phoneNumber || b.variables?.phone || b.variables?.sender;
+adminRouter.all(
+  [
+    "/whatsapp/verify-parent",
+    "/whatsapp/check-frequent",
+    "/check-patient-status",
+    "/api/msg91/check-patient-status",
+    "/msg91/check-patient-status",
+  ],
+  async (req, res, next) => {
+    try {
+      const b = req.body || {};
+      const q = req.query || {};
+      const phone =
+        b.phone || b.phoneNumber || b.phone_number || b.sender || b.customerNumber || b.customer_number || b.customer_no || b.mobile || b.mobile_number ||
+        q.phone || q.phoneNumber || q.phone_number || q.sender || q.customerNumber || q.customer_number || q.customer_no || q.mobile || q.mobile_number ||
+        b.data?.phone || b.data?.sender || b.data?.phoneNumber || b.data?.customerNumber ||
+        b.variables?.phone || b.variables?.sender || b.variables?.phoneNumber || b.variables?.customerNumber;
 
-    if (!phone) {
-      res.json({ success: true, isReturningParent: false, is_frequent: false, isFrequent: false, message: "No phone parameter provided" });
-      return;
-    }
-    const result = await verifyParent(String(phone));
-    res.json({
-      success: true,
-      ...result,
-      data: {
-        success: true,
+      if (!phone) {
+        return res.status(404).json({
+          success: false,
+          message: "Not frequent",
+          status: "new",
+          isNew: true,
+          is_new: true,
+          isReturning: false,
+          is_returning: false,
+          is_frequent: false,
+          child_name: "",
+          patientName: "",
+        });
+      }
+      const result = await verifyParent(String(phone));
+      const statusCode = result.isReturningParent ? 200 : 404;
+      return res.status(statusCode).json({
         ...result,
-      },
-    });
-  } catch (error) {
-    next(error);
+        data: {
+          ...result,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 adminRouter.post("/whatsapp/confirm-weekly", async (req, res, next) => {
   try {

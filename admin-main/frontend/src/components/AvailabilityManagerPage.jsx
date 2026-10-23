@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Badge from "./Badge";
 import StatCard from "./StatCard";
-import { getAvailability, toggleAvailability } from "../services/adminApi";
+import Button from "./Button";
+import { getAvailability, toggleAvailability, getSchedules } from "../services/adminApi";
 
 /**
  * Returns the formatted clinical shift window badge text for each therapist.
@@ -150,68 +151,186 @@ export const DEPARTMENT_FILTERS = [
   "Child and Parental Counselling",
 ];
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
+function buildDaysForMonth(year, month) {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const arr = [];
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const weekdayFull = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const todayIso = new Date().toISOString().split("T")[0];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    const dayOfWeek = dateObj.getDay();
+    const monthStr = String(month + 1).padStart(2, "0");
+    const dayStr = String(d).padStart(2, "0");
+    const iso = `${year}-${monthStr}-${dayStr}`;
+
+    arr.push({
+      d,
+      iso,
+      dayOfWeek,
+      weekdayStr: weekdays[dayOfWeek],
+      dayOfWeekFull: weekdayFull[dayOfWeek],
+      monthNum: month,
+      year,
+      monthStr: MONTH_NAMES[month].slice(0, 3),
+      monthNameFull: MONTH_NAMES[month],
+      display: `${weekdays[dayOfWeek]}, ${d} ${MONTH_NAMES[month].slice(0, 3)}`,
+      isSunday: dayOfWeek === 0,
+      isToday: iso === todayIso,
+    });
+  }
+  return arr;
+}
+
 export default function AvailabilityManagerPage() {
+  const today = new Date();
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth()); // 0-11
+  const [monthViewMode, setMonthViewMode] = useState("dual"); // "dual" | "current" | "next"
+  const [activeView, setActiveView] = useState("calendar"); // "calendar" | "matrix"
+  const [selectedTherapistName, setSelectedTherapistName] = useState(CLINIC_THERAPISTS_ROSTER[2].therapistName); // Default Ms. Nikki
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState("All");
+
   const [availabilityRecords, setAvailabilityRecords] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingKey, setUpdatingKey] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
-  const [selectedDeptFilter, setSelectedDeptFilter] = useState("All");
+
+  // Modal for inspecting full details of a clicked day
+  const [selectedDayDetails, setSelectedDayDetails] = useState(null);
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Generate 5 days (Today + 4 days)
-  const days = useMemo(() => {
-    const arr = [];
-    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    for (let i = 0; i <= 4; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const iso = `${year}-${month}-${day}`;
-
-      const weekdayStr = weekdays[d.getDay()];
-      const dayStr = d.getDate();
-      const monthStr = months[d.getMonth()];
-
-      arr.push({
-        iso,
-        display: `${weekdayStr}, ${dayStr} ${monthStr}`,
-        dayOfWeek: d.getDay(),
-        isSunday: d.getDay() === 0,
-        isToday: i === 0,
-      });
+  // Month navigation helpers
+  const handlePrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear((y) => y - 1);
+    } else {
+      setSelectedMonth((m) => m - 1);
     }
-    return arr;
-  }, []);
+  };
 
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear((y) => y + 1);
+    } else {
+      setSelectedMonth((m) => m + 1);
+    }
+  };
+
+  const handleToday = () => {
+    const now = new Date();
+    setSelectedYear(now.getFullYear());
+    setSelectedMonth(now.getMonth());
+  };
+
+  // Next month index & year calculations
+  const nextMonthNum = selectedMonth === 11 ? 0 : selectedMonth + 1;
+  const nextMonthYear = selectedMonth === 11 ? selectedYear + 1 : selectedYear;
+
+  // Generate days for both current month and next month
+  const currentMonthDays = useMemo(() => {
+    return buildDaysForMonth(selectedYear, selectedMonth);
+  }, [selectedYear, selectedMonth]);
+
+  const nextMonthDays = useMemo(() => {
+    return buildDaysForMonth(nextMonthYear, nextMonthNum);
+  }, [nextMonthYear, nextMonthNum]);
+
+  // First day offset (0 = Sunday, 1 = Monday, etc.) for monthly calendar grids
+  const firstDayOfWeekCurrent = useMemo(() => {
+    return new Date(selectedYear, selectedMonth, 1).getDay();
+  }, [selectedYear, selectedMonth]);
+
+  const firstDayOfWeekNext = useMemo(() => {
+    return new Date(nextMonthYear, nextMonthNum, 1).getDay();
+  }, [nextMonthYear, nextMonthNum]);
+
+  // Combined days array for fetching full 2-month dataset
+  const allDaysToLoad = useMemo(() => {
+    return [...currentMonthDays, ...nextMonthDays];
+  }, [currentMonthDays, nextMonthDays]);
+
+  // Active days list based on user's active view mode
+  const activeDisplayDays = useMemo(() => {
+    if (monthViewMode === "current") return currentMonthDays;
+    if (monthViewMode === "next") return nextMonthDays;
+    return allDaysToLoad;
+  }, [monthViewMode, currentMonthDays, nextMonthDays, allDaysToLoad]);
+
+  // Load availability from MongoDB and recurring slots from schedules database across both months
   const loadData = useCallback(async () => {
     try {
-      const startDate = days[0]?.iso;
-      const endDate = days[days.length - 1]?.iso;
-      const data = await getAvailability({ startDate, endDate });
-      setAvailabilityRecords(data || []);
+      const startDate = allDaysToLoad[0]?.iso;
+      const endDate = allDaysToLoad[allDaysToLoad.length - 1]?.iso;
+      const [availData, schedRes] = await Promise.all([
+        getAvailability({ startDate, endDate }),
+        getSchedules().catch(() => ({ data: [] })),
+      ]);
+      setAvailabilityRecords(availData || []);
+      const schedList = schedRes?.data || schedRes || [];
+      setSchedules(Array.isArray(schedList) ? schedList : []);
     } catch (err) {
-      console.warn("Failed to load availability records:", err);
+      console.warn("Failed to load availability or schedules:", err);
     } finally {
       setLoading(false);
     }
-  }, [days]);
+  }, [allDaysToLoad]);
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 10000);
+    const interval = setInterval(loadData, 15000);
     return () => clearInterval(interval);
   }, [loadData]);
 
-  // Check availability status for a therapist on a date
+  // Map active recurring routine slots by therapist name and day of week
+  const recurringByTherapist = useMemo(() => {
+    const map = {};
+    for (const s of schedules) {
+      if (s.status !== "ACTIVE") continue;
+      const rawSlots = s.recurring_slots || s.sessions || [];
+      for (const slot of rawSlots) {
+        const tRaw = slot.therapist_id || slot.therapistId || s.therapist_id || "";
+        const tClean = String(tRaw).replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim().toLowerCase();
+        if (!tClean) continue;
+        if (!map[tClean]) map[tClean] = {};
+
+        const day = slot.day_of_week || slot.dayOfWeek || "Monday";
+        if (!map[tClean][day]) map[tClean][day] = [];
+
+        map[tClean][day].push({
+          childName: s.child_name,
+          parentPhone: s.parent_phone,
+          startTime: slot.start_time || slot.startTime || "10:00",
+          endTime: slot.end_time || slot.endTime || "10:45",
+          therapyName: slot.therapy_name || slot.therapy_type || s.therapy_type || "Therapy",
+          therapistId: tRaw,
+        });
+      }
+    }
+
+    // Sort slots chronologically
+    for (const t in map) {
+      for (const d in map[t]) {
+        map[t][d].sort((a, b) => a.startTime.localeCompare(b.startTime));
+      }
+    }
+    return map;
+  }, [schedules]);
+
+  // Helper: check availability status for a therapist on a specific date
   const isAvailable = (therapistName, department, dateIso, isSunday) => {
     if (isSunday) return false;
     const cleanName = String(therapistName || "").trim().toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "");
@@ -227,8 +346,20 @@ export default function AvailabilityManagerPage() {
     return true; // Default available
   };
 
+  // Helper: get recurring sessions for a therapist on a calendar day
+  const getDayRecurringSessions = (therapistName, dayOfWeekFull) => {
+    const cleanName = String(therapistName || "").trim().toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "");
+    for (const tKey in recurringByTherapist) {
+      if (tKey === cleanName || tKey.includes(cleanName) || cleanName.includes(tKey)) {
+        return recurringByTherapist[tKey]?.[dayOfWeekFull] || [];
+      }
+    }
+    return [];
+  };
+
   // Toggle availability handler
-  const handleToggle = async (therapist, day) => {
+  const handleToggle = async (therapist, day, e) => {
+    e?.stopPropagation();
     if (day.isSunday) return;
     if (!isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek)) return;
 
@@ -265,20 +396,17 @@ export default function AvailabilityManagerPage() {
       });
 
       showToast(
-        `${therapist.therapistName} marked ${
-          nextStatus ? "Available" : "Not Available"
-        } on ${day.display}`
+        `${therapist.therapistName} marked ${nextStatus ? "Available" : "Not Available"} on ${day.display}`
       );
     } catch (err) {
       alert("Failed to update availability: " + err.message);
-      // Rollback on error
       loadData();
     } finally {
       setUpdatingKey(null);
     }
   };
 
-  // Filter therapists by department (supporting multi-department clinicians)
+  // Filter therapists by department
   const filteredTherapists = useMemo(() => {
     if (selectedDeptFilter === "All") return CLINIC_THERAPISTS_ROSTER;
     return CLINIC_THERAPISTS_ROSTER.filter((t) => {
@@ -295,28 +423,41 @@ export default function AvailabilityManagerPage() {
     });
   }, [selectedDeptFilter]);
 
-  // Total stats based on scheduled working shifts
-  const { totalScheduledSlots, availableSlotsCount, unavailableSlotsCount } = useMemo(() => {
-    let totalScheduled = 0;
-    let availableCount = 0;
+  // Selected therapist object
+  const currentTherapistObj = useMemo(() => {
+    return CLINIC_THERAPISTS_ROSTER.find((t) => t.therapistName === selectedTherapistName) || CLINIC_THERAPISTS_ROSTER[0];
+  }, [selectedTherapistName]);
+
+  // Total stats for the active view
+  const { totalScheduledDays, totalAvailableDays, totalLeaveDays, totalRecurringSessionsInClinic } = useMemo(() => {
+    let scheduled = 0;
+    let avail = 0;
 
     filteredTherapists.forEach((t) => {
-      days.forEach((d) => {
+      activeDisplayDays.forEach((d) => {
         if (!d.isSunday && isTherapistScheduledWorking(t.therapistName, d.iso, d.dayOfWeek)) {
-          totalScheduled++;
+          scheduled++;
           if (isAvailable(t.therapistName, t.department, d.iso, d.isSunday)) {
-            availableCount++;
+            avail++;
           }
         }
       });
     });
 
+    let recurringCount = 0;
+    for (const t in recurringByTherapist) {
+      for (const d in recurringByTherapist[t]) {
+        recurringCount += recurringByTherapist[t][d].length;
+      }
+    }
+
     return {
-      totalScheduledSlots: totalScheduled,
-      availableSlotsCount: availableCount,
-      unavailableSlotsCount: totalScheduled - availableCount,
+      totalScheduledDays: scheduled,
+      totalAvailableDays: avail,
+      totalLeaveDays: scheduled - avail,
+      totalRecurringSessionsInClinic: recurringCount,
     };
-  }, [filteredTherapists, days, availabilityRecords]);
+  }, [filteredTherapists, activeDisplayDays, availabilityRecords, recurringByTherapist]);
 
   return (
     <div style={{ padding: 0, position: "relative" }}>
@@ -346,335 +487,972 @@ export default function AvailabilityManagerPage() {
         </div>
       )}
 
-      {/* ── Header ───────────────────────────────────────── */}
+      {/* ── Top Header & Navigation ───────────────────────── */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 20,
+          marginBottom: 16,
           flexWrap: "wrap",
           gap: 12,
         }}
       >
         <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#1a1a2e" }}>
-            📅 Availability Manager
-          </h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>
-            Real-time doctor &amp; therapist availability for WhatsApp bot bookings. Click any cell to toggle.
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "var(--text, #1a1a2e)" }}>
+              📅 Clinic Availability & Monthly Roster
+            </h2>
+            <Badge tone="teal">Pure Month Calendar</Badge>
+            <Badge tone="green">WhatsApp Bot &amp; Recurring Synced</Badge>
+          </div>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--muted, #64748b)" }}>
+            Full calendar month schedule for all clinic therapists. Live linked with Recurring Slot reservations &amp; WhatsApp Bot booking rules.
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Badge tone="green">WhatsApp Bot Synced</Badge>
-          <button
-            type="button"
-            onClick={loadData}
-            style={{
-              padding: "7px 16px",
-              borderRadius: 8,
-              border: "1px solid #d0d5dd",
-              background: "#fff",
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 500,
-              color: "#344054",
-              transition: "background 0.2s",
-            }}
-            onMouseEnter={(e) => (e.target.style.background = "#f2f4f7")}
-            onMouseLeave={(e) => (e.target.style.background = "#fff")}
-          >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {/* View Switcher */}
+          <div style={{ display: "flex", background: "var(--surface-2, #f1f5f9)", padding: 3, borderRadius: 8, border: "1px solid var(--line, #e2e8f0)" }}>
+            <button
+              type="button"
+              onClick={() => setActiveView("calendar")}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 6,
+                border: "none",
+                background: activeView === "calendar" ? "var(--accent, #0284c7)" : "transparent",
+                color: activeView === "calendar" ? "#fff" : "var(--text, #334155)",
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              📅 Month Calendar
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView("matrix")}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 6,
+                border: "none",
+                background: activeView === "matrix" ? "var(--accent, #0284c7)" : "transparent",
+                color: activeView === "matrix" ? "#fff" : "var(--text, #334155)",
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              📋 All Therapists Matrix
+            </button>
+          </div>
+
+          <Button variant="secondary" onClick={loadData}>
             ↻ Refresh
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* ── Stats Row ────────────────────────────────────── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 12,
-          marginBottom: 20,
-        }}
-      >
-        <StatCard label="Therapists Listed" value={filteredTherapists.length} hint="Active clinic roster" />
-        <StatCard label="Available Shifts" value={availableSlotsCount} hint="Open for booking" />
-        <StatCard label="Marked Off / Leave" value={unavailableSlotsCount} hint="Blocked from bot flow" />
-        <StatCard label="Booking Window" value="Today + 4 Days" hint="5-day rolling schedule" />
-      </div>
-
-      {/* ── Department Filter Tabs ────────────────────────── */}
+      {/* ── Month Navigation Bar ──────────────────────────── */}
       <div
         style={{
           display: "flex",
-          gap: 8,
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "var(--surface, #ffffff)",
+          border: "1px solid var(--line, #e2e8f0)",
+          borderRadius: 12,
+          padding: "12px 18px",
           marginBottom: 16,
-          overflowX: "auto",
-          paddingBottom: 4,
+          flexWrap: "wrap",
+          gap: 12,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         }}
       >
-        {DEPARTMENT_FILTERS.map((dept) => (
-          <button
-            key={dept}
-            type="button"
-            onClick={() => setSelectedDeptFilter(dept)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 20,
-              border: selectedDeptFilter === dept ? "1px solid #2563eb" : "1px solid #e2e8f0",
-              background: selectedDeptFilter === dept ? "#eff6ff" : "#ffffff",
-              color: selectedDeptFilter === dept ? "#1d4ed8" : "#475569",
-              fontSize: 12.5,
-              fontWeight: 600,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              transition: "all 0.15s",
-            }}
-          >
-            {dept}
-          </button>
-        ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--line, #cbd5e1)",
+                background: "var(--surface-2, #f8fafc)",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: 13,
+              }}
+              title="Previous Month"
+            >
+              ◀ Prev
+            </button>
+            <button
+              type="button"
+              onClick={handleToday}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--line, #cbd5e1)",
+                background: "var(--surface-2, #f8fafc)",
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 12.5,
+              }}
+            >
+              Current Month
+            </button>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--line, #cbd5e1)",
+                background: "var(--surface-2, #f8fafc)",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: 13,
+              }}
+              title="Next Month"
+            >
+              Next ▶
+            </button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 18, fontWeight: 800, color: "var(--text, #1e293b)" }}>
+              {MONTH_NAMES[selectedMonth]} {selectedYear}
+            </span>
+            <span style={{ fontSize: 12, color: "var(--muted, #64748b)" }}>
+              + Next: <strong>{MONTH_NAMES[nextMonthNum]} {nextMonthYear}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Month View Mode Switcher: Current / Next / Dual */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", background: "var(--surface-2, #f1f5f9)", padding: 3, borderRadius: 8, border: "1px solid var(--line, #e2e8f0)" }}>
+            <button
+              type="button"
+              onClick={() => setMonthViewMode("current")}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "none",
+                background: monthViewMode === "current" ? "var(--accent, #0284c7)" : "transparent",
+                color: monthViewMode === "current" ? "#fff" : "var(--text, #334155)",
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              📅 {MONTH_NAMES[selectedMonth].slice(0, 3)} (Current)
+            </button>
+            <button
+              type="button"
+              onClick={() => setMonthViewMode("next")}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "none",
+                background: monthViewMode === "next" ? "var(--accent, #0284c7)" : "transparent",
+                color: monthViewMode === "next" ? "#fff" : "var(--text, #334155)",
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              📅 {MONTH_NAMES[nextMonthNum].slice(0, 3)} (Next Month)
+            </button>
+            <button
+              type="button"
+              onClick={() => setMonthViewMode("dual")}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "none",
+                background: monthViewMode === "dual" ? "var(--accent, #0284c7)" : "transparent",
+                color: monthViewMode === "dual" ? "#fff" : "var(--text, #334155)",
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              👥 Dual Month View (Both)
+            </button>
+          </div>
+
+          {/* Quick Month Selector Dropdown */}
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--line, #cbd5e1)", background: "var(--surface, #fff)", fontWeight: 600, fontSize: 13 }}
+            >
+              {MONTH_NAMES.map((m, idx) => (
+                <option key={m} value={idx}>{m}</option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--line, #cbd5e1)", background: "var(--surface, #fff)", fontWeight: 600, fontSize: 13 }}
+            >
+              {[2025, 2026, 2027].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* ── Availability Table ───────────────────────────── */}
+      {/* ── Stat Cards ────────────────────────────────────── */}
       <div
         style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: 12,
-          overflowX: "auto",
-          background: "#ffffff",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 12,
+          marginBottom: 16,
         }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: "#f8fafc", textAlign: "left" }}>
-              <th
-                style={{
-                  padding: "14px 18px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
-                  borderBottom: "2px solid #e2e8f0",
-                  position: "sticky",
-                  left: 0,
-                  background: "#f8fafc",
-                  zIndex: 2,
-                  minWidth: 260,
-                }}
-              >
-                Therapist &amp; Department
-              </th>
-              {days.map((day) => (
-                <th
-                  key={day.iso}
-                  style={{
-                    padding: "14px 16px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: day.isSunday ? "#94a3b8" : "#475569",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                    borderBottom: "2px solid #e2e8f0",
-                    textAlign: "center",
-                    minWidth: 145,
-                    background: day.isToday ? "#eff6ff" : "#f8fafc",
-                  }}
-                >
-                  <div>{day.display}</div>
-                  {day.isToday && (
-                    <div style={{ fontSize: 10, color: "#2563eb", fontWeight: 700, marginTop: 2 }}>
-                      TODAY
-                    </div>
-                  )}
-                  {day.isSunday && (
-                    <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 500, marginTop: 2 }}>
-                      OFF (SUNDAY)
-                    </div>
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTherapists.map((therapist, idx) => {
-              return (
-                <tr
-                  key={`${therapist.therapistName}-${idx}`}
-                  style={{
-                    borderBottom: "1px solid #f1f5f9",
-                    background: idx % 2 === 0 ? "#ffffff" : "#fafbfc",
-                    transition: "background 0.15s",
-                  }}
-                >
-                  {/* Sticky Column: Therapist Name & Department Badges */}
-                  <td
+        <StatCard label="Clinic Therapists" value={filteredTherapists.length} hint="Active roster" />
+        <StatCard label="Monthly Shifts" value={totalScheduledDays} hint="Scheduled working days" />
+        <StatCard label="Available Shifts" value={totalAvailableDays} hint="Open for booking" />
+        <StatCard label="Leaves / Marked Off" value={totalLeaveDays} hint="Blocked from bot" />
+        <StatCard label="Recurring Slots Active" value={totalRecurringSessionsInClinic} hint="Prescribed routines / week" />
+      </div>
+
+      {/* ── VIEW 1: THERAPIST FULL MONTH CALENDAR VIEW (RECOMMENDED) ── */}
+      {activeView === "calendar" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Therapist Pills Bar */}
+          <div style={{ background: "var(--surface, #fff)", border: "1px solid var(--line, #e2e8f0)", borderRadius: 12, padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text, #1e293b)" }}>
+                Step 1: Choose Therapist to inspect their full month calendar &amp; recurring client routine:
+              </span>
+              <span style={{ fontSize: 11.5, color: "var(--muted, #64748b)" }}>
+                🟢 Click any working day to toggle Available vs Leave
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxHeight: 130, overflowY: "auto", padding: "2px 0" }}>
+              {CLINIC_THERAPISTS_ROSTER.map((t) => {
+                const isSelected = t.therapistName === selectedTherapistName;
+                const cleanT = t.therapistName.replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim().toLowerCase();
+                let recurringSessionsCount = 0;
+                for (const d in recurringByTherapist[cleanT] || {}) {
+                  recurringSessionsCount += (recurringByTherapist[cleanT][d] || []).length;
+                }
+
+                // Count available days in active view
+                let availThisMonth = 0;
+                activeDisplayDays.forEach((d) => {
+                  if (!d.isSunday && isTherapistScheduledWorking(t.therapistName, d.iso, d.dayOfWeek)) {
+                    if (isAvailable(t.therapistName, t.department, d.iso, d.isSunday)) {
+                      availThisMonth++;
+                    }
+                  }
+                });
+
+                return (
+                  <button
+                    key={t.therapistName}
+                    type="button"
+                    onClick={() => setSelectedTherapistName(t.therapistName)}
+                    className={`therapist-pill ${isSelected ? "is-active" : ""}`}
                     style={{
-                      padding: "14px 18px",
-                      position: "sticky",
-                      left: 0,
-                      background: idx % 2 === 0 ? "#ffffff" : "#fafbfc",
-                      zIndex: 1,
-                      borderRight: "1px solid #e2e8f0",
+                      padding: "6px 12px",
+                      borderRadius: 999,
+                      border: isSelected ? "2px solid var(--accent, #0284c7)" : "1px solid var(--line, #e2e8f0)",
+                      background: isSelected ? "var(--accent, #0284c7)" : "var(--surface, #fff)",
+                      color: isSelected ? "#fff" : "var(--text, #1e293b)",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
                     }}
                   >
-                    <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>
-                      {therapist.therapistName}
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, marginTop: 4 }}>
-                      {(therapist.departments || [therapist.department]).map((dept) => (
-                        <span
-                          key={dept}
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 600,
-                            padding: "1px 6px",
-                            borderRadius: 4,
-                            background: "#e0f2fe",
-                            color: "#0369a1",
-                          }}
-                        >
-                          {dept}
-                        </span>
-                      ))}
-                      <span style={{ fontSize: 11, color: "#94a3b8" }}>• {therapist.role}</span>
-                    </div>
-                    <div style={{ marginTop: 6 }}>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 600,
-                          padding: "2px 7px",
-                          borderRadius: 4,
-                          background: "#f8fafc",
-                          color: "#475569",
-                          border: "1px solid #e2e8f0",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          letterSpacing: 0.1,
-                        }}
-                        title="Official Clinical Shift Rules"
-                      >
-                        <span style={{ fontSize: 10 }}>🕒</span>
-                        <span>{getTherapistShiftWindow(therapist.therapistName)}</span>
+                    <span style={{ fontWeight: 700 }}>{t.therapistName}</span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        padding: "1px 6px",
+                        borderRadius: 6,
+                        background: isSelected ? "rgba(255,255,255,0.25)" : "var(--surface-2, #f1f5f9)",
+                        color: isSelected ? "#fff" : "var(--muted, #64748b)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {t.department.split(" ")[0]}
+                    </span>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: isSelected ? "#fff" : "#059669" }}>
+                      🟢 {availThisMonth}d
+                    </span>
+                    {recurringSessionsCount > 0 && (
+                      <span style={{ fontSize: 10, fontWeight: 800, color: isSelected ? "#fff" : "#7c3aed" }}>
+                        • {recurringSessionsCount} slots
                       </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Therapist Overview Banner */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "var(--surface-2, #f8fafc)",
+              border: "1px solid var(--line, #e2e8f0)",
+              borderRadius: 12,
+              padding: "10px 16px",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text, #1e293b)" }}>
+                👤 {currentTherapistObj.therapistName}
+              </span>
+              <span style={{ fontSize: 12, color: "var(--muted, #64748b)" }}>• {currentTherapistObj.role}</span>
+              <Badge tone="blue">{currentTherapistObj.department}</Badge>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                  background: "#fff",
+                  border: "1px solid var(--line, #cbd5e1)",
+                  color: "#334155",
+                }}
+              >
+                🕒 Shift: {getTherapistShiftWindow(currentTherapistObj.therapistName)}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, color: "var(--muted, #64748b)" }}>
+                Active:
+              </span>
+              <Badge tone="blue">{MONTH_NAMES[selectedMonth]} {selectedYear}</Badge>
+              <span style={{ fontSize: 12, color: "var(--muted, #64748b)" }}>&amp;</span>
+              <Badge tone="purple">{MONTH_NAMES[nextMonthNum]} {nextMonthYear} (Next Month)</Badge>
+            </div>
+          </div>
+
+          {/* ── 7-Day Monthly Calendar Grid(s) ─────────────────── */}
+          {(() => {
+            const renderCalendarGrid = (daysList, monthTitle, startOffset, isNextMonth) => {
+              return (
+                <div
+                  key={monthTitle}
+                  style={{
+                    background: "var(--surface, #fff)",
+                    border: isNextMonth ? "2px solid #d8b4fe" : "1px solid var(--line, #e2e8f0)",
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  {/* Month Header Banner */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "10px 18px",
+                      background: isNextMonth ? "#faf5ff" : "#f0f9ff",
+                      borderBottom: "1px solid var(--line, #e2e8f0)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: isNextMonth ? "#6b21a8" : "#0369a1" }}>
+                        📅 {monthTitle}
+                      </span>
+                      <span style={{ fontSize: 12, color: "var(--muted, #64748b)" }}>
+                        ({daysList.length} Days)
+                      </span>
+                      {isNextMonth ? (
+                        <Badge tone="purple">NEXT MONTH</Badge>
+                      ) : (
+                        <Badge tone="blue">CURRENT MONTH</Badge>
+                      )}
                     </div>
-                  </td>
+                    <span style={{ fontSize: 11.5, color: isNextMonth ? "#7c3aed" : "var(--muted, #64748b)", fontWeight: 600 }}>
+                      {isNextMonth ? "🔮 Advance Planning & Next Month Booking Roster" : "⚡ Live Clinic Operations"}
+                    </span>
+                  </div>
 
-                  {/* Date Cells */}
-                  {days.map((day) => {
-                    // 1. Sunday: Completely closed
-                    if (day.isSunday) {
+                  {/* Weekday Header */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(7, 1fr)",
+                      background: "var(--surface-2, #f8fafc)",
+                      borderBottom: "2px solid var(--line, #e2e8f0)",
+                      textAlign: "center",
+                    }}
+                  >
+                    {["SUN (Closed)", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((dName, idx) => (
+                      <div
+                        key={dName}
+                        style={{
+                          padding: "10px 6px",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: idx === 0 ? "#94a3b8" : "var(--text, #475569)",
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        {dName}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Days Matrix */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(7, 1fr)",
+                      gridAutoRows: "minmax(125px, auto)",
+                      gap: 1,
+                      background: "var(--line, #e2e8f0)",
+                    }}
+                  >
+                    {/* Leading Empty Cells */}
+                    {Array.from({ length: startOffset }).map((_, idx) => (
+                      <div key={`lead-${idx}`} style={{ background: "#f8fafc", opacity: 0.5 }} />
+                    ))}
+
+                    {/* Month Day Cells */}
+                    {daysList.map((day) => {
+                      const isScheduled = isTherapistScheduledWorking(currentTherapistObj.therapistName, day.iso, day.dayOfWeek);
+                      const available = isAvailable(currentTherapistObj.therapistName, currentTherapistObj.department, day.iso, day.isSunday);
+                      const recurringSessions = getDayRecurringSessions(currentTherapistObj.therapistName, day.dayOfWeekFull);
+                      const isUpdating = updatingKey === `${currentTherapistObj.therapistName}-${day.iso}`;
+
                       return (
-                        <td key={day.iso} style={{ padding: "10px 14px", textAlign: "center" }}>
-                          <div
-                            style={{
-                              padding: "8px 12px",
-                              borderRadius: 8,
-                              background: "#f1f5f9",
-                              color: "#94a3b8",
-                              fontSize: 12,
-                              fontWeight: 600,
-                              border: "1px dashed #cbd5e1",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 5,
-                            }}
-                            title="Clinic is closed on Sundays"
-                          >
-                            <span>🔒</span>
-                            <span>Clinic Closed</span>
-                          </div>
-                        </td>
-                      );
-                    }
-
-                    // 2. Scheduled Weekly Off
-                    const isScheduled = isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek);
-                    if (!isScheduled) {
-                      return (
-                        <td key={day.iso} style={{ padding: "10px 14px", textAlign: "center" }}>
-                          <div
-                            style={{
-                              padding: "8px 12px",
-                              borderRadius: 8,
-                              background: "#f8fafc",
-                              color: "#94a3b8",
-                              fontSize: 12,
-                              fontWeight: 600,
-                              border: "1px dashed #e2e8f0",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 5,
-                            }}
-                            title="Scheduled Weekly Off according to clinical roster"
-                          >
-                            <span style={{ fontSize: 10 }}>☕</span>
-                            <span>Weekly Off</span>
-                          </div>
-                        </td>
-                      );
-                    }
-
-                    // 3. Active Scheduled Working Day Toggle
-                    const available = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday);
-                    const key = `${therapist.therapistName}-${day.iso}`;
-                    const isUpdating = updatingKey === key;
-
-                    return (
-                      <td key={day.iso} style={{ padding: "10px 14px", textAlign: "center" }}>
-                        <button
-                          type="button"
-                          disabled={isUpdating}
-                          onClick={() => handleToggle(therapist, day)}
+                        <div
+                          key={day.iso}
+                          onClick={() =>
+                            setSelectedDayDetails({
+                              day,
+                              therapist: currentTherapistObj,
+                              available,
+                              isScheduled,
+                              recurringSessions,
+                            })
+                          }
                           style={{
-                            width: "100%",
-                            padding: "8px 12px",
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            transition: "all 0.15s ease-in-out",
-                            border: available ? "1px solid #10b981" : "1px solid #ef4444",
-                            background: available ? "#ecfdf5" : "#fef2f2",
-                            color: available ? "#059669" : "#dc2626",
+                            background: day.isToday ? "#f0f9ff" : "#ffffff",
+                            padding: "8px 9px",
                             display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 6,
-                            opacity: isUpdating ? 0.6 : 1,
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            cursor: "pointer",
+                            transition: "background 0.15s",
+                            position: "relative",
+                            border: day.isToday ? "2px solid var(--accent, #0284c7)" : "none",
                           }}
                           onMouseEnter={(e) => {
-                            if (!isUpdating) {
-                              e.currentTarget.style.transform = "translateY(-1px)";
-                              e.currentTarget.style.boxShadow = "0 2px 5px rgba(0,0,0,0.1)";
-                            }
+                            if (!day.isToday) e.currentTarget.style.background = "#f8fafc";
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "none";
-                            e.currentTarget.style.boxShadow = "none";
+                            if (!day.isToday) e.currentTarget.style.background = "#ffffff";
                           }}
-                          title={`Click to mark ${available ? "Not Available" : "Available"}`}
                         >
-                          <span>{available ? "●" : "✕"}</span>
-                          <span>{available ? "Available" : "Not Available"}</span>
-                        </button>
-                      </td>
-                    );
-                  })}
-                </tr>
+                          {/* Day Top: Date Number & Indicators */}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <span
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: 800,
+                                  color: day.isToday ? "var(--accent, #0284c7)" : day.isSunday ? "#94a3b8" : "var(--text, #1e293b)",
+                                }}
+                              >
+                                {day.d}
+                              </span>
+                              <span style={{ fontSize: 10, color: "var(--muted, #64748b)" }}>
+                                {day.monthStr}
+                              </span>
+                            </div>
+                            {day.isToday && (
+                              <span style={{ fontSize: 9.5, fontWeight: 800, padding: "1px 5px", borderRadius: 4, background: "var(--accent, #0284c7)", color: "#fff" }}>
+                                TODAY
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Day Middle: Status / Shift / Toggle */}
+                          <div style={{ marginBottom: 6 }}>
+                            {day.isSunday ? (
+                              <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}>
+                                <span>🔒</span>
+                                <span>Clinic Closed</span>
+                              </div>
+                            ) : !isScheduled ? (
+                              <div style={{ fontSize: 10.5, color: "#b45309", background: "#fef3c7", padding: "2px 5px", borderRadius: 4, fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}>
+                                <span>☕</span>
+                                <span>Weekly Off</span>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={(e) => handleToggle(currentTherapistObj, day, e)}
+                                style={{
+                                  width: "100%",
+                                  padding: "4px 6px",
+                                  borderRadius: 6,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  transition: "all 0.15s",
+                                  border: available ? "1px solid #10b981" : "1px solid #ef4444",
+                                  background: available ? "#ecfdf5" : "#fef2f2",
+                                  color: available ? "#059669" : "#dc2626",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 4,
+                                  opacity: isUpdating ? 0.6 : 1,
+                                }}
+                                title="Click to toggle Available vs Leave"
+                              >
+                                <span>{available ? "●" : "✕"}</span>
+                                <span>{available ? "Available" : "Not Available"}</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Day Bottom: Recurring Slot Reservations */}
+                          <div style={{ minHeight: 32 }}>
+                            {recurringSessions.length > 0 ? (
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 700,
+                                    color: "#6b21a8",
+                                    background: "rgba(147, 51, 234, 0.08)",
+                                    padding: "2px 5px",
+                                    borderRadius: 4,
+                                    marginBottom: 3,
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <span>👥 {recurringSessions.length} Recurring</span>
+                                  <span style={{ fontSize: 9.5 }}>View →</span>
+                                </div>
+                                {/* Mini previews */}
+                                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                  {recurringSessions.slice(0, 2).map((s, sIdx) => (
+                                    <div
+                                      key={sIdx}
+                                      style={{
+                                        fontSize: 10,
+                                        color: "var(--text, #334155)",
+                                        background: "#f1f5f9",
+                                        padding: "1px 4px",
+                                        borderRadius: 3,
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                      }}
+                                      title={`${s.startTime} - ${s.childName} (${s.therapyName})`}
+                                    >
+                                      <strong>{s.startTime}</strong> {s.childName}
+                                    </div>
+                                  ))}
+                                  {recurringSessions.length > 2 && (
+                                    <span style={{ fontSize: 9.5, color: "var(--muted, #64748b)" }}>
+                                      +{recurringSessions.length - 2} more...
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : isScheduled && available ? (
+                              <div style={{ fontSize: 10, color: "#059669", fontWeight: 600 }}>
+                                ✓ All Slots Free
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Trailing Empty Cells */}
+                    {Array.from({ length: (7 - ((startOffset + daysList.length) % 7)) % 7 }).map((_, idx) => (
+                      <div key={`trail-${idx}`} style={{ background: "#f8fafc", opacity: 0.5 }} />
+                    ))}
+                  </div>
+                </div>
               );
-            })}
-          </tbody>
-        </table>
-      </div>
+            };
+
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {(monthViewMode === "dual" || monthViewMode === "current") &&
+                  renderCalendarGrid(
+                    currentMonthDays,
+                    `${MONTH_NAMES[selectedMonth]} ${selectedYear}`,
+                    firstDayOfWeekCurrent,
+                    false
+                  )}
+
+                {(monthViewMode === "dual" || monthViewMode === "next") &&
+                  renderCalendarGrid(
+                    nextMonthDays,
+                    `${MONTH_NAMES[nextMonthNum]} ${nextMonthYear}`,
+                    firstDayOfWeekNext,
+                    true
+                  )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── VIEW 2: CLINIC MASTER MONTH MATRIX SPREADSHEET ── */}
+      {activeView === "matrix" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Department Filter Tabs */}
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+            {DEPARTMENT_FILTERS.map((dept) => (
+              <button
+                key={dept}
+                type="button"
+                onClick={() => setSelectedDeptFilter(dept)}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 20,
+                  border: selectedDeptFilter === dept ? "1px solid var(--accent, #0284c7)" : "1px solid var(--line, #e2e8f0)",
+                  background: selectedDeptFilter === dept ? "var(--accent-soft, #e0f2fe)" : "var(--surface, #ffffff)",
+                  color: selectedDeptFilter === dept ? "var(--accent, #0284c7)" : "var(--text, #475569)",
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {dept}
+              </button>
+            ))}
+          </div>
+
+          {/* Scrollable Month Matrix Table */}
+          <div
+            style={{
+              border: "1px solid var(--line, #e2e8f0)",
+              borderRadius: 12,
+              overflowX: "auto",
+              background: "var(--surface, #ffffff)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            }}
+          >
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-2, #f8fafc)", textAlign: "left" }}>
+                  <th
+                    style={{
+                      padding: "12px 16px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "var(--muted, #64748b)",
+                      textTransform: "uppercase",
+                      borderBottom: "2px solid var(--line, #e2e8f0)",
+                      position: "sticky",
+                      left: 0,
+                      background: "var(--surface-2, #f8fafc)",
+                      zIndex: 3,
+                      minWidth: 240,
+                    }}
+                  >
+                    Therapist &amp; Role
+                  </th>
+                  {activeDisplayDays.map((day) => (
+                    <th
+                      key={day.iso}
+                      style={{
+                        padding: "10px 12px",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        color: day.isSunday ? "#94a3b8" : "var(--text, #475569)",
+                        borderBottom: "2px solid var(--line, #e2e8f0)",
+                        textAlign: "center",
+                        minWidth: 105,
+                        background: day.isToday ? "#e0f2fe" : day.isSunday ? "#f8fafc" : undefined,
+                      }}
+                    >
+                      <div style={{ fontSize: 10, color: "var(--muted, #64748b)" }}>{day.monthStr}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800 }}>{day.d}</div>
+                      <div>{day.weekdayStr}</div>
+                      {day.isToday && <span style={{ fontSize: 9, color: "var(--accent, #0284c7)", fontWeight: 800 }}>TODAY</span>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTherapists.map((therapist, idx) => (
+                  <tr
+                    key={therapist.therapistName}
+                    style={{
+                      borderBottom: "1px solid var(--line, #f1f5f9)",
+                      background: idx % 2 === 0 ? "#ffffff" : "#fafbfc",
+                    }}
+                  >
+                    {/* Sticky Therapist Name Column */}
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        position: "sticky",
+                        left: 0,
+                        background: idx % 2 === 0 ? "#ffffff" : "#fafbfc",
+                        zIndex: 2,
+                        borderRight: "1px solid var(--line, #e2e8f0)",
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, color: "var(--text, #1e293b)", fontSize: 13.5 }}>
+                        {therapist.therapistName}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--muted, #64748b)", marginTop: 2 }}>
+                        {therapist.department}
+                      </div>
+                    </td>
+
+                    {/* Cells for all active days */}
+                    {activeDisplayDays.map((day) => {
+                      if (day.isSunday) {
+                        return (
+                          <td key={day.iso} style={{ padding: "8px 6px", textAlign: "center", background: "#f8fafc" }}>
+                            <span style={{ fontSize: 10, color: "#94a3b8" }}>Closed</span>
+                          </td>
+                        );
+                      }
+
+                      const isScheduled = isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek);
+                      if (!isScheduled) {
+                        return (
+                          <td key={day.iso} style={{ padding: "8px 6px", textAlign: "center" }}>
+                            <span style={{ fontSize: 10, color: "#b45309", background: "#fef3c7", padding: "2px 4px", borderRadius: 4 }}>
+                              Off
+                            </span>
+                          </td>
+                        );
+                      }
+
+                      const available = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday);
+                      const recurringSessions = getDayRecurringSessions(therapist.therapistName, day.dayOfWeekFull);
+                      const key = `${therapist.therapistName}-${day.iso}`;
+                      const isUpdating = updatingKey === key;
+
+                      return (
+                        <td key={day.iso} style={{ padding: "8px 6px", textAlign: "center" }}>
+                          <button
+                            type="button"
+                            disabled={isUpdating}
+                            onClick={(e) => handleToggle(therapist, day, e)}
+                            style={{
+                              width: "100%",
+                              padding: "4px 6px",
+                              borderRadius: 6,
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              border: available ? "1px solid #10b981" : "1px solid #ef4444",
+                              background: available ? "#ecfdf5" : "#fef2f2",
+                              color: available ? "#059669" : "#dc2626",
+                              opacity: isUpdating ? 0.6 : 1,
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <span>{available ? "● Avail" : "✕ Off"}</span>
+                            {recurringSessions.length > 0 && (
+                              <span style={{ fontSize: 9.5, color: "#7c3aed", fontWeight: 800 }}>
+                                {recurringSessions.length} slots
+                              </span>
+                            )}
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Day Details & Recurring Slot Breakdown Modal ── */}
+      {selectedDayDetails && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setSelectedDayDetails(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 99999,
+          }}
+        >
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#ffffff",
+              borderRadius: 14,
+              padding: 24,
+              maxWidth: 600,
+              width: "92%",
+              maxHeight: "85vh",
+              overflowY: "auto",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid #e2e8f0", paddingBottom: 14, marginBottom: 16 }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1e293b" }}>
+                    📅 {selectedDayDetails.day.display} ({selectedDayDetails.day.iso})
+                  </h3>
+                  {selectedDayDetails.day.isToday && <Badge tone="blue">TODAY</Badge>}
+                </div>
+                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>
+                  Therapist: <strong>{selectedDayDetails.therapist.therapistName}</strong> ({selectedDayDetails.therapist.department})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedDayDetails(null)}
+                style={{ fontSize: 18, background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Shift & Working Status Card */}
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Official Shift Window:</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginTop: 2 }}>
+                    🕒 {getTherapistShiftWindow(selectedDayDetails.therapist.therapistName)}
+                  </div>
+                </div>
+
+                <div>
+                  {selectedDayDetails.day.isSunday ? (
+                    <Badge tone="slate">Clinic Closed</Badge>
+                  ) : !selectedDayDetails.isScheduled ? (
+                    <Badge tone="orange">Scheduled Weekly Off</Badge>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        handleToggle(selectedDayDetails.therapist, selectedDayDetails.day, e);
+                        setSelectedDayDetails((prev) => ({
+                          ...prev,
+                          available: !prev.available,
+                        }));
+                      }}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: 8,
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        border: selectedDayDetails.available ? "1px solid #10b981" : "1px solid #ef4444",
+                        background: selectedDayDetails.available ? "#ecfdf5" : "#fef2f2",
+                        color: selectedDayDetails.available ? "#059669" : "#dc2626",
+                      }}
+                    >
+                      {selectedDayDetails.available ? "● Status: Available (Click to Mark Off)" : "✕ Status: On Leave (Click to Mark Available)"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Recurring Slot Appointments on this Day */}
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>
+                  👥 Prescribed Recurring Routine Sessions ({selectedDayDetails.recurringSessions.length}):
+                </span>
+                <span style={{ fontSize: 11, color: "#64748b" }}>Every {selectedDayDetails.day.dayOfWeekFull}</span>
+              </div>
+
+              {selectedDayDetails.recurringSessions.length === 0 ? (
+                <div style={{ background: "#ecfdf5", border: "1px dashed #10b981", borderRadius: 10, padding: 14, textAlign: "center", color: "#059669", fontSize: 13 }}>
+                  ✓ No recurring routines booked on this day yet. All working hours are open for new bookings!
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {selectedDayDetails.recurringSessions.map((session, sIdx) => (
+                    <div
+                      key={sIdx}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        fontSize: 13,
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 700, color: "#1e293b" }}>
+                          {session.childName} <span style={{ fontWeight: 500, color: "#64748b", fontSize: 12 }}>({session.parentPhone})</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: "#7c3aed", fontWeight: 600, marginTop: 2 }}>
+                          {session.therapyName}
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0284c7", background: "#e0f2fe", padding: "3px 8px", borderRadius: 6 }}>
+                          ⏰ {session.startTime} - {session.endTime}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Bottom Actions */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20, borderTop: "1px solid #e2e8f0", paddingTop: 14 }}>
+              <Button onClick={() => setSelectedDayDetails(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

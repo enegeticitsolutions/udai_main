@@ -120,6 +120,23 @@ export async function handlePaymentWebhook(req, res) {
                     catch (chatErr) {
                         console.warn("⚠️ [Payment Webhook] chatbotsubmissions sync warning:", chatErr.message);
                     }
+                    // Sync to routineBookings collection for this specific booking
+                    try {
+                        await db.collection("routineBookings").updateOne({ bookingId: bookingId }, {
+                            $set: {
+                                paymentStatus: "PAID",
+                                status: "CONFIRMED",
+                                bookingStatus: "confirmed",
+                                transactionId: transactionId || bookingId,
+                                paymentCompletedAt: nowIso,
+                                updatedAt: nowDate,
+                            },
+                        });
+                        console.log(`✅ [Payment Webhook] Synced specific routineBookings record (${bookingId})`);
+                    }
+                    catch (rbErr) {
+                        console.warn("⚠️ [Payment Webhook] routineBookings sync warning:", rbErr.message);
+                    }
                 }
                 else {
                     console.warn(`⚠️ [Payment Webhook] No appointment found matching bookingId: "${bookingId}"`);

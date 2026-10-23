@@ -57,7 +57,8 @@ schedulesRouter.post("/", async (req, res) => {
     }
     catch (err) {
         console.error("[Schedules] POST error:", err);
-        res.status(500).json({ success: false, message: err.message || "Failed to create schedule" });
+        const isConflict = err.message?.includes("Collision detected") || err.message?.includes("must contain between");
+        res.status(isConflict ? 409 : 500).json({ success: false, message: err.message || "Failed to create schedule" });
     }
 });
 /**
@@ -82,7 +83,8 @@ schedulesRouter.patch("/:id", async (req, res) => {
     }
     catch (err) {
         console.error("[Schedules] PATCH error:", err);
-        res.status(500).json({ success: false, message: err.message || "Failed to update schedule" });
+        const isConflict = err.message?.includes("Collision detected") || err.message?.includes("must contain between");
+        res.status(isConflict ? 409 : 500).json({ success: false, message: err.message || "Failed to update schedule" });
     }
 });
 /**
@@ -123,7 +125,8 @@ schedulesRouter.post("/bulk", async (req, res) => {
     }
     catch (err) {
         console.error("[Schedules] BULK error:", err);
-        res.status(500).json({ success: false, message: err.message || "Failed to bulk upload schedules" });
+        const isConflict = err.message?.includes("Collision detected") || err.message?.includes("must contain between");
+        res.status(isConflict ? 409 : 500).json({ success: false, message: err.message || "Failed to bulk upload schedules" });
     }
 });
 /**
