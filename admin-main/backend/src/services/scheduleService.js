@@ -136,13 +136,19 @@ function normalizeDoc(doc) {
       therapist_id: therapist,
       therapistId: therapist,
       therapist_name: therapist,
+      slot_type: s.slot_type || s.slotType || rest.slot_type || rest.slotType || "OTA",
+      slotType: s.slot_type || s.slotType || rest.slot_type || rest.slotType || "OTA",
     };
   });
 
+  const cleanId = _id ? _id.toString() : String(rest.id ?? "");
+  const topSlotType = rest.slot_type || rest.slotType || "OTA";
   return {
-    id: _id ? _id.toString() : String(rest.id ?? ""),
-    _id: _id ? _id.toString() : String(rest.id ?? ""),
     ...rest,
+    id: cleanId,
+    _id: cleanId,
+    slot_type: topSlotType,
+    slotType: topSlotType,
     recurring_slots: normalizedSlots,
     sessions: normalizedSlots,
   };
@@ -322,11 +328,20 @@ export async function findTherapistScheduleCollision(options) {
     if (!slotTherapist) continue;
 
     for (const existing of activeSchedules) {
-      const existingId = String(existing._id || existing.id || "");
-      if (options.id && existingId === String(options.id)) continue;
+      const existingId = String(existing.id ?? "");
+      const existingMongoId = String(existing._id ?? "");
+      const targetId = String(options.id ?? "");
+      if (targetId && (existingId === targetId || existingMongoId === targetId)) continue;
       if (
         options.child_name &&
         String(existing.child_name || "").toLowerCase().trim() === String(options.child_name || "").toLowerCase().trim()
+      ) {
+        continue;
+      }
+      if (
+        options.parent_phone &&
+        normalizePhone(options.parent_phone) &&
+        normalizePhone(options.parent_phone) === normalizePhone(existing.parent_phone)
       ) {
         continue;
       }
@@ -428,6 +443,8 @@ export async function createSchedule(data) {
     parent_phone: String(data.parent_phone || data.parentPhone || data.phone || "").trim(),
     therapist_id: derivedTherapistId,
     therapy_type: derivedTherapyType,
+    slot_type: data.slot_type || data.slotType || "OTA",
+    slotType: data.slot_type || data.slotType || "OTA",
     recurring_slots: finalSlots,
     sessions: finalSlots,
     status: (data.status || "ACTIVE").toUpperCase(),
@@ -439,6 +456,7 @@ export async function createSchedule(data) {
   // Anti-collision check
   const collision = await findTherapistScheduleCollision({
     child_name: payload.child_name,
+    parent_phone: payload.parent_phone,
     therapist_id: payload.therapist_id,
     recurring_slots: payload.recurring_slots,
     sessions: payload.sessions,
@@ -498,6 +516,8 @@ export async function updateSchedule(id, updates) {
     "sessions",
     "status",
     "notes",
+    "slot_type",
+    "slotType",
   ];
   const cleanUpdates = { updatedAt: new Date().toISOString() };
 
@@ -537,6 +557,8 @@ export async function updateSchedule(id, updates) {
             therapist_id: therapist,
             therapistId: therapist,
             therapist_name: therapist,
+            slot_type: s.slot_type || s.slotType || updates.slot_type || updates.slotType || "OTA",
+            slotType: s.slot_type || s.slotType || updates.slot_type || updates.slotType || "OTA",
           };
         });
         cleanUpdates.recurring_slots = mapped;
@@ -575,6 +597,7 @@ export async function updateSchedule(id, updates) {
     const collision = await findTherapistScheduleCollision({
       id: String(id),
       child_name: targetChildName,
+      parent_phone: cleanUpdates.parent_phone || current.parent_phone,
       recurring_slots: targetSlots,
       sessions: targetSlots,
       status: targetStatus,
@@ -641,7 +664,7 @@ export async function bulkUpsertSchedules(rows) {
 
 export async function getReservedSlotsForDate(dateStr, therapistId) {
   const dayOfWeek = getDayOfWeekFromDate(dateStr);
-  if (!dayOfWeek || dayOfWeek === "Sunday") return [];
+  if (!dayOfWeek) return [];
 
   const all = await listSchedules({ status: "ACTIVE", day_of_week: dayOfWeek });
   const reserved = [];

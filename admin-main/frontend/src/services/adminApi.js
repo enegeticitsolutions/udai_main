@@ -263,6 +263,38 @@ export function patchAppointmentStatus(id, bookingStatus) {
   });
 }
 
+export function createDirectBooking(payload) {
+  return request("/appointments/direct-booking", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteAppointment(id) {
+  return request(`/appointments/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function getSlotOverrides(params = {}) {
+  const query = new URLSearchParams(params).toString();
+  return request(`/slot-overrides${query ? `?${query}` : ""}`);
+}
+
+export function createSlotOverride(payload) {
+  return request("/slot-overrides", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteSlotOverride(id) {
+  return request(`/slot-overrides/${id}`, {
+    method: "DELETE",
+  });
+}
+
+
 export async function uploadImageFile(file) {
   const formData = new FormData();
   formData.append("image", file);

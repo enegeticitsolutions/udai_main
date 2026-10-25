@@ -25,6 +25,11 @@ import {
   listAppointments,
   subscribeToAppointmentEvents,
   updateAppointmentStatus,
+  createDirectAdminBooking,
+  deleteAppointment,
+  listSlotOverrides,
+  upsertSlotOverride,
+  removeSlotOverride,
 } from "../services/appointmentService.js";
 import {
   listSchedules,
@@ -232,6 +237,59 @@ adminRouter.patch("/appointments/:id/status", async (req, res, next) => {
       res.status(400).json({ success: false, message: error.message });
       return;
     }
+    next(error);
+  }
+});
+
+adminRouter.post("/appointments/direct-booking", async (req, res, next) => {
+  try {
+    const booking = await createDirectAdminBooking(req.body);
+    res.status(201).json({
+      success: true,
+      data: booking,
+      message: `Slot booked successfully for ${booking.patientName} (${booking.appointmentDate} ${booking.appointmentTime}) without payment.`,
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message || "Failed to create direct booking" });
+  }
+});
+
+adminRouter.delete("/appointments/:id", async (req, res, next) => {
+  try {
+    const deleted = await deleteAppointment(req.params.id);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: "Appointment not found" });
+      return;
+    }
+    res.json({ success: true, data: deleted, message: "Appointment deleted and slot released." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.get("/slot-overrides", async (req, res, next) => {
+  try {
+    const overrides = await listSlotOverrides(req.query);
+    res.json({ success: true, data: overrides });
+  } catch (error) {
+    next(error);
+  }
+});
+
+adminRouter.post("/slot-overrides", async (req, res, next) => {
+  try {
+    const saved = await upsertSlotOverride(req.body);
+    res.status(201).json({ success: true, data: saved, message: "Slot override saved successfully." });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message || "Failed to save slot override" });
+  }
+});
+
+adminRouter.delete("/slot-overrides/:id", async (req, res, next) => {
+  try {
+    const removed = await removeSlotOverride(req.params.id);
+    res.json({ success: true, removed, message: "Slot override removed." });
+  } catch (error) {
     next(error);
   }
 });
@@ -1204,7 +1262,7 @@ adminRouter.post("/schedules", async (req, res, next) => {
     const created = await createSchedule(req.body);
     res.status(201).json({ success: true, data: created, message: "Child schedule created successfully" });
   } catch (error) {
-    const isConflict = error.message?.includes("Collision detected") || error.message?.includes("Maximum 15");
+    const isConflict = error.message?.includes("Collision detected") || error.message?.includes("Maximum");
     if (isConflict) {
       res.status(409).json({ success: false, message: error.message });
       return;
@@ -1222,7 +1280,7 @@ adminRouter.patch("/schedules/:id", async (req, res, next) => {
     }
     res.json({ success: true, data: updated, message: "Schedule updated successfully" });
   } catch (error) {
-    const isConflict = error.message?.includes("Collision detected") || error.message?.includes("Maximum 15");
+    const isConflict = error.message?.includes("Collision detected") || error.message?.includes("Maximum");
     if (isConflict) {
       res.status(409).json({ success: false, message: error.message });
       return;
@@ -1255,7 +1313,7 @@ adminRouter.post("/schedules/bulk", async (req, res, next) => {
       message: `Successfully processed ${inserted.length} recurring schedules`,
     });
   } catch (error) {
-    const isConflict = error.message?.includes("Collision detected") || error.message?.includes("Maximum 15");
+    const isConflict = error.message?.includes("Collision detected") || error.message?.includes("Maximum");
     if (isConflict) {
       res.status(409).json({ success: false, message: error.message });
       return;

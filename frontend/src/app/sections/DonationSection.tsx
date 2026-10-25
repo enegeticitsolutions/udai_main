@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { apiPost } from "../lib/api";
+import { loadRazorpayScript } from "../lib/razorpay";
 import { getImageUrl } from "../lib/imageUtils";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
@@ -163,12 +164,121 @@ export function DonationSection() {
         ? formData.phone.replace(/\D/g, "").slice(-10)
         : "";
 
+      const purposeText = formData.purpose.trim() || activeCause.defaultPurpose;
+
+      // 1. PRIMARY FLOW: Standard Razorpay Checkout via /payments/create-order
+      // Eliminates the test-mode 30-link quota and opens the secure Razorpay popup with UPI, QR, Cards, Netbanking
+      try {
+        const orderRes = await apiPost<any>("/payments/create-order", {
+          amount: effectiveAmount,
+          currency: "INR",
+          receipt: `don_${Date.now()}`,
+          notes: {
+            customerName: formData.name.trim(),
+            customerEmail: formData.email.trim(),
+            customerPhone: cleanPhone,
+            purpose: purposeText,
+            donationCategory: selectedCause,
+            pan: formData.pan.trim(),
+          },
+        });
+
+        const scriptLoaded = await loadRazorpayScript();
+        const razorpayKey =
+          orderRes?.keyId ||
+          (import.meta.env.VITE_RAZORPAY_KEY_ID as string) ||
+          "";
+
+        if (!razorpayKey) {
+          throw new Error("Razorpay Key ID is not configured. Please check environment configuration.");
+        }
+
+        if (scriptLoaded && window.Razorpay && orderRes?.order?.id) {
+          const rzp = new window.Razorpay({
+            key: razorpayKey,
+            amount: effectiveAmount * 100,
+            currency: "INR",
+            name: "UDAI Foundation",
+            description: `Donation: ${purposeText}`,
+            order_id: orderRes.order.id,
+            prefill: {
+              name: formData.name.trim(),
+              email: formData.email.trim(),
+              contact: cleanPhone || undefined,
+            },
+            notes: {
+              purpose: purposeText,
+              category: selectedCause,
+              pan: formData.pan.trim(),
+            },
+            theme: {
+              color: "#c95b38",
+            },
+            modal: {
+              ondismiss: () => {
+                setIsSubmitting(false);
+              },
+            },
+            handler: async (response) => {
+              setIsSubmitting(true);
+              try {
+                // Verify signature & save donation to DB and fileStore
+                await apiPost<any>("/payments/verify-payment", {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  donation: {
+                    name: formData.name.trim(),
+                    email: formData.email.trim(),
+                    phone: cleanPhone,
+                    amount: effectiveAmount,
+                    purpose: purposeText,
+                    category: selectedCause,
+                    pan: formData.pan.trim(),
+                  },
+                });
+              } catch (verifyErr) {
+                console.warn("⚠️ Client-side verify notice:", verifyErr);
+              }
+
+              // Smoothly navigate to success receipt page
+              window.location.href = `/donation-success?paymentId=${encodeURIComponent(
+                response.razorpay_payment_id
+              )}&amount=${effectiveAmount}&customerName=${encodeURIComponent(
+                formData.name.trim()
+              )}&status=paid`;
+            },
+          });
+
+          rzp.on("payment.failed", (errRes: any) => {
+            setIsSubmitting(false);
+            setFeedback(
+              errRes?.error?.description ||
+                errRes?.error?.reason ||
+                "Payment failed. Please try again or choose another payment method."
+            );
+          });
+
+          rzp.open();
+          return;
+        }
+      } catch (orderErr: any) {
+        console.warn(
+          "⚠️ Standard Checkout order creation notice, falling back to link:",
+          orderErr
+        );
+        if (orderErr?.message && !orderErr.message.includes("script")) {
+          throw orderErr;
+        }
+      }
+
+      // 2. FALLBACK FLOW: Payment Link (if Razorpay Checkout script blocked or order creation failed)
       const res = await apiPost<any>("/payments/razorpay/create-payment-link", {
         amount: effectiveAmount,
         customerName: formData.name.trim(),
         customerEmail: formData.email.trim(),
         customerPhone: cleanPhone,
-        purpose: formData.purpose.trim() || activeCause.defaultPurpose,
+        purpose: purposeText,
         donationCategory: selectedCause,
         callbackUrl: `${window.location.origin}/donation-success`,
         pan: formData.pan.trim(),

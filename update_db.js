@@ -1,5 +1,9 @@
 import { MongoClient } from "mongodb";
-const uri = "mongodb+srv://tripathishubh0099_db_user:32MjeqtkKKImOTC9@cluster0.uvehy1j.mongodb.net/?appName=Cluster0";
+const uri = process.env.MONGODB_URI || "";
+if (!uri) {
+  console.error("MONGODB_URI environment variable is required.");
+  process.exit(1);
+}
 const client = new MongoClient(uri);
 
 async function run() {

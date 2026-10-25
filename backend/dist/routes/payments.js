@@ -393,7 +393,7 @@ paymentsRouter.post("/razorpay/verify", async (req, res, next) => {
  * Body: { amount: number, currency?: string, receipt?: string, notes?: object }
  * Creates a Razorpay Order ID via Razorpay SDK and returns order details.
  */
-paymentsRouter.post("/create-order", async (req, res, next) => {
+async function createOrderHandler(req, res, next) {
     try {
         requireRazorpayConfig();
         const { amount, amountInPaise, currency = "INR", receipt, notes } = req.body ?? {};
@@ -433,16 +433,20 @@ paymentsRouter.post("/create-order", async (req, res, next) => {
             error: error?.error || error,
         });
     }
-});
+}
+paymentsRouter.post("/create-order", createOrderHandler);
+paymentsRouter.post("/razorpay/create-order", createOrderHandler);
+paymentsRouter.post("/payments/create-order", createOrderHandler);
+paymentsRouter.post("/payments/razorpay/create-order", createOrderHandler);
 /**
  * POST /api/verify-payment (and /api/payments/verify-payment)
- * Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
- * Verifies HMAC-SHA256 signature using RAZORPAY_KEY_SECRET.
+ * Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature, donation?: object }
+ * Verifies HMAC-SHA256 signature using RAZORPAY_KEY_SECRET and persists donation/order records.
  */
-paymentsRouter.post("/verify-payment", async (req, res, next) => {
+async function verifyPaymentHandler(req, res, next) {
     try {
         requireRazorpayConfig();
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body ?? {};
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, donation } = req.body ?? {};
         console.log("[Razorpay Verify Received]:", { razorpay_order_id, razorpay_payment_id, razorpay_signature });
         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
             res.status(400).json({
@@ -465,11 +469,90 @@ paymentsRouter.post("/verify-payment", async (req, res, next) => {
             return;
         }
         console.log("✅ [Razorpay Verification Success] Payment ID:", razorpay_payment_id, "Order ID:", razorpay_order_id);
+        // If donation details are provided, record to donations & orders collections and trigger email
+        const donationData = donation || {};
+        const customerName = (donationData.name || req.body?.customerName || "Supporter").trim();
+        const customerEmail = (donationData.email || req.body?.customerEmail || "").trim();
+        const customerPhone = (donationData.phone || req.body?.customerPhone || "").trim();
+        const amountInr = Number(donationData.amount || req.body?.amount || 0);
+        const purpose = (donationData.purpose || req.body?.purpose || "UDAI Rehab Support").trim();
+        const category = (donationData.category || req.body?.donationCategory || "general").trim();
+        const pan = (donationData.pan || req.body?.pan || "").trim();
+        if (amountInr > 0 || customerEmail) {
+            const orderNumber = `DON-${Date.now()}`;
+            const donationRecord = {
+                name: customerName,
+                email: customerEmail,
+                phone: customerPhone,
+                amount: amountInr,
+                currency: "INR",
+                purpose,
+                category,
+                pan,
+                transactionId: razorpay_payment_id,
+                razorpayOrderId: razorpay_order_id,
+                razorpayPaymentId: razorpay_payment_id,
+                paymentStatus: "paid",
+                orderStatus: "confirmed",
+                paymentMethod: "razorpay_checkout",
+                createdAt: new Date().toISOString(),
+            };
+            try {
+                await appendRecord("donations.json", donationRecord);
+            }
+            catch (fileErr) {
+                console.warn("⚠️ Failed to write donation to donations.json:", fileErr);
+            }
+            if (isMongoConnected()) {
+                try {
+                    await getMongoDb().collection("donations").insertOne(donationRecord);
+                }
+                catch (mongoErr) {
+                    console.warn("⚠️ Failed to insert donation into MongoDB:", mongoErr);
+                }
+            }
+            // Record in local orders for admin dashboard visibility
+            try {
+                await appendRecord("orders.json", {
+                    customerName,
+                    customerEmail,
+                    customerPhone,
+                    items: [],
+                    shippingAddress: null,
+                    subtotal: amountInr,
+                    shippingAmount: 0,
+                    totalAmount: amountInr,
+                    currency: "INR",
+                    paymentMethod: "razorpay_checkout",
+                    paymentStatus: "paid",
+                    orderStatus: "confirmed",
+                    orderNumber,
+                    razorpayOrderId: razorpay_order_id,
+                    razorpayPaymentId: razorpay_payment_id,
+                    purpose,
+                    category,
+                });
+            }
+            catch (orderStoreErr) {
+                console.warn("⚠️ Failed to record order for donation:", orderStoreErr);
+            }
+            // Send 80G confirmation receipt email if donor email is provided
+            if (customerEmail) {
+                triggerConfirmationEmailIfPaid({
+                    customerEmail,
+                    customerName,
+                    totalAmount: amountInr,
+                    razorpayPaymentId: razorpay_payment_id,
+                    razorpayOrderId: razorpay_order_id,
+                }).catch((err) => console.error("🚨 Error sending donation confirmation email:", err));
+            }
+        }
         res.json({
             success: true,
             message: "Payment verified successfully",
             paymentId: razorpay_payment_id,
             orderId: razorpay_order_id,
+            amount: amountInr,
         });
     }
     catch (error) {
@@ -480,7 +563,11 @@ paymentsRouter.post("/verify-payment", async (req, res, next) => {
             error,
         });
     }
-});
+}
+paymentsRouter.post("/verify-payment", verifyPaymentHandler);
+paymentsRouter.post("/razorpay/verify-payment", verifyPaymentHandler);
+paymentsRouter.post("/payments/verify-payment", verifyPaymentHandler);
+paymentsRouter.post("/payments/razorpay/verify-payment", verifyPaymentHandler);
 /**
  * POST /api/create-payment-link (and /api/payments/create-payment-link, /api/payments/razorpay/create-payment-link)
  * Body: { amount: number, customerName?: string, customerEmail?: string, customerPhone?: string, purpose?: string, donationCategory?: string, callbackUrl?: string }

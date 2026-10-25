@@ -2,21 +2,18 @@ export const adminUsers = [
   {
     name: "Admin One",
     email: "admin1@udai.in",
-    password: "111111",
     role: "admin",
     isActive: true,
   },
   {
     name: "Admin Two",
     email: "admin2@udai.in",
-    password: "222222",
     role: "editor",
     isActive: true,
   },
   {
     name: "Admin Three",
     email: "admin3@udai.in",
-    password: "333333",
     role: "viewer",
     isActive: true,
   },

@@ -52,6 +52,7 @@ import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
 import WhatsAppMessagesPage from "./components/WhatsAppMessagesPage";
 import AvailabilityManagerPage from "./components/AvailabilityManagerPage";
 import RecurringSlotsPage from "./components/RecurringSlotsPage";
+import SchoolHoldPage from "./components/SchoolHoldPage";
 import DonationsPage from "./components/DonationsPage";
 import OrdersPage from "./components/OrdersPage";
 import DashboardPage from "./components/DashboardPage";
@@ -87,6 +88,7 @@ const roleSections = {
     "Therapist Management",
     "Availability Manager",
     "Recurring Slots",
+    "Hold for School",
     "Products",
     "Career Management",
     "Upcoming Events",
@@ -108,6 +110,7 @@ const roleSections = {
     "Therapist Management",
     "Availability Manager",
     "Recurring Slots",
+    "Hold for School",
     "Products",
     "Career Management",
     "Upcoming Events",
@@ -125,6 +128,7 @@ const roleSections = {
     "Therapist Management",
     "Availability Manager",
     "Recurring Slots",
+    "Hold for School",
   ],
   finance: ["Orders / Purchases", "Corporate Inquiries", "Donations", "Reports / Analytics"],
   viewer: ["Dashboard", "Orders / Purchases", "Corporate Inquiries", "Donations", "Reports / Analytics"],
@@ -286,8 +290,8 @@ function autoAssignInquiries(items, therapistMap) {
 }
 
 function LoginScreen({ onLogin }) {
-  const [email, setEmail] = useState("superadmin@udai.in");
-  const [password, setPassword] = useState("SuperAdmin@123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
@@ -298,7 +302,7 @@ function LoginScreen({ onLogin }) {
     setLoading(true);
 
     try {
-      const user = await adminLogin({ email, password });
+      const user = await adminLogin({ email: email.trim(), password });
       onLogin(user);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid credentials.");
@@ -314,13 +318,24 @@ function LoginScreen({ onLogin }) {
         <h1>Login to UDAI Admin Panel</h1>
         <p>Access patient appointments, donations, store orders, and staff controls.</p>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <Input label="Email (Login ID)" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <form onSubmit={handleSubmit} className="login-form" autoComplete="off">
+          <Input
+            label="Email (Login ID)"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="admin@udai.in"
+            autoComplete="off"
+            required
+          />
           <Input
             label="Password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter password"
+            autoComplete="current-password"
+            required
           />
           {error && <div className="error-box">{error}</div>}
           <Button type="submit" disabled={loading}>
@@ -344,50 +359,11 @@ function LoginScreen({ onLogin }) {
           >
             🔑 Reset Login ID or Password
           </button>
-
-          <div style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "4px" }}>
-            Quick Demo Logins:{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("superadmin@udai.in");
-                setPassword("SuperAdmin@123");
-              }}
-              style={{
-                background: "#f1f5f9",
-                border: "1px solid #cbd5e1",
-                borderRadius: "4px",
-                padding: "2px 6px",
-                fontSize: "0.72rem",
-                cursor: "pointer",
-                marginRight: "4px",
-              }}
-            >
-              Super Admin
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("admin1@udai.in");
-                setPassword("111111");
-              }}
-              style={{
-                background: "#f1f5f9",
-                border: "1px solid #cbd5e1",
-                borderRadius: "4px",
-                padding: "2px 6px",
-                fontSize: "0.72rem",
-                cursor: "pointer",
-              }}
-            >
-              Admin One
-            </button>
-          </div>
         </div>
 
         {showResetModal && (
           <ResetCredentialsModal
-            currentUser={{ email }}
+            currentUser={email ? { email: email.trim() } : null}
             onClose={() => setShowResetModal(false)}
             onUpdateUser={(updated) => {
               if (updated?.email) setEmail(updated.email);
@@ -2035,9 +2011,21 @@ export default function App() {
           />
         );
       case "Availability Manager":
-        return <AvailabilityManagerPage />;
+        return <AvailabilityManagerPage therapists={therapists} />;
       case "Recurring Slots":
-        return <RecurringSlotsPage />;
+        return (
+          <RecurringSlotsPage
+            therapists={therapists}
+            onSwitchToSchool={() => setActiveSection("Hold for School")}
+          />
+        );
+      case "Hold for School":
+        return (
+          <SchoolHoldPage
+            therapists={therapists}
+            onSwitchToRecurring={() => setActiveSection("Recurring Slots")}
+          />
+        );
       case "Products":
         return (
           <ProductsPage

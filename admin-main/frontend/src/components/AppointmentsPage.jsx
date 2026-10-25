@@ -3,8 +3,17 @@ import Badge from "./Badge";
 import Button from "./Button";
 import Input from "./Input";
 import StatCard from "./StatCard";
-import { APPOINTMENT_EVENTS_URL, getAppointment, getAppointmentMetrics, getAppointments, patchAppointmentStatus } from "../services/adminApi";
+import {
+  APPOINTMENT_EVENTS_URL,
+  getAppointment,
+  getAppointmentMetrics,
+  getAppointments,
+  patchAppointmentStatus,
+  createDirectBooking,
+  deleteAppointment,
+} from "../services/adminApi";
 import { getScheduleDays } from "./WhatsAppMessagesPage";
+import { CLINIC_THERAPISTS_ROSTER } from "./AvailabilityManagerPage";
 
 const statusTone = { pending: "amber", confirmed: "green", completed: "blue", cancelled: "red" };
 
@@ -39,6 +48,21 @@ export default function AppointmentsPage() {
   const [alert, setAlert] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Direct Booking & Hold Modal state
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+  const [bookForm, setBookForm] = useState({
+    bookingType: "USER", // "USER" | "SCHOOL"
+    childName: "",
+    phoneNumber: "",
+    therapistName: CLINIC_THERAPISTS_ROSTER[0].therapistName,
+    department: CLINIC_THERAPISTS_ROSTER[0].department,
+    appointmentDate: new Date().toISOString().slice(0, 10),
+    appointmentTime: "10:00",
+    mainConcern: "",
+  });
+
   const load = useCallback(async () => {
     const [list, nextMetrics] = await Promise.all([getAppointments(filters), getAppointmentMetrics()]);
     setAppointments(list?.items ?? []);
@@ -52,6 +76,61 @@ export default function AppointmentsPage() {
     const poller = setInterval(() => load().catch(() => {}), 15_000);
     return () => clearInterval(poller);
   }, [load]);
+
+  async function handleCreateDirectBooking(e) {
+    e.preventDefault();
+    setBookingError("");
+    setIsSubmittingBooking(true);
+    try {
+      const isSchool = bookForm.bookingType === "SCHOOL";
+      const payload = {
+        childName: isSchool ? "School Hold" : bookForm.childName.trim(),
+        phoneNumber: isSchool ? "0000000000" : bookForm.phoneNumber.trim(),
+        therapistName: bookForm.therapistName,
+        department: bookForm.department,
+        appointmentDate: bookForm.appointmentDate,
+        appointmentTime: bookForm.appointmentTime,
+        mainConcern: bookForm.mainConcern.trim() || (isSchool ? "School Hold (Admin Reserved)" : "Direct Admin Booking"),
+        isSchoolHold: isSchool,
+      };
+
+      if (!isSchool && !payload.childName) {
+        throw new Error("Please enter patient/child name");
+      }
+
+      const res = await createDirectBooking(payload);
+      setAlert(res?.message || "Slot booked successfully without payment.");
+      setIsBookModalOpen(false);
+      setBookForm({
+        bookingType: "USER",
+        childName: "",
+        phoneNumber: "",
+        therapistName: CLINIC_THERAPISTS_ROSTER[0].therapistName,
+        department: CLINIC_THERAPISTS_ROSTER[0].department,
+        appointmentDate: new Date().toISOString().slice(0, 10),
+        appointmentTime: "10:00",
+        mainConcern: "",
+      });
+      await load();
+    } catch (err) {
+      setBookingError(err.message || "Failed to book slot");
+    } finally {
+      setIsSubmittingBooking(false);
+    }
+  }
+
+  async function handleDeleteAppointment(id, patientName) {
+    if (!confirm(`Are you sure you want to delete and release the slot for "${patientName}"? This will make the slot available again on WhatsApp & Web.`)) {
+      return;
+    }
+    try {
+      await deleteAppointment(id);
+      setAlert(`Slot for "${patientName}" deleted and released successfully.`);
+      await load();
+    } catch (err) {
+      setAlert(`Failed to delete appointment: ${err.message}`);
+    }
+  }
 
   useEffect(() => {
     const events = new EventSource(APPOINTMENT_EVENTS_URL);
@@ -101,12 +180,37 @@ export default function AppointmentsPage() {
 
   return (
     <section className="content-card">
-      <div className="section-head">
+      <div className="section-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2>WhatsApp Therapist Appointments</h2>
-          <p className="section-copy">Completed MSG91 therapist bookings saved in the appointments collection.</p>
+          <h2>WhatsApp &amp; Direct Appointments</h2>
+          <p className="section-copy">Completed bookings and offline/school hold reservations.</p>
         </div>
-        <Badge tone="green">Live sync</Badge>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setBookingError("");
+              setIsBookModalOpen(true);
+            }}
+            style={{
+              background: "#2563eb",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: 0,
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(37,99,235,0.25)",
+            }}
+          >
+            <span>+ Direct Book / Hold Slot (Free)</span>
+          </button>
+          <Badge tone="green">Live sync</Badge>
+        </div>
       </div>
 
       {alert && (
@@ -117,7 +221,7 @@ export default function AppointmentsPage() {
       )}
 
       <div className="panel-grid">
-        <StatCard label="Total Bookings" value={metrics.totalBookings ?? 0} hint="All MSG91 appointments" />
+        <StatCard label="Total Bookings" value={metrics.totalBookings ?? 0} hint="All MSG91 & direct appointments" />
         <StatCard label="Today's Bookings" value={metrics.todayBookings ?? 0} hint="Scheduled today" />
         <StatCard label="Pending" value={metrics.pendingBookings ?? 0} hint="Need confirmation" />
         <StatCard label="Confirmed" value={metrics.confirmedBookings ?? 0} hint="Approved bookings" />
@@ -149,9 +253,19 @@ export default function AppointmentsPage() {
           <tbody>
             {displayAppointments.length === 0 ? <tr><td colSpan="11" style={{ textAlign: "center", padding: "24px" }}>{loading ? "Loading appointments..." : "No appointments found."}</td></tr> : displayAppointments.map((item) => {
               const sDays = getScheduleDays(item);
+              const isAdminDirect = item.bookedBy === "ADMIN";
+              const isSchool = item.isSchoolHold || item.source === "school-hold" || /school/i.test(item.patientName || item.childName);
+
               return (
                 <tr key={item.id}>
-                  <td>{item.bookingId}</td><td>{item.patientName}</td><td>{item.phoneNumber}</td><td>{item.therapistName}</td>
+                  <td>{item.bookingId}</td>
+                  <td>
+                    <strong>{item.patientName || item.childName}</strong>
+                    {isSchool && <span style={{ marginLeft: 6, fontSize: 10, background: "#fef3c7", color: "#92400e", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>🏫 School Hold</span>}
+                    {isAdminDirect && !isSchool && <span style={{ marginLeft: 6, fontSize: 10, background: "#f3e8ff", color: "#7e22ce", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>🟣 Direct</span>}
+                  </td>
+                  <td>{item.phoneNumber || item.parentPhone}</td>
+                  <td>{item.therapistName}</td>
                   <td>
                     <div>{dateTime(item)}</div>
                     {sDays.length > 1 && (
@@ -184,9 +298,36 @@ export default function AppointmentsPage() {
                   </td>
                   <td>{item.session_frequency || <span style={{color:"var(--muted)"}}>—</span>}</td>
                   <td style={{textAlign:"center"}}>{item.totalSessions ?? <span style={{color:"var(--muted)"}}>—</span>}</td>
-                  <td style={{fontWeight:600}}>{item.feeCharged != null ? `₹${item.feeCharged}` : <span style={{color:"var(--muted)"}}>—</span>}</td>
-                  <td><Badge tone={statusTone[item.bookingStatus] || "slate"}>{item.bookingStatus}</Badge></td>
-                  <td><Button variant="secondary" onClick={() => openDetails(item.id)}>View</Button></td>
+                  <td style={{fontWeight:600}}>{item.feeCharged != null ? `₹${item.feeCharged}` : (isAdminDirect ? <span style={{ color: "#059669", fontSize: 11, fontWeight: 700 }}>Free (Admin)</span> : <span style={{color:"var(--muted)"}}>—</span>)}</td>
+                  <td>
+                    <Badge tone={isSchool ? "amber" : statusTone[item.bookingStatus] || "slate"}>
+                      {isSchool ? "School Hold" : item.bookingStatus}
+                    </Badge>
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      <Button variant="secondary" onClick={() => openDetails(item.id)}>View</Button>
+                      {isAdminDirect && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAppointment(item.id, item.patientName || item.childName)}
+                          title="Release / Cancel Slot"
+                          style={{
+                            border: "1px solid #fca5a5",
+                            background: "#fef2f2",
+                            color: "#b91c1c",
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          ✕ Release
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -198,6 +339,207 @@ export default function AppointmentsPage() {
         <span>Page {pagination.page} of {pagination.pages || 1} · {pagination.total} records</span>
         <div style={{ display: "flex", gap: "8px" }}><Button variant="secondary" disabled={pagination.page <= 1} onClick={() => updateFilter("page", pagination.page - 1)}>Previous</Button><Button variant="secondary" disabled={pagination.page >= pagination.pages} onClick={() => updateFilter("page", pagination.page + 1)}>Next</Button></div>
       </div>
+
+      {/* Direct Booking & Hold Slot Modal */}
+      {isBookModalOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "grid", placeItems: "center", padding: "20px", background: "rgba(15,23,42,.55)", backdropFilter: "blur(2px)" }}>
+          <div className="content-card" style={{ width: "min(600px, 100%)", maxHeight: "92vh", overflow: "auto", borderRadius: 14 }}>
+            <div className="section-head" style={{ borderBottom: "1px solid var(--line)", paddingBottom: 12, marginBottom: 16 }}>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 800 }}>⚡ Direct Slot Booking &amp; Hold</h2>
+                <p className="section-copy" style={{ fontSize: 12 }}>Book for a user or hold for School without any payment. Instantly hidden from WhatsApp &amp; Web.</p>
+              </div>
+              <button type="button" onClick={() => setIsBookModalOpen(false)} style={{ border: 0, background: "transparent", fontSize: "24px", cursor: "pointer", color: "var(--muted)" }}>&times;</button>
+            </div>
+
+            {bookingError && (
+              <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#b91c1c", fontSize: 13, marginBottom: 16 }}>
+                ⚠️ {bookingError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateDirectBooking} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Mode Selector */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", display: "block", marginBottom: 6 }}>
+                  Booking Purpose:
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setBookForm((p) => ({ ...p, bookingType: "USER", childName: p.childName === "School Hold" ? "" : p.childName }))}
+                    style={{
+                      padding: "10px",
+                      borderRadius: 8,
+                      border: bookForm.bookingType === "USER" ? "2px solid #2563eb" : "1px solid var(--line)",
+                      background: bookForm.bookingType === "USER" ? "#eff6ff" : "var(--surface)",
+                      color: bookForm.bookingType === "USER" ? "#1e40af" : "var(--text)",
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      textAlign: "center",
+                    }}
+                  >
+                    👤 Direct User Booking
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBookForm((p) => ({ ...p, bookingType: "SCHOOL", childName: "School Hold" }))}
+                    style={{
+                      padding: "10px",
+                      borderRadius: 8,
+                      border: bookForm.bookingType === "SCHOOL" ? "2px solid #f59e0b" : "1px solid var(--line)",
+                      background: bookForm.bookingType === "SCHOOL" ? "#fffbeb" : "var(--surface)",
+                      color: bookForm.bookingType === "SCHOOL" ? "#b45309" : "var(--text)",
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      textAlign: "center",
+                    }}
+                  >
+                    🏫 School Hold (Internal)
+                  </button>
+                </div>
+              </div>
+
+              {/* Therapist & Department */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <label className="field">
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Therapist:</span>
+                  <select
+                    value={bookForm.therapistName}
+                    onChange={(e) => {
+                      const tName = e.target.value;
+                      const matched = CLINIC_THERAPISTS_ROSTER.find((r) => r.therapistName === tName);
+                      setBookForm((p) => ({
+                        ...p,
+                        therapistName: tName,
+                        department: matched?.department || p.department,
+                      }));
+                    }}
+                    style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 13 }}
+                  >
+                    {CLINIC_THERAPISTS_ROSTER.map((t) => (
+                      <option key={t.therapistName} value={t.therapistName}>
+                        {t.therapistName} ({t.department})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="field">
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Department:</span>
+                  <input
+                    type="text"
+                    value={bookForm.department}
+                    onChange={(e) => setBookForm((p) => ({ ...p, department: e.target.value }))}
+                    style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 13 }}
+                  />
+                </label>
+              </div>
+
+              {/* Date & Time */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <label className="field">
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Appointment Date:</span>
+                  <input
+                    type="date"
+                    required
+                    value={bookForm.appointmentDate}
+                    onChange={(e) => setBookForm((p) => ({ ...p, appointmentDate: e.target.value }))}
+                    style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 13 }}
+                  />
+                </label>
+
+                <label className="field">
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Time Slot:</span>
+                  <select
+                    value={bookForm.appointmentTime}
+                    onChange={(e) => setBookForm((p) => ({ ...p, appointmentTime: e.target.value }))}
+                    style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 13 }}
+                  >
+                    {["09:00", "09:45", "10:00", "10:45", "11:00", "11:45", "12:00", "12:45", "14:00", "14:45", "15:00", "15:45", "16:00", "16:45", "17:00", "17:45"].map((time) => (
+                      <option key={time} value={time}>{time}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {/* Patient Name & Phone */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <label className="field">
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>
+                    {bookForm.bookingType === "SCHOOL" ? "Hold Title:" : "Patient / Child Name *:"}
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    placeholder={bookForm.bookingType === "SCHOOL" ? "e.g. School Routine Session" : "e.g. Aarav Sharma"}
+                    value={bookForm.childName}
+                    onChange={(e) => setBookForm((p) => ({ ...p, childName: e.target.value }))}
+                    style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 13 }}
+                  />
+                </label>
+
+                <label className="field">
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Parent Contact Phone:</span>
+                  <input
+                    type="tel"
+                    placeholder="e.g. 9899681972"
+                    value={bookForm.phoneNumber}
+                    onChange={(e) => setBookForm((p) => ({ ...p, phoneNumber: e.target.value }))}
+                    style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 13 }}
+                  />
+                </label>
+              </div>
+
+              {/* Major Concerns / Notes */}
+              <label className="field">
+                <span style={{ fontSize: 12, fontWeight: 600 }}>Concern / Clinical Note:</span>
+                <input
+                  type="text"
+                  placeholder="e.g. Speech evaluation, school reserved session, etc."
+                  value={bookForm.mainConcern}
+                  onChange={(e) => setBookForm((p) => ({ ...p, mainConcern: e.target.value }))}
+                  style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 13 }}
+                />
+              </label>
+
+              {/* Notice */}
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "10px 12px", borderRadius: 8, fontSize: 12, color: "#166534" }}>
+                🔒 <strong>Zero Payment:</strong> This slot will be directly marked confirmed for free. It will be <strong>immediately hidden from WhatsApp &amp; Web</strong> so no external user can book it.
+              </div>
+
+              {/* Submit Buttons */}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setIsBookModalOpen(false)}
+                  style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid var(--line)", background: "transparent", cursor: "pointer", fontSize: 13 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingBooking}
+                  style={{
+                    padding: "8px 20px",
+                    borderRadius: 6,
+                    border: 0,
+                    background: bookForm.bookingType === "SCHOOL" ? "#d97706" : "#2563eb",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: isSubmittingBooking ? "not-allowed" : "pointer",
+                    fontSize: 13,
+                  }}
+                >
+                  {isSubmittingBooking ? "Booking..." : bookForm.bookingType === "SCHOOL" ? "Confirm School Hold" : "Confirm Direct Booking"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {selected && (
         <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "grid", placeItems: "center", padding: "20px", background: "rgba(15,23,42,.48)" }}>
@@ -253,3 +595,4 @@ export default function AppointmentsPage() {
     </section>
   );
 }
+

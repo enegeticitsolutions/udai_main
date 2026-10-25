@@ -258,7 +258,7 @@ export function Appointment() {
         const scriptLoaded = await loadRazorpayScript();
         if (scriptLoaded && window.Razorpay && orderRes?.order?.id) {
           const rzp = new window.Razorpay({
-            key: orderRes.keyId || "rzp_test_fallback",
+            key: orderRes.keyId || (import.meta.env.VITE_RAZORPAY_KEY_ID as string) || "",
             amount: bookingAmount * 100,
             currency: "INR",
             name: "UDAI Rehab",

@@ -17,6 +17,8 @@ export interface IRecurringSlot {
   therapist_id?: string;
   therapistId?: string;
   therapist_name?: string;
+  slot_type?: "OTA" | "School";
+  slotType?: "OTA" | "School";
 }
 
 export interface IChildSchedule extends Document {
@@ -24,6 +26,8 @@ export interface IChildSchedule extends Document {
   parent_phone: string;
   therapist_id?: string;
   therapy_type?: string;
+  slot_type?: "OTA" | "School";
+  slotType?: "OTA" | "School";
   recurring_slots: IRecurringSlot[];
   sessions?: IRecurringSlot[];
   status: "ACTIVE" | "PAUSED";
@@ -59,6 +63,16 @@ const RecurringSlotSchema = new Schema<IRecurringSlot>(
     therapist_id: { type: String, trim: true },
     therapistId: { type: String, trim: true },
     therapist_name: { type: String, trim: true },
+    slot_type: {
+      type: String,
+      enum: ["OTA", "School"],
+      default: "OTA",
+    },
+    slotType: {
+      type: String,
+      enum: ["OTA", "School"],
+      default: "OTA",
+    },
   },
   { _id: false }
 );
@@ -87,18 +101,28 @@ const ChildScheduleSchema = new Schema<IChildSchedule>(
       trim: true,
       default: "",
     },
+    slot_type: {
+      type: String,
+      enum: ["OTA", "School"],
+      default: "OTA",
+    },
+    slotType: {
+      type: String,
+      enum: ["OTA", "School"],
+      default: "OTA",
+    },
     recurring_slots: {
       type: [RecurringSlotSchema],
       validate: {
         validator: function (v: IRecurringSlot[]) {
-          if (!Array.isArray(v) || v.length < 1 || v.length > 25) return false;
+          if (!Array.isArray(v) || v.length > 25) return false;
           // Ensure no duplicate day + time slots for the same child
           const uniqueKeys = new Set(v.map((s) => `${s.day_of_week || s.dayOfWeek}_${s.start_time || s.startTime}`));
           return uniqueKeys.size === v.length;
         },
-        message: "recurring_slots must contain between 1 and 25 unique slots.",
+        message: "recurring_slots cannot exceed 25 unique slots.",
       },
-      required: true,
+      default: [],
     },
     sessions: {
       type: [RecurringSlotSchema],

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { bulkUpsertSchedules, createSchedule, deleteSchedule, getReservedSlotsForDate, listSchedules, updateSchedule, verifyParent, getDayOfWeekFromDate, } from "../services/scheduleService.js";
-import { getAvailableSlots } from "../services/bookingService.js";
+import { getAvailableSlots, getSpecialAvailableTherapists } from "../services/bookingService.js";
 import { WebhookMessage } from "../models/WebhookMessage.js";
 export const schedulesRouter = Router();
 /**
@@ -57,7 +57,7 @@ schedulesRouter.post("/", async (req, res) => {
     }
     catch (err) {
         console.error("[Schedules] POST error:", err);
-        const isConflict = err.message?.includes("Collision detected") || err.message?.includes("must contain between");
+        const isConflict = err.message?.includes("Collision detected") || err.message?.includes("must contain between") || err.message?.includes("cannot exceed");
         res.status(isConflict ? 409 : 500).json({ success: false, message: err.message || "Failed to create schedule" });
     }
 });
@@ -83,7 +83,7 @@ schedulesRouter.patch("/:id", async (req, res) => {
     }
     catch (err) {
         console.error("[Schedules] PATCH error:", err);
-        const isConflict = err.message?.includes("Collision detected") || err.message?.includes("must contain between");
+        const isConflict = err.message?.includes("Collision detected") || err.message?.includes("must contain between") || err.message?.includes("cannot exceed");
         res.status(isConflict ? 409 : 500).json({ success: false, message: err.message || "Failed to update schedule" });
     }
 });
@@ -125,7 +125,7 @@ schedulesRouter.post("/bulk", async (req, res) => {
     }
     catch (err) {
         console.error("[Schedules] BULK error:", err);
-        const isConflict = err.message?.includes("Collision detected") || err.message?.includes("must contain between");
+        const isConflict = err.message?.includes("Collision detected") || err.message?.includes("must contain between") || err.message?.includes("cannot exceed");
         res.status(isConflict ? 409 : 500).json({ success: false, message: err.message || "Failed to bulk upload schedules" });
     }
 });
@@ -147,13 +147,14 @@ slotsRouter.get("/available", async (req, res) => {
             return res.status(400).json({ success: false, message: "Date is required (YYYY-MM-DD)" });
         }
         const dayOfWeek = getDayOfWeekFromDate(rawDate);
-        if (!dayOfWeek || dayOfWeek === "Sunday") {
+        const specialTherapists = await getSpecialAvailableTherapists(rawDate);
+        if ((!dayOfWeek || dayOfWeek === "Sunday") && specialTherapists.length === 0) {
             return res.status(200).json({
                 success: true,
                 date: rawDate,
                 day_of_week: dayOfWeek || "Sunday",
                 therapist_id: therapistId,
-                message: "Clinic is closed on Sundays",
+                message: "Clinic is closed on Sundays (No special working shifts opened)",
                 reserved_slots: [],
                 available_slots: [],
             });

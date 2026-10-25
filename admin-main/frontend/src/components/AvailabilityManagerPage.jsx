@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Badge from "./Badge";
 import StatCard from "./StatCard";
 import Button from "./Button";
-import { getAvailability, toggleAvailability, getSchedules } from "../services/adminApi";
+import { getAvailability, toggleAvailability, getSchedules, getAdminBootstrap } from "../services/adminApi";
 
 /**
  * Returns the formatted clinical shift window badge text for each therapist.
@@ -188,7 +188,7 @@ function buildDaysForMonth(year, month) {
   return arr;
 }
 
-export default function AvailabilityManagerPage() {
+export default function AvailabilityManagerPage({ therapists: propTherapists = [] }) {
   const today = new Date();
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth()); // 0-11
@@ -196,6 +196,56 @@ export default function AvailabilityManagerPage() {
   const [activeView, setActiveView] = useState("calendar"); // "calendar" | "matrix"
   const [selectedTherapistName, setSelectedTherapistName] = useState(CLINIC_THERAPISTS_ROSTER[2].therapistName); // Default Ms. Nikki
   const [selectedDeptFilter, setSelectedDeptFilter] = useState("All");
+
+  const [liveTherapists, setLiveTherapists] = useState(propTherapists);
+
+  useEffect(() => {
+    if (Array.isArray(propTherapists) && propTherapists.length > 0) {
+      setLiveTherapists(propTherapists);
+      return;
+    }
+    getAdminBootstrap()
+      .then((data) => {
+        if (data?.therapists?.length > 0) {
+          setLiveTherapists(data.therapists);
+        }
+      })
+      .catch(() => {});
+  }, [propTherapists]);
+
+  const dynamicRoster = useMemo(() => {
+    const roster = [];
+    const seen = new Set();
+
+    if (Array.isArray(liveTherapists) && liveTherapists.length > 0) {
+      liveTherapists.filter((t) => t.active !== false).forEach((t) => {
+        const name = (t.name || t.therapistName || "").trim();
+        if (!name || seen.has(name.toLowerCase())) return;
+        seen.add(name.toLowerCase());
+
+        const existing = CLINIC_THERAPISTS_ROSTER.find(
+          (c) => c.therapistName.toLowerCase() === name.toLowerCase()
+        );
+
+        roster.push({
+          id: t.id || t._id,
+          therapistName: name,
+          department: t.department || existing?.department || "General",
+          departments: existing?.departments || [t.department || "General"],
+          role: t.role || existing?.role || t.department || "Therapist",
+        });
+      });
+    }
+
+    CLINIC_THERAPISTS_ROSTER.forEach((c) => {
+      if (!seen.has(c.therapistName.toLowerCase())) {
+        seen.add(c.therapistName.toLowerCase());
+        roster.push(c);
+      }
+    });
+
+    return roster;
+  }, [liveTherapists]);
 
   const [availabilityRecords, setAvailabilityRecords] = useState([]);
   const [schedules, setSchedules] = useState([]);
@@ -309,7 +359,7 @@ export default function AvailabilityManagerPage() {
 
         const day = slot.day_of_week || slot.dayOfWeek || "Monday";
         if (!map[tClean][day]) map[tClean][day] = [];
-
+        const slotType = slot.slot_type || slot.slotType || s.slot_type || s.slotType || "OTA";
         map[tClean][day].push({
           childName: s.child_name,
           parentPhone: s.parent_phone,
@@ -317,6 +367,7 @@ export default function AvailabilityManagerPage() {
           endTime: slot.end_time || slot.endTime || "10:45",
           therapyName: slot.therapy_name || slot.therapy_type || s.therapy_type || "Therapy",
           therapistId: tRaw,
+          slotType: slotType,
         });
       }
     }
@@ -331,8 +382,7 @@ export default function AvailabilityManagerPage() {
   }, [schedules]);
 
   // Helper: check availability status for a therapist on a specific date
-  const isAvailable = (therapistName, department, dateIso, isSunday) => {
-    if (isSunday) return false;
+  const isAvailable = (therapistName, department, dateIso, isSunday, isScheduled) => {
     const cleanName = String(therapistName || "").trim().toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "");
 
     const record = availabilityRecords.find((r) => {
@@ -340,10 +390,19 @@ export default function AvailabilityManagerPage() {
       return (rName === cleanName || rName.includes(cleanName) || cleanName.includes(rName)) && r.date === dateIso;
     });
 
+    // If an explicit database record exists for this date, ALWAYS honor the admin's setting!
     if (record) {
-      return record.isAvailable !== false;
+      return record.isAvailable === true;
     }
-    return true; // Default available
+
+    // Default when no database record exists:
+    // Sunday or off-duty days are naturally off (false).
+    // Scheduled working days are naturally available (true).
+    if (isSunday || isScheduled === false) {
+      return false;
+    }
+
+    return true; // Default available for normal working days
   };
 
   // Helper: get recurring sessions for a therapist on a calendar day
@@ -357,13 +416,12 @@ export default function AvailabilityManagerPage() {
     return [];
   };
 
-  // Toggle availability handler
+  // Toggle availability handler (supports dynamically opening Sunday & Week-off days)
   const handleToggle = async (therapist, day, e) => {
     e?.stopPropagation();
-    if (day.isSunday) return;
-    if (!isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek)) return;
 
-    const currentStatus = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday);
+    const isScheduled = isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek);
+    const currentStatus = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday, isScheduled);
     const nextStatus = !currentStatus;
     const key = `${therapist.therapistName}-${day.iso}`;
 
@@ -395,8 +453,12 @@ export default function AvailabilityManagerPage() {
         isAvailable: nextStatus,
       });
 
+      const label = nextStatus
+        ? (day.isSunday || !isScheduled ? "Special Working Day (Slots Opened)" : "Available")
+        : "Off / Closed";
+
       showToast(
-        `${therapist.therapistName} marked ${nextStatus ? "Available" : "Not Available"} on ${day.display}`
+        `${therapist.therapistName} marked ${label} on ${day.display}`
       );
     } catch (err) {
       alert("Failed to update availability: " + err.message);
@@ -408,8 +470,8 @@ export default function AvailabilityManagerPage() {
 
   // Filter therapists by department
   const filteredTherapists = useMemo(() => {
-    if (selectedDeptFilter === "All") return CLINIC_THERAPISTS_ROSTER;
-    return CLINIC_THERAPISTS_ROSTER.filter((t) => {
+    if (selectedDeptFilter === "All") return dynamicRoster;
+    return dynamicRoster.filter((t) => {
       if (Array.isArray(t.departments)) {
         return (
           t.departments.includes(selectedDeptFilter) ||
@@ -421,12 +483,12 @@ export default function AvailabilityManagerPage() {
         (selectedDeptFilter === "Child and Parental Counselling" && (t.department === "Counselling" || t.department?.includes("Counselling")))
       );
     });
-  }, [selectedDeptFilter]);
+  }, [dynamicRoster, selectedDeptFilter]);
 
   // Selected therapist object
   const currentTherapistObj = useMemo(() => {
-    return CLINIC_THERAPISTS_ROSTER.find((t) => t.therapistName === selectedTherapistName) || CLINIC_THERAPISTS_ROSTER[0];
-  }, [selectedTherapistName]);
+    return dynamicRoster.find((t) => t.therapistName === selectedTherapistName) || dynamicRoster[0] || CLINIC_THERAPISTS_ROSTER[0];
+  }, [dynamicRoster, selectedTherapistName]);
 
   // Total stats for the active view
   const { totalScheduledDays, totalAvailableDays, totalLeaveDays, totalRecurringSessionsInClinic } = useMemo(() => {
@@ -435,11 +497,13 @@ export default function AvailabilityManagerPage() {
 
     filteredTherapists.forEach((t) => {
       activeDisplayDays.forEach((d) => {
-        if (!d.isSunday && isTherapistScheduledWorking(t.therapistName, d.iso, d.dayOfWeek)) {
+        const isScheduled = isTherapistScheduledWorking(t.therapistName, d.iso, d.dayOfWeek);
+        const availOnDay = isAvailable(t.therapistName, t.department, d.iso, d.isSunday, isScheduled);
+        if (availOnDay) {
           scheduled++;
-          if (isAvailable(t.therapistName, t.department, d.iso, d.isSunday)) {
-            avail++;
-          }
+          avail++;
+        } else if (!d.isSunday && isScheduled) {
+          scheduled++;
         }
       });
     });
@@ -742,7 +806,7 @@ export default function AvailabilityManagerPage() {
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxHeight: 130, overflowY: "auto", padding: "2px 0" }}>
-              {CLINIC_THERAPISTS_ROSTER.map((t) => {
+              {filteredTherapists.map((t) => {
                 const isSelected = t.therapistName === selectedTherapistName;
                 const cleanT = t.therapistName.replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim().toLowerCase();
                 let recurringSessionsCount = 0;
@@ -937,7 +1001,8 @@ export default function AvailabilityManagerPage() {
                     {/* Month Day Cells */}
                     {daysList.map((day) => {
                       const isScheduled = isTherapistScheduledWorking(currentTherapistObj.therapistName, day.iso, day.dayOfWeek);
-                      const available = isAvailable(currentTherapistObj.therapistName, currentTherapistObj.department, day.iso, day.isSunday);
+                      const available = isAvailable(currentTherapistObj.therapistName, currentTherapistObj.department, day.iso, day.isSunday, isScheduled);
+                      const isSpecialShift = (day.isSunday || !isScheduled) && available;
                       const recurringSessions = getDayRecurringSessions(currentTherapistObj.therapistName, day.dayOfWeekFull);
                       const isUpdating = updatingKey === `${currentTherapistObj.therapistName}-${day.iso}`;
 
@@ -954,7 +1019,7 @@ export default function AvailabilityManagerPage() {
                             })
                           }
                           style={{
-                            background: day.isToday ? "#f0f9ff" : "#ffffff",
+                            background: day.isToday ? "#f0f9ff" : isSpecialShift ? "#faf5ff" : "#ffffff",
                             padding: "8px 9px",
                             display: "flex",
                             flexDirection: "column",
@@ -962,13 +1027,13 @@ export default function AvailabilityManagerPage() {
                             cursor: "pointer",
                             transition: "background 0.15s",
                             position: "relative",
-                            border: day.isToday ? "2px solid var(--accent, #0284c7)" : "none",
+                            border: day.isToday ? "2px solid var(--accent, #0284c7)" : isSpecialShift ? "1.5px dashed #8b5cf6" : "none",
                           }}
                           onMouseEnter={(e) => {
-                            if (!day.isToday) e.currentTarget.style.background = "#f8fafc";
+                            if (!day.isToday) e.currentTarget.style.background = isSpecialShift ? "#f3e8ff" : "#f8fafc";
                           }}
                           onMouseLeave={(e) => {
-                            if (!day.isToday) e.currentTarget.style.background = "#ffffff";
+                            if (!day.isToday) e.currentTarget.style.background = isSpecialShift ? "#faf5ff" : "#ffffff";
                           }}
                         >
                           {/* Day Top: Date Number & Indicators */}
@@ -992,20 +1057,67 @@ export default function AvailabilityManagerPage() {
                                 TODAY
                               </span>
                             )}
+                            {isSpecialShift && (
+                              <span style={{ fontSize: 9.5, fontWeight: 800, padding: "1px 5px", borderRadius: 4, background: "#8b5cf6", color: "#fff" }}>
+                                OPEN
+                              </span>
+                            )}
                           </div>
 
                           {/* Day Middle: Status / Shift / Toggle */}
                           <div style={{ marginBottom: 6 }}>
-                            {day.isSunday ? (
-                              <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}>
-                                <span>🔒</span>
-                                <span>Clinic Closed</span>
-                              </div>
-                            ) : !isScheduled ? (
-                              <div style={{ fontSize: 10.5, color: "#b45309", background: "#fef3c7", padding: "2px 5px", borderRadius: 4, fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}>
-                                <span>☕</span>
-                                <span>Weekly Off</span>
-                              </div>
+                            {day.isSunday && !available ? (
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={(e) => handleToggle(currentTherapistObj, day, e)}
+                                style={{
+                                  width: "100%",
+                                  padding: "4px 6px",
+                                  borderRadius: 6,
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  border: "1px dashed #94a3b8",
+                                  background: "#f8fafc",
+                                  color: "#64748b",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 3,
+                                  opacity: isUpdating ? 0.6 : 1,
+                                }}
+                                title="Sunday closed - Click to Open Special Shift for Bookings"
+                              >
+                                <span>🔒 Sun</span>
+                                <span style={{ fontWeight: 800, color: "#0284c7" }}>+ Open</span>
+                              </button>
+                            ) : !isScheduled && !available ? (
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={(e) => handleToggle(currentTherapistObj, day, e)}
+                                style={{
+                                  width: "100%",
+                                  padding: "4px 6px",
+                                  borderRadius: 6,
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  border: "1px dashed #f59e0b",
+                                  background: "#fffbeb",
+                                  color: "#b45309",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 3,
+                                  opacity: isUpdating ? 0.6 : 1,
+                                }}
+                                title="Weekly off - Click to Open Special Shift for Bookings"
+                              >
+                                <span>☕ Off</span>
+                                <span style={{ fontWeight: 800, color: "#d97706" }}>+ Open</span>
+                              </button>
                             ) : (
                               <button
                                 type="button"
@@ -1019,19 +1131,43 @@ export default function AvailabilityManagerPage() {
                                   fontWeight: 700,
                                   cursor: "pointer",
                                   transition: "all 0.15s",
-                                  border: available ? "1px solid #10b981" : "1px solid #ef4444",
-                                  background: available ? "#ecfdf5" : "#fef2f2",
-                                  color: available ? "#059669" : "#dc2626",
+                                  border: isSpecialShift
+                                    ? "1px solid #8b5cf6"
+                                    : available
+                                    ? "1px solid #10b981"
+                                    : "1px solid #ef4444",
+                                  background: isSpecialShift
+                                    ? "#f5f3ff"
+                                    : available
+                                    ? "#ecfdf5"
+                                    : "#fef2f2",
+                                  color: isSpecialShift
+                                    ? "#6d28d9"
+                                    : available
+                                    ? "#059669"
+                                    : "#dc2626",
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
                                   gap: 4,
                                   opacity: isUpdating ? 0.6 : 1,
                                 }}
-                                title="Click to toggle Available vs Leave"
+                                title={
+                                  isSpecialShift
+                                    ? "Special shift is ACTIVE and open for user bookings (Click to Close)"
+                                    : available
+                                    ? "Click to mark On Leave"
+                                    : "Click to mark Available"
+                                }
                               >
-                                <span>{available ? "●" : "✕"}</span>
-                                <span>{available ? "Available" : "Not Available"}</span>
+                                <span>{isSpecialShift ? "✨" : available ? "●" : "✕"}</span>
+                                <span>
+                                  {isSpecialShift
+                                    ? "Open (Special)"
+                                    : available
+                                    ? "Available"
+                                    : "Not Available"}
+                                </span>
                               </button>
                             )}
                           </div>
@@ -1235,32 +1371,69 @@ export default function AvailabilityManagerPage() {
 
                     {/* Cells for all active days */}
                     {activeDisplayDays.map((day) => {
-                      if (day.isSunday) {
-                        return (
-                          <td key={day.iso} style={{ padding: "8px 6px", textAlign: "center", background: "#f8fafc" }}>
-                            <span style={{ fontSize: 10, color: "#94a3b8" }}>Closed</span>
-                          </td>
-                        );
-                      }
-
                       const isScheduled = isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek);
-                      if (!isScheduled) {
-                        return (
-                          <td key={day.iso} style={{ padding: "8px 6px", textAlign: "center" }}>
-                            <span style={{ fontSize: 10, color: "#b45309", background: "#fef3c7", padding: "2px 4px", borderRadius: 4 }}>
-                              Off
-                            </span>
-                          </td>
-                        );
-                      }
-
-                      const available = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday);
+                      const available = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday, isScheduled);
+                      const isSpecialShift = (day.isSunday || !isScheduled) && available;
                       const recurringSessions = getDayRecurringSessions(therapist.therapistName, day.dayOfWeekFull);
                       const key = `${therapist.therapistName}-${day.iso}`;
                       const isUpdating = updatingKey === key;
 
+                      if (day.isSunday && !available) {
+                        return (
+                          <td key={day.iso} style={{ padding: "6px 4px", textAlign: "center", background: "#f8fafc" }}>
+                            <button
+                              type="button"
+                              disabled={isUpdating}
+                              onClick={(e) => handleToggle(therapist, day, e)}
+                              style={{
+                                width: "100%",
+                                padding: "4px 3px",
+                                borderRadius: 5,
+                                fontSize: 9.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                border: "1px dashed #94a3b8",
+                                background: "#ffffff",
+                                color: "#64748b",
+                                opacity: isUpdating ? 0.6 : 1,
+                              }}
+                              title="Sunday closed - Click to Open Special Shift"
+                            >
+                              + Sun
+                            </button>
+                          </td>
+                        );
+                      }
+
+                      if (!isScheduled && !available) {
+                        return (
+                          <td key={day.iso} style={{ padding: "6px 4px", textAlign: "center" }}>
+                            <button
+                              type="button"
+                              disabled={isUpdating}
+                              onClick={(e) => handleToggle(therapist, day, e)}
+                              style={{
+                                width: "100%",
+                                padding: "4px 3px",
+                                borderRadius: 5,
+                                fontSize: 9.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                border: "1px dashed #f59e0b",
+                                background: "#fffbeb",
+                                color: "#b45309",
+                                opacity: isUpdating ? 0.6 : 1,
+                              }}
+                              title="Weekly off - Click to Open Special Shift"
+                            >
+                              + Off
+                            </button>
+                          </td>
+                        );
+                      }
+
                       return (
-                        <td key={day.iso} style={{ padding: "8px 6px", textAlign: "center" }}>
+                        <td key={day.iso} style={{ padding: "8px 6px", textAlign: "center", background: isSpecialShift ? "#faf5ff" : undefined }}>
                           <button
                             type="button"
                             disabled={isUpdating}
@@ -1272,17 +1445,36 @@ export default function AvailabilityManagerPage() {
                               fontSize: 10.5,
                               fontWeight: 700,
                               cursor: "pointer",
-                              border: available ? "1px solid #10b981" : "1px solid #ef4444",
-                              background: available ? "#ecfdf5" : "#fef2f2",
-                              color: available ? "#059669" : "#dc2626",
+                              border: isSpecialShift
+                                ? "1px solid #8b5cf6"
+                                : available
+                                ? "1px solid #10b981"
+                                : "1px solid #ef4444",
+                              background: isSpecialShift
+                                ? "#f5f3ff"
+                                : available
+                                ? "#ecfdf5"
+                                : "#fef2f2",
+                              color: isSpecialShift
+                                ? "#6d28d9"
+                                : available
+                                ? "#059669"
+                                : "#dc2626",
                               opacity: isUpdating ? 0.6 : 1,
                               display: "flex",
                               flexDirection: "column",
                               alignItems: "center",
                               gap: 1,
                             }}
+                            title={
+                              isSpecialShift
+                                ? "Special shift is ACTIVE (Click to Close)"
+                                : available
+                                ? "Available (Click to Mark Off)"
+                                : "Off (Click to Mark Available)"
+                            }
                           >
-                            <span>{available ? "● Avail" : "✕ Off"}</span>
+                            <span>{isSpecialShift ? "✨ Special" : available ? "● Avail" : "✕ Off"}</span>
                             {recurringSessions.length > 0 && (
                               <span style={{ fontSize: 9.5, color: "#7c3aed", fontWeight: 800 }}>
                                 {recurringSessions.length} slots
@@ -1362,34 +1554,40 @@ export default function AvailabilityManagerPage() {
                 </div>
 
                 <div>
-                  {selectedDayDetails.day.isSunday ? (
-                    <Badge tone="slate">Clinic Closed</Badge>
-                  ) : !selectedDayDetails.isScheduled ? (
-                    <Badge tone="orange">Scheduled Weekly Off</Badge>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        handleToggle(selectedDayDetails.therapist, selectedDayDetails.day, e);
-                        setSelectedDayDetails((prev) => ({
-                          ...prev,
-                          available: !prev.available,
-                        }));
-                      }}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: 8,
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        border: selectedDayDetails.available ? "1px solid #10b981" : "1px solid #ef4444",
-                        background: selectedDayDetails.available ? "#ecfdf5" : "#fef2f2",
-                        color: selectedDayDetails.available ? "#059669" : "#dc2626",
-                      }}
-                    >
-                      {selectedDayDetails.available ? "● Status: Available (Click to Mark Off)" : "✕ Status: On Leave (Click to Mark Available)"}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      handleToggle(selectedDayDetails.therapist, selectedDayDetails.day, e);
+                      setSelectedDayDetails((prev) => ({
+                        ...prev,
+                        available: !prev.available,
+                      }));
+                    }}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 8,
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: selectedDayDetails.available
+                        ? (selectedDayDetails.day.isSunday || !selectedDayDetails.isScheduled ? "1px solid #8b5cf6" : "1px solid #10b981")
+                        : "1px solid #ef4444",
+                      background: selectedDayDetails.available
+                        ? (selectedDayDetails.day.isSunday || !selectedDayDetails.isScheduled ? "#f5f3ff" : "#ecfdf5")
+                        : "#fef2f2",
+                      color: selectedDayDetails.available
+                        ? (selectedDayDetails.day.isSunday || !selectedDayDetails.isScheduled ? "#6d28d9" : "#059669")
+                        : "#dc2626",
+                    }}
+                  >
+                    {selectedDayDetails.available
+                      ? (selectedDayDetails.day.isSunday || !selectedDayDetails.isScheduled
+                          ? "✨ Special Shift: Active & Open (Click to Close)"
+                          : "● Status: Available (Click to Mark Off)")
+                      : (selectedDayDetails.day.isSunday || !selectedDayDetails.isScheduled
+                          ? "🔒 Closed / Off — Click to + Open Special Shift"
+                          : "✕ Status: On Leave (Click to Mark Available)")}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1425,8 +1623,18 @@ export default function AvailabilityManagerPage() {
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: 700, color: "#1e293b" }}>
-                          {session.childName} <span style={{ fontWeight: 500, color: "#64748b", fontSize: 12 }}>({session.parentPhone})</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 700, color: "#1e293b" }}>{session.childName}</span>
+                          <span style={{ fontWeight: 500, color: "#64748b", fontSize: 12 }}>({session.parentPhone})</span>
+                          {session.slotType === "School" ? (
+                            <span style={{ fontSize: 10, fontWeight: 700, background: "#fef3c7", color: "#b45309", border: "1px solid #f59e0b", padding: "1px 6px", borderRadius: 4 }}>
+                              🏫 School Hold (Hidden from WA)
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 10, fontWeight: 700, background: "#ecfdf5", color: "#065f46", border: "1px solid #a7f3d0", padding: "1px 6px", borderRadius: 4 }}>
+                              🌐 OTA
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: 12, color: "#7c3aed", fontWeight: 600, marginTop: 2 }}>
                           {session.therapyName}

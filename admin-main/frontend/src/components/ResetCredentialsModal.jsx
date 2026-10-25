@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { resetAdminCredentials } from "../services/adminApi";
 
 export default function ResetCredentialsModal({ currentUser, onClose, onUpdateUser }) {
+  const [currentEmailInput, setCurrentEmailInput] = useState(currentUser?.email || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newEmail, setNewEmail] = useState(currentUser?.email || "");
   const [newPassword, setNewPassword] = useState("");
@@ -14,6 +15,12 @@ export default function ResetCredentialsModal({ currentUser, onClose, onUpdateUs
     e.preventDefault();
     setError("");
     setSuccessMsg("");
+
+    const targetCurrentEmail = (currentUser?.email || currentEmailInput || "").trim();
+    if (!targetCurrentEmail) {
+      setError("Please enter your current login email (Login ID)");
+      return;
+    }
 
     if (!currentPassword) {
       setError("Please enter your current password to authorize changes");
@@ -30,7 +37,7 @@ export default function ResetCredentialsModal({ currentUser, onClose, onUpdateUs
       return;
     }
 
-    const emailChanged = newEmail.trim().toLowerCase() !== (currentUser?.email || "").toLowerCase();
+    const emailChanged = Boolean(newEmail.trim()) && newEmail.trim().toLowerCase() !== targetCurrentEmail.toLowerCase();
     const passwordChanged = Boolean(newPassword);
 
     if (!emailChanged && !passwordChanged) {
@@ -41,7 +48,7 @@ export default function ResetCredentialsModal({ currentUser, onClose, onUpdateUs
     setLoading(true);
     try {
       const updatedUser = await resetAdminCredentials({
-        currentEmail: currentUser?.email,
+        currentEmail: targetCurrentEmail,
         currentPassword,
         newEmail: emailChanged ? newEmail.trim() : undefined,
         newPassword: passwordChanged ? newPassword : undefined,
@@ -163,6 +170,41 @@ export default function ResetCredentialsModal({ currentUser, onClose, onUpdateUs
             </div>
           )}
 
+          {/* Current Login Email (if not known) */}
+          {!currentUser?.email && (
+            <div style={{ marginBottom: "18px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  color: "#334155",
+                  marginBottom: "6px",
+                }}
+              >
+                Current Login ID (Email) <span style={{ color: "#ef4444" }}>*</span>
+              </label>
+              <input
+                type="email"
+                value={currentEmailInput}
+                onChange={(e) => setCurrentEmailInput(e.target.value)}
+                placeholder="e.g. admin@udai.in"
+                autoComplete="off"
+                required
+                style={{
+                  width: "100%",
+                  padding: "9px 12px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.88rem",
+                  outline: "none",
+                  background: "#ffffff",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          )}
+
           {/* Current Password */}
           <div style={{ marginBottom: "18px" }}>
             <label
@@ -181,6 +223,7 @@ export default function ResetCredentialsModal({ currentUser, onClose, onUpdateUs
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter your current password"
+              autoComplete="current-password"
               required
               style={{
                 width: "100%",

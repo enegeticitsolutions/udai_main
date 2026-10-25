@@ -252,3 +252,153 @@ export async function subscribeToAppointmentEvents(listener) {
   await ensureChangeStream();
   return () => listeners.delete(listener);
 }
+
+export async function createDirectAdminBooking(data) {
+  try {
+    await connectMongoDb();
+  } catch {
+    // fallback
+  }
+
+  const childName = String(data.childName || data.patientName || "").trim();
+  const phoneNumber = String(data.phoneNumber || data.parentPhone || "0000000000").trim();
+  const therapistName = String(data.therapistName || "Unassigned").trim();
+  const appointmentDate = String(data.appointmentDate || "").trim();
+  const appointmentTime = String(data.appointmentTime || "").trim();
+  const department = String(data.department || "Occupational Therapy").trim();
+  const isSchoolHold = Boolean(data.isSchoolHold || data.bookingType === "SCHOOL" || /school/i.test(childName));
+
+  if (!appointmentDate || !appointmentTime) {
+    throw new Error("appointmentDate and appointmentTime are required");
+  }
+
+  const newDoc = {
+    bookingId: `ADM-${Date.now()}`,
+    patientName: childName || (isSchoolHold ? "School Hold" : "Direct Admin Booking"),
+    childName: childName || (isSchoolHold ? "School Hold" : "Direct Admin Booking"),
+    phoneNumber: phoneNumber,
+    parentPhone: phoneNumber,
+    therapistName: therapistName,
+    assignedTherapist: therapistName,
+    therapistId: data.therapistId || therapistName,
+    department: department,
+    appointmentDate: appointmentDate,
+    appointmentTime: appointmentTime,
+    appointmentType: "in-person",
+    mainConcern: data.mainConcern || (isSchoolHold ? "School Hold (Admin Reserved)" : "Direct Admin Booking (Offline)"),
+    paymentStatus: "offline_admin",
+    bookingStatus: "confirmed",
+    bookedBy: "ADMIN",
+    source: isSchoolHold ? "school-hold" : "admin-direct",
+    isSchoolHold: isSchoolHold,
+    amountPaid: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (isMongoConnected()) {
+    const db = getMongoDb();
+    // Check if slot is already occupied
+    const existing = await db.collection("appointments").findOne({
+      appointmentDate,
+      appointmentTime,
+      therapistName: new RegExp(`^${therapistName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+      bookingStatus: { $nin: ["cancelled", "rejected"] },
+    });
+    if (existing) {
+      throw new Error(`Slot on ${appointmentDate} at ${appointmentTime} is already booked for "${existing.patientName || existing.childName}".`);
+    }
+
+    const res = await db.collection("appointments").insertOne(newDoc);
+    const saved = normalizeMongoDocument({ _id: res.insertedId, ...newDoc });
+    emitAppointmentEvent({ type: "insert", appointment: saved, id: saved.id });
+    return saved;
+  }
+
+  const appointments = await readStorageAppointments();
+  const saved = { id: `local_${Date.now()}`, ...newDoc };
+  appointments.unshift(saved);
+  await writeStorageAppointments(appointments);
+  emitAppointmentEvent({ type: "insert", appointment: saved, id: saved.id });
+  return saved;
+}
+
+export async function deleteAppointment(id) {
+  try {
+    await connectMongoDb();
+  } catch {}
+
+  if (isMongoConnected()) {
+    const collection = getMongoDb().collection("appointments");
+    const doc = await collection.findOne(idFilter(id));
+    if (!doc) return null;
+    await collection.deleteOne(idFilter(id));
+    emitAppointmentEvent({ type: "delete", id });
+    return normalizeMongoDocument(doc);
+  }
+
+  const appointments = await readStorageAppointments();
+  const index = appointments.findIndex((item) => String(item.id) === String(id));
+  if (index === -1) return null;
+  const deleted = appointments.splice(index, 1)[0];
+  await writeStorageAppointments(appointments);
+  emitAppointmentEvent({ type: "delete", id });
+  return deleted;
+}
+
+export async function listSlotOverrides(query = {}) {
+  try {
+    await connectMongoDb();
+  } catch {}
+  if (isMongoConnected()) {
+    const filter = {};
+    if (query.date) filter.date = query.date;
+    if (query.therapistName) filter.therapistName = new RegExp(query.therapistName, "i");
+    return await getMongoDb().collection("slotOverrides").find(filter).sort({ date: 1, time: 1 }).toArray();
+  }
+  return [];
+}
+
+export async function upsertSlotOverride(data) {
+  try {
+    await connectMongoDb();
+  } catch {}
+  if (!isMongoConnected()) return null;
+  const db = getMongoDb();
+  const { date, time, therapistName, overrideType = "OTA", reason = "", childName = "" } = data;
+  if (!date || !time || !therapistName) {
+    throw new Error("date, time, and therapistName are required");
+  }
+  const filter = {
+    date,
+    time,
+    therapistName: new RegExp(`^${therapistName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+  };
+  const doc = {
+    date,
+    time,
+    therapistName,
+    overrideType, // "OTA" | "School"
+    reason,
+    childName,
+    status: overrideType === "School" ? "HELD" : "OPEN",
+    updatedAt: new Date(),
+  };
+  await db.collection("slotOverrides").updateOne(filter, { $set: doc }, { upsert: true });
+  return await db.collection("slotOverrides").findOne(filter);
+}
+
+export async function removeSlotOverride(idOrFilter) {
+  try {
+    await connectMongoDb();
+  } catch {}
+  if (!isMongoConnected()) return false;
+  const db = getMongoDb();
+  if (typeof idOrFilter === "string" && ObjectId.isValid(idOrFilter)) {
+    const res = await db.collection("slotOverrides").deleteOne({ _id: new ObjectId(idOrFilter) });
+    return res.deletedCount > 0;
+  }
+  const res = await db.collection("slotOverrides").deleteOne(idOrFilter);
+  return res.deletedCount > 0;
+}
+

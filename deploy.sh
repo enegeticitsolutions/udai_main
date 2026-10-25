@@ -19,7 +19,7 @@ if [ ! -f "./backend/.env" ]; then
   echo "❌ ERROR: ./backend/.env file is MISSING!"
   echo "   Create it with:"
   echo "   PORT=4000"
-  echo "   MONGODB_URI=mongodb+srv://tripathishubh0099_db_user:d9jiY3MFftE5Luby@cluster0.uvehy1j.mongodb.net/?appName=Cluster0"
+  echo "   MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.uvehy1j.mongodb.net/?appName=Cluster0"
   echo "   MONGODB_DB_NAME=udai"
   exit 1
 else

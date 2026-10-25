@@ -82,6 +82,7 @@ function normalizeDoc(doc) {
         const endTime = s.end_time || s.endTime || calculateEndTime(startTime);
         const service = s.therapy_name || s.therapy_type || s.session_name || s.sessionName || s.serviceId || rest.therapy_type || "Occupational Therapy";
         const therapist = s.therapist_id || s.therapistId || s.therapist_name || rest.therapist_id || "Ms. Nikki";
+        const slotType = s.slot_type || s.slotType || rest.slot_type || rest.slotType || "OTA";
         return {
             day_of_week: day,
             dayOfWeek: day,
@@ -97,12 +98,17 @@ function normalizeDoc(doc) {
             therapist_id: therapist,
             therapistId: therapist,
             therapist_name: therapist,
+            slot_type: slotType,
+            slotType: slotType,
         };
     });
+    const topSlotType = rest.slot_type || rest.slotType || "OTA";
     return {
         _id,
         id: _id ? String(_id) : "",
         ...rest,
+        slot_type: topSlotType,
+        slotType: topSlotType,
         recurring_slots: normalizedSlots,
         sessions: normalizedSlots,
     };
@@ -221,11 +227,18 @@ export async function findTherapistScheduleCollision(options) {
         if (!slotTherapist)
             continue;
         for (const existing of activeSchedules) {
-            const existingId = String(existing._id || existing.id || "");
-            if (options.id && existingId === String(options.id))
+            const existingId = String(existing.id ?? "");
+            const existingMongoId = String(existing._id ?? "");
+            const targetId = String(options.id ?? "");
+            if (targetId && (existingId === targetId || existingMongoId === targetId))
                 continue;
             if (options.child_name &&
                 String(existing.child_name || "").toLowerCase().trim() === String(options.child_name || "").toLowerCase().trim()) {
+                continue;
+            }
+            if (options.parent_phone &&
+                normalizePhone(options.parent_phone) &&
+                normalizePhone(options.parent_phone) === normalizePhone(existing.parent_phone)) {
                 continue;
             }
             for (const exSlot of existing.recurring_slots || existing.sessions || []) {
@@ -309,6 +322,8 @@ export async function createSchedule(data) {
         parent_phone: String(data.parent_phone || "").trim(),
         therapist_id: derivedTherapistId,
         therapy_type: derivedTherapyType,
+        slot_type: data.slot_type || data.slotType || "OTA",
+        slotType: data.slot_type || data.slotType || "OTA",
         recurring_slots: finalSlots,
         sessions: finalSlots,
         status: data.status || "ACTIVE",
@@ -364,6 +379,8 @@ export async function updateSchedule(id, updates) {
         "sessions",
         "status",
         "notes",
+        "slot_type",
+        "slotType",
     ];
     const cleanUpdates = { updatedAt: new Date() };
     for (const key of Object.keys(updates)) {
@@ -400,6 +417,8 @@ export async function updateSchedule(id, updates) {
                         therapist_id: therapist,
                         therapistId: therapist,
                         therapist_name: therapist,
+                        slot_type: s.slot_type || s.slotType || updates.slot_type || updates.slotType || "OTA",
+                        slotType: s.slot_type || s.slotType || updates.slot_type || updates.slotType || "OTA",
                     };
                 });
                 cleanUpdates.recurring_slots = mapped;
@@ -433,6 +452,7 @@ export async function updateSchedule(id, updates) {
         const collision = await findTherapistScheduleCollision({
             id: String(id),
             child_name: targetChildName,
+            parent_phone: cleanUpdates.parent_phone || current.parent_phone,
             recurring_slots: targetSlots,
             sessions: targetSlots,
             status: targetStatus,
@@ -517,7 +537,7 @@ export async function bulkUpsertSchedules(rows) {
 }
 export async function getReservedSlotsForDate(dateStr, therapistId) {
     const dayOfWeek = getDayOfWeekFromDate(dateStr);
-    if (!dayOfWeek || dayOfWeek === "Sunday") {
+    if (!dayOfWeek) {
         return [];
     }
     const all = await listSchedules({ status: "ACTIVE", day_of_week: dayOfWeek });

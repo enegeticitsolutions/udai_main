@@ -20,7 +20,7 @@ import { AvailabilityModel } from "../models/Availability.js";
 import { connectMongoDb, getMongoDb, isMongoConnected } from "../lib/mongodb.js";
 import mongoose from "mongoose";
 // ── Dynamic Availability Helper ──────────────────────────────────────────────
-async function getUnavailableTherapists(date) {
+export async function getUnavailableTherapists(date) {
     try {
         let records = [];
         if (mongoose.connection.readyState === 1) {
@@ -40,13 +40,42 @@ async function getUnavailableTherapists(date) {
         return [];
     }
 }
-function isTherapistUnavailable(name, unavailableNames) {
+export function isTherapistUnavailable(name, unavailableNames) {
     if (!unavailableNames || unavailableNames.length === 0)
         return false;
     const n = name.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
     return unavailableNames.some((un) => {
         const unNorm = un.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
         return n === unNorm || n.includes(unNorm) || unNorm.includes(n);
+    });
+}
+export async function getSpecialAvailableTherapists(date) {
+    try {
+        let records = [];
+        if (mongoose.connection.readyState === 1) {
+            records = await AvailabilityModel.find({ date, isAvailable: true }).lean();
+        }
+        else {
+            await connectMongoDb();
+            const db = isMongoConnected() ? getMongoDb() : mongoose.connection.db;
+            if (db) {
+                records = await db.collection("availabilities").find({ date, isAvailable: true }).toArray();
+            }
+        }
+        return records.map((r) => String(r.therapistName ?? ""));
+    }
+    catch (err) {
+        console.warn("[getSpecialAvailableTherapists] Error reading availabilities:", err.message);
+        return [];
+    }
+}
+export function isTherapistSpecialAvailable(name, specialNames) {
+    if (!specialNames || specialNames.length === 0)
+        return false;
+    const n = name.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+    return specialNames.some((sn) => {
+        const snNorm = sn.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+        return n === snNorm || n.includes(snNorm) || snNorm.includes(n);
     });
 }
 async function getTherapistLeaves(therapistIds, date) {
@@ -224,16 +253,44 @@ export function formatLabel(time) {
  *   * 1st, 3rd, 5th Saturday: OFF
  * - Mr. Durgesh: Mon-Fri 11:30-17:30 (Lunch: 13:00-13:30). Saturday: OFF.
  */
-export function getTherapistShiftForDate(therapistName, date) {
+export function getTherapistShiftForDate(therapistName, date, isSpecialWorkingOverride = false) {
     const [yr, mo, dy] = date.split("-").map(Number);
     const dateObj = new Date(yr, mo - 1, dy);
     const dayOfWeek = dateObj.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
     const dayOfMonth = dateObj.getDate();
-    // Sunday: Clinic completely CLOSED for all
+    const name = String(therapistName || "").toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+    // If this is an admin-opened special shift on a weekoff/Sunday, provide their active clinical shift
+    if (isSpecialWorkingOverride) {
+        if (name.includes("tanu")) {
+            return { day: dayOfWeek, startTime: "11:00", endTime: "17:00", lunchStart: "13:00", lunchEnd: "13:30" };
+        }
+        if (name.includes("harsimran")) {
+            return { day: dayOfWeek, startTime: "11:30", endTime: "16:00", lunchStart: "00:00", lunchEnd: "00:00" };
+        }
+        if (name.includes("nikki")) {
+            return { day: dayOfWeek, startTime: "10:00", endTime: "17:15", lunchStart: "13:00", lunchEnd: "13:30" };
+        }
+        if (name.includes("divya")) {
+            return { day: dayOfWeek, startTime: "10:00", endTime: "18:00", lunchStart: "13:00", lunchEnd: "13:30" };
+        }
+        if (name.includes("sonia") || name.includes("shobha") || name.includes("sobha") || name.includes("ranjana")) {
+            return { day: dayOfWeek, startTime: "09:30", endTime: "16:30", lunchStart: "13:00", lunchEnd: "13:30" };
+        }
+        if (name.includes("sakshi")) {
+            return { day: dayOfWeek, startTime: "10:00", endTime: "13:00", lunchStart: "00:00", lunchEnd: "00:00" };
+        }
+        if (name.includes("atal")) {
+            return { day: dayOfWeek, startTime: "10:00", endTime: "16:30", lunchStart: "13:00", lunchEnd: "13:30" };
+        }
+        if (name.includes("durgesh")) {
+            return { day: dayOfWeek, startTime: "11:30", endTime: "17:30", lunchStart: "13:00", lunchEnd: "13:30" };
+        }
+        return { day: dayOfWeek, startTime: "10:00", endTime: "17:00", lunchStart: "13:00", lunchEnd: "13:30" };
+    }
+    // Sunday: Clinic completely CLOSED for all (unless special override)
     if (dayOfWeek === 0) {
         return null;
     }
-    const name = String(therapistName || "").toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
     // 1. Ms. Tanu Rajput: Mon-Fri 11:00-17:00 (Lunch: 13:00-13:30). Saturday: OFF.
     if (name.includes("tanu")) {
         if (dayOfWeek >= 1 && dayOfWeek <= 5) {
@@ -579,10 +636,10 @@ export function timeInRange(time, blockStart, blockEnd) {
  * Checks whether a given slot start time falls within the therapist's working shift hours,
  * taking calendar date and strict lunch break exclusion (13:00-13:30) into account.
  */
-export function isTimeInTherapistShift(time, therapist, dateOrDay) {
+export function isTimeInTherapistShift(time, therapist, dateOrDay, isSpecialOverride = false) {
     let schedule = null;
     if (typeof dateOrDay === "string") {
-        schedule = getTherapistShiftForDate(therapist.name, dateOrDay);
+        schedule = getTherapistShiftForDate(therapist.name, dateOrDay, isSpecialOverride);
     }
     else {
         schedule = therapist.weeklySchedule?.find((s) => s.day === dateOrDay) || null;
@@ -699,7 +756,7 @@ export async function isTherapistOccupiedGlobally(therapistName, date, time, cac
         return false;
     // In-memory check against preloaded clinic-wide bookings for the date
     if (cachedAppointments && Array.isArray(cachedAppointments)) {
-        return cachedAppointments.some((appt) => {
+        const isApptOccupied = cachedAppointments.some((appt) => {
             if (appt.appointmentDate && appt.appointmentDate !== date)
                 return false;
             if (appt.appointmentTime !== time)
@@ -713,6 +770,8 @@ export async function isTherapistOccupiedGlobally(therapistName, date, time, cac
                 .trim();
             return aName && (aName === tClean || aName.includes(tClean) || tClean.includes(aName));
         });
+        if (isApptOccupied)
+            return true;
     }
     // Direct MongoDB query WITHOUT any department filter
     try {
@@ -733,6 +792,24 @@ export async function isTherapistOccupiedGlobally(therapistName, date, time, cac
         });
         if (count > 0)
             return true;
+        // Check date-specific slot overrides (e.g. Admin School Hold or OTA release)
+        const slotOverride = await db.collection("slotOverrides").findOne({
+            date,
+            time,
+            $or: [
+                { therapistName: new RegExp(tClean, "i") },
+                { therapistId: new RegExp(tClean, "i") },
+            ],
+        });
+        if (slotOverride) {
+            if (slotOverride.overrideType === "School" || slotOverride.status === "HELD") {
+                return true; // School hold / admin hold -> completely hidden from WhatsApp & Web
+            }
+            if (slotOverride.overrideType === "OTA") {
+                // Explicitly released as OTA for today: bypass recurring schedule lock!
+                return false; // Available on WhatsApp & Web until booked!
+            }
+        }
         // Check recurring reservations in ChildSchedule
         const [yr, mo, dy] = date.split("-").map(Number);
         const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -796,6 +873,37 @@ export async function isTherapistOccupiedGlobally(therapistName, date, time, cac
             });
             if (recurringCount > 0)
                 return true;
+            // School Hold exclusion: Any slot held or tagged as School must never be shown on WhatsApp
+            const schoolHoldCount = await db.collection("childSchedules").countDocuments({
+                $or: [
+                    { slot_type: "School" },
+                    { slotType: "School" },
+                    { child_name: /school/i },
+                    { "recurring_slots.slot_type": "School" },
+                    { "recurring_slots.slotType": "School" },
+                    { "sessions.slot_type": "School" },
+                    { "sessions.slotType": "School" },
+                ],
+                $and: [
+                    {
+                        $or: [
+                            { therapist_id: new RegExp(tClean, "i") },
+                            { "recurring_slots.therapist_id": new RegExp(tClean, "i") },
+                            { "sessions.therapist_id": new RegExp(tClean, "i") },
+                        ],
+                    },
+                    {
+                        $or: [
+                            { "recurring_slots.day_of_week": dayOfWeek, "recurring_slots.start_time": time },
+                            { "recurring_slots.dayOfWeek": dayOfWeek, "recurring_slots.startTime": time },
+                            { "sessions.day_of_week": dayOfWeek, "sessions.start_time": time },
+                            { "sessions.dayOfWeek": dayOfWeek, "sessions.startTime": time },
+                        ],
+                    },
+                ],
+            });
+            if (schoolHoldCount > 0)
+                return true;
         }
         return false;
     }
@@ -839,31 +947,40 @@ export function isTherapistBookedForSlot(therapist, time, appointments) {
  */
 export async function getAvailableSlots(department, date) {
     const normalizedDept = normalizeDepartment(department);
-    // Sunday check: force 0 slots
+    // 1. Fetch both special working overrides (isAvailable: true) and marked unavailabilities (isAvailable: false)
+    const [specialNames, unavailNames] = await Promise.all([
+        getSpecialAvailableTherapists(date),
+        getUnavailableTherapists(date),
+    ]);
+    // Sunday check: only closed if no special shifts have been opened by admin
     const [yr, mo, dy] = date.split("-").map(Number);
     const dateObj = new Date(yr, mo - 1, dy);
-    if (dateObj.getDay() === 0) {
+    if (dateObj.getDay() === 0 && specialNames.length === 0) {
         console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0 (Sunday: Clinic Closed)`);
         return [];
     }
-    // 1. Load active therapists for this department
+    // 2. Load active therapists for this department
     const therapists = await loadTherapists(normalizedDept);
     if (therapists.length === 0) {
         console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0`);
         return [];
     }
-    // 2. Filter to therapists who work on this calendar date
-    const workingTherapists = therapists.filter((t) => getTherapistShiftForDate(t.name, date) !== null);
-    if (workingTherapists.length === 0) {
-        console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0 (No therapists scheduled)`);
-        return [];
-    }
-    // 2b. Exclude therapists dynamically marked as Unavailable in MongoDB availabilities collection
-    const unavailNames = await getUnavailableTherapists(date);
-    const activeWorkingTherapists = workingTherapists.filter((t) => !isTherapistUnavailable(t.name, unavailNames));
+    // A therapist is active and working if:
+    // - Admin explicitly opened this date (isSpecialAvailable === true)
+    // OR
+    // - Regularly scheduled to work on this date AND not marked unavailable
+    const activeWorkingTherapists = therapists.filter((t) => {
+        const isSpecial = isTherapistSpecialAvailable(t.name, specialNames);
+        if (isSpecial)
+            return true;
+        const normalShift = getTherapistShiftForDate(t.name, date);
+        if (!normalShift)
+            return false;
+        return !isTherapistUnavailable(t.name, unavailNames);
+    });
     const activeTherapistNames = activeWorkingTherapists.map((t) => t.name);
     if (activeWorkingTherapists.length === 0) {
-        console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", All therapists unavailable [${unavailNames.join(", ")}], Generated Slots: 0`);
+        console.log(`[Slots Log] Raw Dept: "${department}", Normalized: "${normalizedDept}", Date: "${date}", Matched Therapists: [], Generated Slots: 0 (No therapists available/scheduled)`);
         return [];
     }
     // 3. Load leave records for these therapists on this date
@@ -874,7 +991,8 @@ export async function getAvailableSlots(department, date) {
     // 5. Generate candidate 45-minute slot times from working therapists on this date
     const slotTimesSet = new Set();
     for (const therapist of activeWorkingTherapists) {
-        const sched = getTherapistShiftForDate(therapist.name, date);
+        const isSpecial = isTherapistSpecialAvailable(therapist.name, specialNames);
+        const sched = getTherapistShiftForDate(therapist.name, date, isSpecial);
         if (!sched)
             continue;
         const tSlots = generateSlots(sched.startTime, sched.endTime, sched.lunchStart, sched.lunchEnd);
@@ -891,8 +1009,9 @@ export async function getAvailableSlots(department, date) {
     for (const time of sortedSlotTimes) {
         const freeTherapistsAtSlot = [];
         for (const therapist of activeWorkingTherapists) {
+            const isSpecial = isTherapistSpecialAvailable(therapist.name, specialNames);
             // Must fit in shift & not overlap lunch
-            if (!isTimeInTherapistShift(time, therapist, date))
+            if (!isTimeInTherapistShift(time, therapist, date, isSpecial))
                 continue;
             // Must not be on leave
             const tid = String(therapist._id);
@@ -912,7 +1031,10 @@ export async function getAvailableSlots(department, date) {
             freeTherapistsAtSlot.push(therapist);
         }
         const availableCount = freeTherapistsAtSlot.length;
-        const totalTherapists = activeWorkingTherapists.filter((t) => isTimeInTherapistShift(time, t, date)).length;
+        const totalTherapists = activeWorkingTherapists.filter((t) => {
+            const isSpecial = isTherapistSpecialAvailable(t.name, specialNames);
+            return isTimeInTherapistShift(time, t, date, isSpecial);
+        }).length;
         // GLOBAL SLOT LOCKING RULE:
         // If availableCount === 0 (all therapists booked globally or off), OMIT this slot completely!
         if (availableCount > 0) {
@@ -947,13 +1069,16 @@ export async function getAvailableDates(department) {
     for (let i = 0; i <= 4; i++) {
         const d = new Date(localDate);
         d.setDate(d.getDate() + i);
-        // Skip Sunday immediately
-        if (d.getDay() === 0)
-            continue;
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
         const dateStr = `${year}-${month}-${day}`;
+        // If Sunday, only skip if NO therapist has special working day opened
+        if (d.getDay() === 0) {
+            const specialTherapists = await getSpecialAvailableTherapists(dateStr);
+            if (specialTherapists.length === 0)
+                continue;
+        }
         const slots = await getAvailableSlots(normalizedDept, dateStr);
         if (slots.length > 0) {
             const weekdayStr = weekdays[d.getDay()];
@@ -974,16 +1099,26 @@ export async function getAvailableDates(department) {
  */
 export async function assignTherapist(department, date, time) {
     const normalizedDept = normalizeDepartment(department);
-    // Sunday check: clinic closed
     const [yr, mo, dy] = date.split("-").map(Number);
     const dateObj = new Date(yr, mo - 1, dy);
-    if (dateObj.getDay() === 0)
+    const isSunday = dateObj.getDay() === 0;
+    const [specialNames, unavailNames] = await Promise.all([
+        getSpecialAvailableTherapists(date),
+        getUnavailableTherapists(date),
+    ]);
+    // If Sunday and no therapist is marked special available, clinic is closed
+    if (isSunday && specialNames.length === 0)
         return null;
     const therapists = await loadTherapists(normalizedDept);
-    const workingTherapists = therapists.filter((t) => getTherapistShiftForDate(t.name, date) !== null);
-    // Exclude therapists dynamically marked unavailable in availabilities collection
-    const unavailNames = await getUnavailableTherapists(date);
-    const activeWorkingTherapists = workingTherapists.filter((t) => !isTherapistUnavailable(t.name, unavailNames));
+    const activeWorkingTherapists = therapists.filter((t) => {
+        const isSpecial = isTherapistSpecialAvailable(t.name, specialNames);
+        if (isSpecial)
+            return true;
+        const normalShift = getTherapistShiftForDate(t.name, date);
+        if (!normalShift)
+            return false;
+        return !isTherapistUnavailable(t.name, unavailNames);
+    });
     const therapistIds = activeWorkingTherapists.map((t) => String(t._id));
     const leaves = await getTherapistLeaves(therapistIds, date);
     const activeBookings = await getActiveAppointmentsForDate(date);
@@ -991,8 +1126,9 @@ export async function assignTherapist(department, date, time) {
     const eligibleTherapists = [];
     for (const therapist of activeWorkingTherapists) {
         const tid = String(therapist._id);
+        const isSpecial = isTherapistSpecialAvailable(therapist.name, specialNames);
         // Verify the slot falls within this therapist's shift hours & not in lunch
-        if (!isTimeInTherapistShift(time, therapist, date))
+        if (!isTimeInTherapistShift(time, therapist, date, isSpecial))
             continue;
         // Skip: full-day leave
         if (leaves.some((l) => l.therapistId === tid && l.type === "full"))
