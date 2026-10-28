@@ -50,9 +50,10 @@ import EventsPage from "./components/EventsPage";
 import AppointmentsPage from "./components/AppointmentsPage";
 import WhatsAppBookingsPage from "./components/WhatsAppBookingsPage";
 import WhatsAppMessagesPage from "./components/WhatsAppMessagesPage";
-import AvailabilityManagerPage from "./components/AvailabilityManagerPage";
+import AvailabilityManagerPage, { getTherapistShiftWindow } from "./components/AvailabilityManagerPage";
 import RecurringSlotsPage from "./components/RecurringSlotsPage";
 import SchoolHoldPage from "./components/SchoolHoldPage";
+import TherapistShiftModal from "./components/TherapistShiftModal";
 import DonationsPage from "./components/DonationsPage";
 import OrdersPage from "./components/OrdersPage";
 import DashboardPage from "./components/DashboardPage";
@@ -1101,6 +1102,7 @@ function VolunteersPage({ volunteers, onUpdateVolunteer, onApproveVolunteer }) {
 }
 
 function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist, onRemoveTherapist, isAddFormOpen, onCloseAddForm }) {
+  const [shiftModalTherapist, setShiftModalTherapist] = useState(null);
   const [form, setForm] = useState({
     name: "",
     department: "",
@@ -1345,8 +1347,17 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
                       <dt>Status</dt>
                       <dd>{therapist.active !== false ? "Active" : "Inactive"}</dd>
                     </div>
+                    <div>
+                      <dt>Weekly Shift</dt>
+                      <dd style={{ fontSize: 12, fontWeight: 700, color: "#0369a1" }}>
+                        🕒 {getTherapistShiftWindow(therapist.name, therapists)}
+                      </dd>
+                    </div>
                   </dl>
-                  <div className="therapist-actions">
+                  <div className="therapist-actions" style={{ flexWrap: "wrap", gap: 6 }}>
+                    <Button variant="secondary" onClick={() => setShiftModalTherapist(therapist)} style={{ border: "1.5px solid #0284c7", color: "#0284c7", fontWeight: 700 }}>
+                      ⚙️ Shift & Working Days
+                    </Button>
                     <Button variant="secondary" onClick={() => startEditTherapist(therapist)}>
                       Edit
                     </Button>
@@ -1363,6 +1374,16 @@ function TherapistManagementPage({ therapists, onUpdateTherapist, onAddTherapist
           );
         })}
       </div>
+
+      <TherapistShiftModal
+        isOpen={Boolean(shiftModalTherapist)}
+        therapist={shiftModalTherapist}
+        onClose={() => setShiftModalTherapist(null)}
+        onSave={async (id, updates) => {
+          await onUpdateTherapist(id, updates);
+          setShiftModalTherapist(null);
+        }}
+      />
     </section>
   );
 }
@@ -2011,11 +2032,17 @@ export default function App() {
           />
         );
       case "Availability Manager":
-        return <AvailabilityManagerPage therapists={therapists} />;
+        return (
+          <AvailabilityManagerPage
+            therapists={therapists}
+            onUpdateTherapist={handleTherapistUpdate}
+          />
+        );
       case "Recurring Slots":
         return (
           <RecurringSlotsPage
             therapists={therapists}
+            onUpdateTherapist={handleTherapistUpdate}
             onSwitchToSchool={() => setActiveSection("Hold for School")}
           />
         );

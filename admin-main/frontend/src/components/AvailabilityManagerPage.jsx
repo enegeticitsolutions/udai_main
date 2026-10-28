@@ -2,79 +2,120 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Badge from "./Badge";
 import StatCard from "./StatCard";
 import Button from "./Button";
-import { getAvailability, toggleAvailability, getSchedules, getAdminBootstrap } from "../services/adminApi";
+import { getAvailability, toggleAvailability, getSchedules, getAdminBootstrap, patchTherapist } from "../services/adminApi";
+import TherapistShiftModal from "./TherapistShiftModal";
 
 /**
- * Returns the formatted clinical shift window badge text for each therapist.
+/**
+ * Resolves therapist's shift configuration dynamically.
+ * Prioritizes admin-saved dynamic settings in database (workingDays, saturdayRule, shiftWindow),
+ * with sensible roster defaults as fallback.
  */
-export function getTherapistShiftWindow(therapistName) {
+export function getTherapistShiftConfig(therapistName, liveTherapists = []) {
   const name = String(therapistName || "").toLowerCase().trim();
-  if (name.includes("tanu")) return "Mon-Fri: 11:00 - 17:00 | Sat: Off";
-  if (name.includes("harsimran")) return "Sat: 11:30 - 16:00 | Mon-Fri: Off";
-  if (name.includes("nikki")) return "Mon-Fri: 10:00 - 17:15 | Sat: 10:00 - 15:00";
-  if (name.includes("divya")) return "Mon-Fri: 10:00 - 18:00 | Sat: 10:00 - 15:00";
-  if (name.includes("sonia")) return "Mon-Fri: 09:30 - 16:30 | Sat: 10:00 - 15:00";
-  if (name.includes("shobha") || name.includes("sobha")) return "Mon-Fri: 09:30 - 16:30 | Sat: 10:00 - 15:00";
-  if (name.includes("ranjana")) return "Mon-Fri: 09:30 - 16:30 | Sat: 10:00 - 15:00";
-  if (name.includes("sakshi")) return "Mon, Wed, Fri: 10:00 - 13:00 | Tue, Thu, Sat: Off";
-  if (name.includes("atal")) return "Mon, Tue, Thu, Fri: 10:00 - 18:00 | Wed: 10:00 - 15:45 | 2nd & 4th Sat: 10:00 - 16:30";
-  if (name.includes("durgesh")) return "Mon-Fri: 11:30 - 17:30 | Sat: Off";
-  return "Mon-Fri: 10:00 - 16:30 | Sat: 10:00 - 15:00";
+
+  if (Array.isArray(liveTherapists) && liveTherapists.length > 0) {
+    const found = liveTherapists.find((t) => {
+      const n = String(t.name || t.therapistName || "").toLowerCase().trim();
+      return n === name || name.includes(n) || n.includes(name);
+    });
+    if (found && (Array.isArray(found.workingDays) || found.saturdayRule || found.shiftWindow)) {
+      return {
+        workingDays: Array.isArray(found.workingDays) && found.workingDays.length > 0
+          ? found.workingDays
+          : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        saturdayRule: found.saturdayRule || "ALL",
+        shiftWindow: found.shiftWindow || "Mon-Sat: 10:00 - 17:00",
+        workingHours: found.workingHours || { start: "10:00", end: "17:00" },
+      };
+    }
+  }
+
+  // Fallback defaults for legacy or unconfigured records:
+  if (name.includes("sakshi")) {
+    return {
+      workingDays: ["Monday", "Wednesday", "Friday"],
+      saturdayRule: "NONE",
+      shiftWindow: "Mon, Wed, Fri: 10:00 - 13:00 | Tue, Thu, Sat: Off",
+      workingHours: { start: "10:00", end: "13:00" },
+    };
+  }
+  if (name.includes("harsimran")) {
+    return {
+      workingDays: ["Saturday"],
+      saturdayRule: "ALL",
+      shiftWindow: "Sat: 11:30 - 16:00 | Mon-Fri: Off",
+      workingHours: { start: "11:30", end: "16:00" },
+    };
+  }
+  if (name.includes("tanu")) {
+    return {
+      workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      saturdayRule: "NONE",
+      shiftWindow: "Mon-Fri: 11:00 - 17:00 | Sat: Off",
+      workingHours: { start: "11:00", end: "17:00" },
+    };
+  }
+  if (name.includes("durgesh")) {
+    return {
+      workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      saturdayRule: "NONE",
+      shiftWindow: "Mon-Fri: 11:30 - 17:30 | Sat: Off",
+      workingHours: { start: "11:30", end: "17:30" },
+    };
+  }
+  if (name.includes("atal")) {
+    return {
+      workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      saturdayRule: "2ND_4TH",
+      shiftWindow: "Mon, Tue, Thu, Fri: 10:00 - 18:00 | Wed: 10:00 - 15:45 | 2nd & 4th Sat: 10:00 - 16:30",
+      workingHours: { start: "10:00", end: "18:00" },
+    };
+  }
+  return {
+    workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    saturdayRule: "ALL",
+    shiftWindow: "Mon-Fri: 10:00 - 17:00 | Sat: 10:00 - 15:00",
+    workingHours: { start: "10:00", end: "17:00" },
+  };
 }
 
 /**
- * Determines whether a therapist has a scheduled working shift on a given calendar day.
- * Returns false if:
- *  - Sunday (Clinic completely closed)
- *  - Ms. Sakshi on Tue, Thu, Sat (Off Duty)
- *  - Ms. Harsimran on Mon, Tue, Wed, Thu, Fri (Off Duty)
- *  - Ms. Tanu Rajput on Saturday (Off Duty)
- *  - Mr. Durgesh on Saturday (Off Duty)
- *  - Mr. Atal on 1st, 3rd, 5th Saturday (Off Duty)
+ * Returns the formatted clinical shift window badge text for each therapist dynamically.
  */
-export function isTherapistScheduledWorking(therapistName, dayIso, dayOfWeek) {
+export function getTherapistShiftWindow(therapistName, liveTherapists = []) {
+  const config = getTherapistShiftConfig(therapistName, liveTherapists);
+  return config.shiftWindow;
+}
+
+/**
+ * Determines whether a therapist has a scheduled working shift on a given calendar day dynamically.
+ * Reads admin-saved shift settings from database/state first, eliminating code modifications.
+ */
+export function isTherapistScheduledWorking(therapistName, dayIso, dayOfWeek, liveTherapists = []) {
   if (dayOfWeek === 0) return false; // Sunday: Clinic closed
 
-  const name = String(therapistName || "").toLowerCase().trim();
-  const dayOfMonth = dayIso ? parseInt(dayIso.split("-")[2], 10) : 1;
-  const saturdayIndex = Math.ceil(dayOfMonth / 7);
+  const config = getTherapistShiftConfig(therapistName, liveTherapists);
+  const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dayName = DAYS[dayOfWeek];
 
-  // Ms. Sakshi: Monday, Wednesday, Friday ONLY. Tue, Thu, Sat: Off
-  if (name.includes("sakshi")) {
-    return dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5;
-  }
-
-  // Ms. Harsimran: Saturday ONLY. Mon-Fri: Off
-  if (name.includes("harsimran")) {
-    return dayOfWeek === 6;
-  }
-
-  // Ms. Tanu Rajput: Mon-Fri. Saturday: Off
-  if (name.includes("tanu")) {
-    return dayOfWeek >= 1 && dayOfWeek <= 5;
-  }
-
-  // Mr. Durgesh: Mon-Fri. Saturday: Off
-  if (name.includes("durgesh")) {
-    return dayOfWeek >= 1 && dayOfWeek <= 5;
-  }
-
-  // Mr. Atal: Mon, Tue, Thu, Fri, Wed; 2nd & 4th Sat. 1st, 3rd, 5th Sat: Off
-  if (name.includes("atal")) {
-    if (dayOfWeek >= 1 && dayOfWeek <= 5) return true;
-    if (dayOfWeek === 6) {
-      if (!dayIso) return true; // Weekly recurring template without date -> 2nd & 4th Sat is an active working shift!
-      return saturdayIndex === 2 || saturdayIndex === 4;
-    }
+  if (!config.workingDays.includes(dayName)) {
     return false;
   }
 
-  // Ms. Nikki, Ms. Divya, Ms. Sonia, Ms. Shobha, Ms. Ranjana work Mon-Sat
-  if (dayOfWeek >= 1 && dayOfWeek <= 6) {
-    return true;
+  // Saturday Policy Evaluation
+  if (dayOfWeek === 6) {
+    if (config.saturdayRule === "NONE") return false;
+    if (config.saturdayRule === "ALL") return true;
+    if (config.saturdayRule === "2ND_4TH") {
+      if (!dayIso) return true; // Weekly template without date -> 2nd & 4th Sat is an active shift
+      const dayOfMonth = parseInt(dayIso.split("-")[2], 10);
+      const saturdayIndex = Math.ceil(dayOfMonth / 7);
+      return saturdayIndex === 2 || saturdayIndex === 4;
+    }
   }
 
-  return false;
+  return true;
 }
 
 // Configured official clinic roster with multi-department mappings
@@ -189,7 +230,7 @@ function buildDaysForMonth(year, month) {
   return arr;
 }
 
-export default function AvailabilityManagerPage({ therapists: propTherapists = [] }) {
+export default function AvailabilityManagerPage({ therapists: propTherapists = [], onUpdateTherapist }) {
   const today = new Date();
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth()); // 0-11
@@ -199,6 +240,47 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
   const [selectedDeptFilter, setSelectedDeptFilter] = useState("All");
 
   const [liveTherapists, setLiveTherapists] = useState(propTherapists);
+
+  // Dynamic Shift & Working Days Modal State
+  const [shiftModalTherapist, setShiftModalTherapist] = useState(null);
+
+  const openShiftModalForTherapist = (therapistName) => {
+    const found = (liveTherapists || []).find((t) => {
+      const n = String(t.name || t.therapistName || "").toLowerCase().trim();
+      const target = String(therapistName || "").toLowerCase().trim();
+      return n === target || target.includes(n) || n.includes(target);
+    });
+    setShiftModalTherapist(found || { name: therapistName, therapistName });
+  };
+
+  const handleSaveShiftModal = async (therapistIdOrName, updates) => {
+    try {
+      const target = (liveTherapists || []).find((t) => {
+        const idMatch = String(t.id || t._id) === String(therapistIdOrName);
+        const nameMatch = (t.name || t.therapistName) === therapistIdOrName;
+        return idMatch || nameMatch;
+      });
+
+      const targetId = target?.id || target?._id || therapistIdOrName;
+      if (onUpdateTherapist) {
+        await onUpdateTherapist(targetId, updates);
+      } else if (targetId) {
+        await patchTherapist(targetId, updates).catch(() => {});
+      }
+
+      setLiveTherapists((prev) =>
+        prev.map((t) => {
+          const match =
+            (t.id && (String(t.id) === String(targetId) || String(t._id) === String(targetId))) ||
+            (t.name && (t.name === therapistIdOrName || t.therapistName === therapistIdOrName));
+          return match ? { ...t, ...updates } : t;
+        })
+      );
+      setShiftModalTherapist(null);
+    } catch (err) {
+      console.error("Failed to update therapist shift:", err);
+    }
+  };
 
   useEffect(() => {
     if (Array.isArray(propTherapists) && propTherapists.length > 0) {
@@ -262,8 +344,19 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Month navigation helpers
+  const minYear = today.getFullYear();
+  const minMonth = today.getMonth();
+  const maxDate = new Date(minYear, minMonth, 1);
+  maxDate.setMonth(maxDate.getMonth() + 5);
+  const maxYear = maxDate.getFullYear();
+  const maxMonth = maxDate.getMonth();
+
+  const isAtMinMonth = selectedYear === minYear && selectedMonth === minMonth;
+  const isAtMaxMonth = selectedYear === maxYear && selectedMonth === maxMonth;
+
+  // Month navigation helpers (Current Month to +5 Months)
   const handlePrevMonth = () => {
+    if (isAtMinMonth) return;
     if (selectedMonth === 0) {
       setSelectedMonth(11);
       setSelectedYear((y) => y - 1);
@@ -273,6 +366,7 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
   };
 
   const handleNextMonth = () => {
+    if (isAtMaxMonth) return;
     if (selectedMonth === 11) {
       setSelectedMonth(0);
       setSelectedYear((y) => y + 1);
@@ -421,7 +515,7 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
   const handleToggle = async (therapist, day, e) => {
     e?.stopPropagation();
 
-    const isScheduled = isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek);
+    const isScheduled = isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek, liveTherapists);
     const currentStatus = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday, isScheduled);
     const nextStatus = !currentStatus;
     const key = `${therapist.therapistName}-${day.iso}`;
@@ -498,7 +592,7 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
 
     filteredTherapists.forEach((t) => {
       activeDisplayDays.forEach((d) => {
-        const isScheduled = isTherapistScheduledWorking(t.therapistName, d.iso, d.dayOfWeek);
+        const isScheduled = isTherapistScheduledWorking(t.therapistName, d.iso, d.dayOfWeek, liveTherapists);
         const availOnDay = isAvailable(t.therapistName, t.department, d.iso, d.isSunday, isScheduled);
         if (availOnDay) {
           scheduled++;
@@ -640,16 +734,18 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
             <button
               type="button"
               onClick={handlePrevMonth}
+              disabled={isAtMinMonth}
               style={{
                 padding: "6px 12px",
                 borderRadius: 8,
                 border: "1px solid var(--line, #cbd5e1)",
-                background: "var(--surface-2, #f8fafc)",
-                cursor: "pointer",
+                background: isAtMinMonth ? "#f1f5f9" : "var(--surface-2, #f8fafc)",
+                cursor: isAtMinMonth ? "not-allowed" : "pointer",
                 fontWeight: 700,
                 fontSize: 13,
+                opacity: isAtMinMonth ? 0.4 : 1,
               }}
-              title="Previous Month"
+              title={isAtMinMonth ? "Current month is start point" : "Previous Month"}
             >
               ◀ Prev
             </button>
@@ -671,25 +767,54 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
             <button
               type="button"
               onClick={handleNextMonth}
+              disabled={isAtMaxMonth}
               style={{
                 padding: "6px 12px",
                 borderRadius: 8,
                 border: "1px solid var(--line, #cbd5e1)",
-                background: "var(--surface-2, #f8fafc)",
-                cursor: "pointer",
+                background: isAtMaxMonth ? "#f1f5f9" : "var(--surface-2, #f8fafc)",
+                cursor: isAtMaxMonth ? "not-allowed" : "pointer",
                 fontWeight: 700,
                 fontSize: 13,
+                opacity: isAtMaxMonth ? 0.4 : 1,
               }}
-              title="Next Month"
+              title={isAtMaxMonth ? "Maximum +5 months limit reached" : "Next Month"}
             >
               Next ▶
             </button>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 18, fontWeight: 800, color: "var(--text, #1e293b)" }}>
-              {MONTH_NAMES[selectedMonth]} {selectedYear}
-            </span>
+            <select
+              value={`${selectedYear}-${selectedMonth}`}
+              onChange={(e) => {
+                const [y, m] = e.target.value.split("-").map(Number);
+                setSelectedYear(y);
+                setSelectedMonth(m);
+              }}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 8,
+                border: "1.5px solid var(--accent, #0284c7)",
+                background: "#f0f9ff",
+                color: "#0369a1",
+                fontSize: 14,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              {[0, 1, 2, 3, 4, 5].map((offset) => {
+                const d = new Date(minYear, minMonth, 1);
+                d.setMonth(d.getMonth() + offset);
+                const y = d.getFullYear();
+                const m = d.getMonth();
+                return (
+                  <option key={`${y}-${m}`} value={`${y}-${m}`}>
+                    {MONTH_NAMES[m]} {y} {offset === 0 ? "📍 (Current Month)" : `(+${offset} mo)`}
+                  </option>
+                );
+              })}
+            </select>
             <span style={{ fontSize: 12, color: "var(--muted, #64748b)" }}>
               + Next: <strong>{MONTH_NAMES[nextMonthNum]} {nextMonthYear}</strong>
             </span>
@@ -818,7 +943,7 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
                 // Count available days in active view
                 let availThisMonth = 0;
                 activeDisplayDays.forEach((d) => {
-                  if (!d.isSunday && isTherapistScheduledWorking(t.therapistName, d.iso, d.dayOfWeek)) {
+                  if (!d.isSunday && isTherapistScheduledWorking(t.therapistName, d.iso, d.dayOfWeek, liveTherapists)) {
                     if (isAvailable(t.therapistName, t.department, d.iso, d.isSunday)) {
                       availThisMonth++;
                     }
@@ -901,8 +1026,28 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
                   color: "#334155",
                 }}
               >
-                🕒 Shift: {getTherapistShiftWindow(currentTherapistObj.therapistName)}
+                🕒 Shift: {getTherapistShiftWindow(currentTherapistObj.therapistName, liveTherapists)}
               </span>
+              <button
+                type="button"
+                onClick={() => openShiftModalForTherapist(currentTherapistObj.therapistName)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  color: "#1d4ed8",
+                  cursor: "pointer",
+                }}
+                title="Edit working days, Saturdays off, and working hours for this therapist"
+              >
+                ⚙️ Shift Settings
+              </button>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1001,7 +1146,7 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
 
                     {/* Month Day Cells */}
                     {daysList.map((day) => {
-                      const isScheduled = isTherapistScheduledWorking(currentTherapistObj.therapistName, day.iso, day.dayOfWeek);
+                      const isScheduled = isTherapistScheduledWorking(currentTherapistObj.therapistName, day.iso, day.dayOfWeek, liveTherapists);
                       const available = isAvailable(currentTherapistObj.therapistName, currentTherapistObj.department, day.iso, day.isSunday, isScheduled);
                       const isSpecialShift = (day.isSunday || !isScheduled) && available;
                       const recurringSessions = getDayRecurringSessions(currentTherapistObj.therapistName, day.dayOfWeekFull);
@@ -1372,7 +1517,7 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
 
                     {/* Cells for all active days */}
                     {activeDisplayDays.map((day) => {
-                      const isScheduled = isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek);
+                      const isScheduled = isTherapistScheduledWorking(therapist.therapistName, day.iso, day.dayOfWeek, liveTherapists);
                       const available = isAvailable(therapist.therapistName, therapist.department, day.iso, day.isSunday, isScheduled);
                       const isSpecialShift = (day.isSunday || !isScheduled) && available;
                       const recurringSessions = getDayRecurringSessions(therapist.therapistName, day.dayOfWeekFull);
@@ -1550,7 +1695,7 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Official Shift Window:</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginTop: 2 }}>
-                    🕒 {getTherapistShiftWindow(selectedDayDetails.therapist.therapistName)}
+                    🕒 {getTherapistShiftWindow(selectedDayDetails.therapist.therapistName, liveTherapists)}
                   </div>
                 </div>
 
@@ -1701,6 +1846,15 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
             </div>
           </div>
         </div>
+      )}
+
+      {/* Dynamic Therapist Shift & Working Days Modal */}
+      {shiftModalTherapist && (
+        <TherapistShiftModal
+          therapist={shiftModalTherapist}
+          onClose={() => setShiftModalTherapist(null)}
+          onSave={handleSaveShiftModal}
+        />
       )}
     </div>
   );

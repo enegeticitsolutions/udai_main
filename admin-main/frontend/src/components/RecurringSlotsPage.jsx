@@ -13,12 +13,14 @@ import {
   confirmWeeklySchedule,
   getAvailability,
   getAdminBootstrap,
+  patchTherapist,
 } from "../services/adminApi";
 import {
   CLINIC_THERAPISTS_ROSTER,
   getTherapistShiftWindow,
   isTherapistScheduledWorking,
 } from "./AvailabilityManagerPage";
+import TherapistShiftModal from "./TherapistShiftModal";
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -189,7 +191,76 @@ function calculateEndTime(startTime) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export default function RecurringSlotsPage({ therapists: propTherapists = [], onSwitchToSchool }) {
+export const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
+export function formatLocalYmd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function getWeeksForMonth(year, month) {
+  const weeks = [];
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  // Align start to the Monday of the first week
+  let curr = new Date(year, month, 1);
+  const dayOfWeek = curr.getDay(); // 0 is Sun, 1 is Mon
+  const diffToMonday = dayOfWeek === 0 ? 1 : (dayOfWeek === 1 ? 0 : -(dayOfWeek - 1));
+  curr.setDate(curr.getDate() + diffToMonday);
+
+  const today = new Date();
+  const todayIso = formatLocalYmd(today);
+
+  while (curr <= lastDay || curr.getMonth() === month) {
+    const monday = new Date(curr);
+    const saturday = new Date(curr);
+    saturday.setDate(saturday.getDate() + 5);
+
+    const hasDaysInMonth = (monday.getMonth() === month || saturday.getMonth() === month);
+    if (hasDaysInMonth) {
+      const monStr = monday.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const satStr = saturday.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const weekDates = {};
+      const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      let hasToday = false;
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(monday);
+        d.setDate(d.getDate() + i);
+        const iso = formatLocalYmd(d);
+        const isCurrentDay = iso === todayIso;
+        if (isCurrentDay) hasToday = true;
+        weekDates[dayNames[i]] = {
+          iso,
+          dayNum: d.getDate(),
+          label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          isToday: isCurrentDay,
+          dateObj: d,
+        };
+      }
+
+      weeks.push({
+        weekNum: weeks.length + 1,
+        startDate: formatLocalYmd(monday),
+        endDate: formatLocalYmd(saturday),
+        label: `Week ${weeks.length + 1} (${monStr} - ${satStr})`,
+        isCurrentWeek: hasToday,
+        weekDates,
+      });
+    }
+    curr.setDate(curr.getDate() + 7);
+    if (curr.getMonth() > month && curr.getFullYear() === year) break;
+    if (curr.getFullYear() > year) break;
+  }
+  return weeks;
+}
+
+export default function RecurringSlotsPage({ therapists: propTherapists = [], onUpdateTherapist, onSwitchToSchool }) {
   const [liveTherapists, setLiveTherapists] = useState(propTherapists);
 
   useEffect(() => {
@@ -234,6 +305,111 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
   const [filterSlotType, setFilterSlotType] = useState(""); // "" | "OTA" | "School"
   const [matrixSlotType, setMatrixSlotType] = useState("OTA"); // "OTA" | "School" for 1-click grid assignment
   const [sortAsc, setSortAsc] = useState(true);
+
+  // Calendar Month & Week tracking state for Weekly Availability Grid (Current Month to +5 Months)
+  const todayObj = useMemo(() => new Date(), []);
+  const minYear = todayObj.getFullYear();
+  const minMonth = todayObj.getMonth();
+
+  // Maximum selectable month: Current Month + 5 months
+  const maxDateObj = useMemo(() => {
+    const d = new Date(minYear, minMonth, 1);
+    d.setMonth(d.getMonth() + 5);
+    return d;
+  }, [minYear, minMonth]);
+  const maxYear = maxDateObj.getFullYear();
+  const maxMonth = maxDateObj.getMonth();
+
+  const [selectedYear, setSelectedYear] = useState(minYear);
+  const [selectedMonth, setSelectedMonth] = useState(minMonth); // 0-11
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
+
+  const monthWeeks = useMemo(() => {
+    return getWeeksForMonth(selectedYear, selectedMonth);
+  }, [selectedYear, selectedMonth]);
+
+  // Auto-select current week when component mounts or month changes
+  useEffect(() => {
+    const currentWeekIdx = monthWeeks.findIndex((w) => w.isCurrentWeek);
+    if (currentWeekIdx >= 0) {
+      setSelectedWeekIndex(currentWeekIdx);
+    } else {
+      setSelectedWeekIndex(0);
+    }
+  }, [selectedYear, selectedMonth, monthWeeks]);
+
+  const activeWeek = monthWeeks[selectedWeekIndex] || monthWeeks[0];
+
+  const isAtMinMonth = selectedYear === minYear && selectedMonth === minMonth;
+  const isAtMaxMonth = selectedYear === maxYear && selectedMonth === maxMonth;
+
+  const handlePrevMonth = () => {
+    if (isAtMinMonth) return;
+    if (selectedMonth === 0) {
+      setSelectedYear((y) => y - 1);
+      setSelectedMonth(11);
+    } else {
+      setSelectedMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (isAtMaxMonth) return;
+    if (selectedMonth === 11) {
+      setSelectedYear((y) => y + 1);
+      setSelectedMonth(0);
+    } else {
+      setSelectedMonth((m) => m + 1);
+    }
+  };
+
+  const jumpToCurrentWeek = () => {
+    setSelectedYear(minYear);
+    setSelectedMonth(minMonth);
+  };
+
+  // Dynamic Therapist Shift Manager Modal State
+  const [shiftModalTherapist, setShiftModalTherapist] = useState(null);
+
+  const openShiftModalForTherapist = (therapistName) => {
+    const found = (liveTherapists || []).find((t) => {
+      const n = String(t.name || t.therapistName || "").toLowerCase().trim();
+      const target = String(therapistName || "").toLowerCase().trim();
+      return n === target || target.includes(n) || n.includes(target);
+    });
+    setShiftModalTherapist(found || { name: therapistName, therapistName });
+  };
+
+  const handleSaveShiftModal = async (therapistIdOrName, updates) => {
+    try {
+      const target = (liveTherapists || []).find((t) => {
+        const idMatch = String(t.id || t._id) === String(therapistIdOrName);
+        const nameMatch = (t.name || t.therapistName) === therapistIdOrName;
+        return idMatch || nameMatch;
+      });
+
+      const targetId = target?.id || target?._id || therapistIdOrName;
+      if (onUpdateTherapist) {
+        await onUpdateTherapist(targetId, updates);
+      } else if (targetId) {
+        await patchTherapist(targetId, updates).catch(() => {});
+      }
+
+      setLiveTherapists((prev) =>
+        prev.map((t) => {
+          const match =
+            (t.id && (String(t.id) === String(targetId) || String(t._id) === String(targetId))) ||
+            (t.name && (t.name === therapistIdOrName || t.therapistName === therapistIdOrName));
+          return match ? { ...t, ...updates } : t;
+        })
+      );
+      showToast("✓ Therapist shift & working days updated successfully");
+      setShiftModalTherapist(null);
+    } catch (err) {
+      console.error("Failed to update therapist shift:", err);
+      showToast("Error updating shift settings");
+    }
+  };
 
   // Inline editing active cell tracker: { id, field }
   const [editingCell, setEditingCell] = useState(null);
@@ -741,8 +917,28 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
               color: "var(--muted)",
             }}
           >
-            🕒 {getTherapistShiftWindow(therapistId)}
+            🕒 {getTherapistShiftWindow(therapistId, liveTherapists)}
           </span>
+          <button
+            type="button"
+            onClick={() => openShiftModalForTherapist(therapistId)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "3px 8px",
+              borderRadius: 6,
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#1d4ed8",
+              cursor: "pointer",
+            }}
+            title="Edit working days, Saturdays off, and working hours for this therapist"
+          >
+            ⚙️ Edit Shift
+          </button>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -783,20 +979,256 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
         </div>
       </div>
 
+      {/* Target Calendar Month & Week Selector Bar */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "#f8fafc",
+          border: "1px solid #cbd5e1",
+          borderRadius: 10,
+          padding: "8px 14px",
+          marginBottom: 12,
+          flexWrap: "wrap",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: 5 }}>
+            <span>🗓️</span>
+            <span>Target Month & Week:</span>
+          </span>
+
+          {/* Month Selector with Prev / Next */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              disabled={isAtMinMonth}
+              style={{
+                padding: "3px 8px",
+                borderRadius: 6,
+                border: "1px solid #cbd5e1",
+                background: isAtMinMonth ? "#f1f5f9" : "#fff",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: isAtMinMonth ? "not-allowed" : "pointer",
+                opacity: isAtMinMonth ? 0.35 : 1,
+              }}
+              title={isAtMinMonth ? "Current month is start point (Past months locked)" : "Previous Month"}
+            >
+              ◀
+            </button>
+
+            <select
+              value={`${selectedYear}-${selectedMonth}`}
+              onChange={(e) => {
+                const [y, m] = e.target.value.split("-").map(Number);
+                setSelectedYear(y);
+                setSelectedMonth(m);
+              }}
+              style={{
+                padding: "4px 8px",
+                borderRadius: 6,
+                border: "1px solid #cbd5e1",
+                background: "#fff",
+                fontSize: 12,
+                fontWeight: 800,
+                color: "#0f172a",
+                cursor: "pointer",
+              }}
+            >
+              {[0, 1, 2, 3, 4, 5].map((offset) => {
+                const d = new Date(minYear, minMonth, 1);
+                d.setMonth(d.getMonth() + offset);
+                const y = d.getFullYear();
+                const m = d.getMonth();
+                return (
+                  <option key={`${y}-${m}`} value={`${y}-${m}`}>
+                    {MONTH_NAMES[m]} {y} {offset === 0 ? "📍 (Current Month)" : `(+${offset} mo)`}
+                  </option>
+                );
+              })}
+            </select>
+
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              disabled={isAtMaxMonth}
+              style={{
+                padding: "3px 8px",
+                borderRadius: 6,
+                border: "1px solid #cbd5e1",
+                background: isAtMaxMonth ? "#f1f5f9" : "#fff",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: isAtMaxMonth ? "not-allowed" : "pointer",
+                opacity: isAtMaxMonth ? 0.35 : 1,
+              }}
+              title={isAtMaxMonth ? "Maximum +5 months limit reached" : "Next Month"}
+            >
+              ▶
+            </button>
+          </div>
+
+          {/* Week Selector Dropdown */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <select
+              value={selectedWeekIndex}
+              onChange={(e) => setSelectedWeekIndex(Number(e.target.value))}
+              style={{
+                padding: "5px 10px",
+                borderRadius: 6,
+                border: "1.5px solid #0284c7",
+                background: "#f0f9ff",
+                color: "#0369a1",
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              {monthWeeks.map((w, idx) => (
+                <option key={w.weekNum} value={idx}>
+                  {w.label} {w.isCurrentWeek ? "📍 (Current Week)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Jump to Current Week button */}
+          {(!activeWeek?.isCurrentWeek || selectedMonth !== new Date().getMonth() || selectedYear !== new Date().getFullYear()) && (
+            <button
+              type="button"
+              onClick={jumpToCurrentWeek}
+              style={{
+                padding: "4px 9px",
+                borderRadius: 6,
+                border: "1px solid #0284c7",
+                background: "#fff",
+                color: "#0284c7",
+                fontSize: 11.5,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+              title="Reset view to today's current calendar week"
+            >
+              <span>⚡</span>
+              <span>Current Week</span>
+            </button>
+          )}
+        </div>
+
+        {/* Active Week Date Range and Hint */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "#475569" }}>
+          <span style={{ fontWeight: 600 }}>Active Dates:</span>
+          <span
+            style={{
+              fontWeight: 800,
+              color: "#0284c7",
+              background: "#e0f2fe",
+              padding: "2px 8px",
+              borderRadius: 6,
+              border: "1px solid #bae6fd",
+            }}
+          >
+            {activeWeek?.startDate} to {activeWeek?.endDate}
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              color: "#047857",
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              padding: "2px 8px",
+              borderRadius: 6,
+              fontWeight: 600,
+            }}
+            title="When you modify or add slots for a child, it updates their master weekly routine and automatically repeats across all weeks"
+          >
+            🔁 Master Routine: Changes auto-apply to all recurring weeks
+          </span>
+        </div>
+      </div>
+
       {/* Weekly Matrix Calendar Grid */}
       <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: 10, marginBottom: 14 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, textAlign: "center" }}>
           <thead>
             <tr style={{ background: "var(--surface-2)", borderBottom: "2px solid var(--line)" }}>
               <th style={{ width: 95, padding: "8px 10px", textAlign: "left", color: "var(--muted)", fontWeight: 700 }}>Time</th>
-              {DAYS_OF_WEEK.map((d) => (
-                <th key={d} style={{ padding: "8px 6px", fontWeight: 700 }}>
-                  {d}
-                  {d === "Saturday" && String(therapistId || "").toLowerCase().includes("atal") && (
-                    <span style={{ display: "block", fontSize: 10, color: "#0284c7", fontWeight: 600 }}>(2nd & 4th Sat)</span>
-                  )}
-                </th>
-              ))}
+              {DAYS_OF_WEEK.map((d) => {
+                const dayMeta = activeWeek?.weekDates?.[d];
+                const isToday = Boolean(dayMeta?.isToday);
+                const dayIdx = DAY_NAME_TO_INDEX[d];
+                const isDayWorking = isTherapistScheduledWorking(therapistId, dayMeta?.iso, dayIdx, liveTherapists);
+                const satNum = dayMeta ? Math.ceil(dayMeta.dayNum / 7) : null;
+                const isSaturday = d === "Saturday";
+
+                return (
+                  <th
+                    key={d}
+                    style={{
+                      padding: "8px 6px",
+                      fontWeight: 700,
+                      background: isToday ? "rgba(2, 132, 199, 0.08)" : undefined,
+                    }}
+                  >
+                    <div style={{ fontSize: 12.5 }}>{d}</div>
+                    {dayMeta && (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: isToday ? "#0284c7" : "var(--muted)",
+                          marginTop: 2,
+                        }}
+                      >
+                        {dayMeta.label} {isToday && "📍"}
+                      </div>
+                    )}
+                    {dayMeta && !isDayWorking && (
+                      <div style={{ marginTop: 3 }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            fontSize: 9.5,
+                            fontWeight: 800,
+                            color: "#b91c1c",
+                            background: "#fee2e2",
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            border: "1px solid #fecaca",
+                          }}
+                        >
+                          🔴 {isSaturday ? `${satNum}th Sat: Off` : "Off Day"}
+                        </span>
+                      </div>
+                    )}
+                    {dayMeta && isDayWorking && isSaturday && (
+                      <div style={{ marginTop: 3 }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            fontSize: 9.5,
+                            fontWeight: 800,
+                            color: "#047857",
+                            background: "#d1fae5",
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            border: "1px solid #a7f3d0",
+                          }}
+                        >
+                          🟢 {satNum}th Sat: Working
+                        </span>
+                      </div>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -810,7 +1242,9 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
                   </td>
                   {DAYS_OF_WEEK.map((day) => {
                     const dayIdx = DAY_NAME_TO_INDEX[day];
-                    const isWorking = isTherapistScheduledWorking(therapistId, null, dayIdx);
+                    const dayMeta = activeWeek?.weekDates?.[day];
+                    const dayIso = dayMeta?.iso || null;
+                    const isWorking = isTherapistScheduledWorking(therapistId, dayIso, dayIdx, liveTherapists);
 
                     const childSlot = (currentSlots || []).find(
                       (s) =>
@@ -915,6 +1349,63 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
                     }
 
                     if (!isWorking) {
+                      if (occupiedBy) {
+                        const occName = getOccupiedChildName(occupiedBy);
+                        return (
+                          <td key={day} style={{ padding: "4px 5px" }}>
+                            <div
+                              style={{
+                                width: "100%",
+                                padding: "5px 3px",
+                                borderRadius: 7,
+                                background: "#fef2f2",
+                                border: "1.5px dashed #ef4444",
+                                color: "#b91c1c",
+                                fontSize: 10,
+                                fontWeight: 800,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 2,
+                                cursor: "pointer",
+                              }}
+                              title={`⚠️ Off-Day Conflict: ${therapistId} is OFF on ${day}, but currently booked for "${occName}". Click to release or view options.`}
+                              onClick={async () => {
+                                const targetSched = schedules.find((s) => String(s.id || s._id) === String(occupiedBy.schedule_id));
+                                const choice = window.confirm(
+                                  `⚠️ OFF-DAY CONFLICT DETECTED!\n\n` +
+                                  `• Clinician: ${therapistId} (Scheduled OFF on ${day})\n` +
+                                  `• Patient: ${occName}\n` +
+                                  `• Session: ${day} at ${time}\n\n` +
+                                  `Do you want to RELEASE / REMOVE this slot from "${occName}" so it doesn't cause a conflict?\n\n` +
+                                  `• Click OK to release this slot\n` +
+                                  `• Click Cancel to keep it flagged`
+                                );
+                                if (choice && targetSched) {
+                                  const currentTargetSlots = targetSched.recurring_slots || targetSched.sessions || [];
+                                  const filteredSlots = currentTargetSlots.filter(
+                                    (s) => !((s.day_of_week === day || s.dayOfWeek === day) && (s.start_time === time || s.startTime === time))
+                                  );
+                                  await handleSlotsUpdate(targetSched, filteredSlots);
+                                }
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                                <span>⚠️</span>
+                                <span>{occName.slice(0, 8)}</span>
+                              </div>
+                              <span style={{ fontSize: 8.5, color: "#dc2626", fontWeight: 700 }}>Off-Day Clash</span>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      const satNum = dayMeta ? Math.ceil(dayMeta.dayNum / 7) : null;
+                      const offReason = day === "Saturday" && satNum
+                        ? `Off (${satNum}th Sat)`
+                        : "Weekly Off";
+
                       return (
                         <td key={day} style={{ padding: "4px 5px", background: "rgba(0,0,0,0.015)" }}>
                           <div
@@ -933,10 +1424,10 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
                               gap: 3,
                               cursor: "not-allowed",
                             }}
-                            title={`${therapistId} is scheduled Weekly Off on ${day}s in Availability Manager.`}
+                            title={`${therapistId} is scheduled ${offReason} on ${dayMeta ? `${day}, ${dayMeta.label}` : day}.`}
                           >
                             <span>☕</span>
-                            <span>Weekly Off</span>
+                            <span>{offReason}</span>
                           </div>
                         </td>
                       );
@@ -1095,7 +1586,7 @@ const findFirstAvailableSlot = (therapist, therapy, currentSlots = [], excludeSc
 
   for (const d of sortedDays) {
     const dayIdx = DAY_NAME_TO_INDEX[d];
-    const isWorking = isTherapistScheduledWorking(therapist, null, dayIdx);
+    const isWorking = isTherapistScheduledWorking(therapist, null, dayIdx, liveTherapists);
     if (!isWorking) continue;
 
     for (const time of STANDARD_TIMES) {
@@ -1222,12 +1713,23 @@ const handleSaveModalSessions = async () => {
   setSessionModal(null);
 };
 
-// Delete row
+// Delete row with explicit child name confirmation safeguard
 const handleDeleteRow = async (id, name) => {
-  if (!window.confirm(`Delete recurring schedule for "${name}"? This cannot be undone.`)) return;
+  const entered = window.prompt(
+    `⚠️ PERMANENT DELETION SAFEGUARD\n\n` +
+    `Are you sure you want to delete the recurring weekly routine for "${name}"?\n` +
+    `All slots for this child will be removed.\n\n` +
+    `To confirm deletion, type "${name}" below:`
+  );
+  if (!entered) return;
+  if (entered.trim().toLowerCase() !== String(name).trim().toLowerCase()) {
+    alert("Deletion cancelled. Input did not match child's name.");
+    return;
+  }
   try {
     await deleteSchedule(id);
     setSchedules((prev) => prev.filter((s) => String(s.id || s._id) !== String(id)));
+    showToast(`Schedule for "${name}" has been deleted.`);
   } catch (err) {
     alert("Failed to delete row: " + err.message);
   }
@@ -2690,6 +3192,9 @@ return (
                         const slotClashChild = tOccupied[`${slotDay}_${slotTime}`];
                         const clashName = getOccupiedChildName(slotClashChild);
                         const hasClash = Boolean(slotClashChild && clashName.toLowerCase().trim() !== String(schedule.child_name || "").toLowerCase().trim());
+                        const isTherapistWorking = isTherapistScheduledWorking(slot.therapist_id || slot.therapistId || schedule.therapist_id, null, DAY_NAME_TO_INDEX[slotDay], liveTherapists);
+                        const isOffDayClash = !isTherapistWorking;
+                        const hasAnyConflict = hasClash || isOffDayClash;
 
                         return (
                           <div
@@ -2698,29 +3203,35 @@ return (
                               display: "inline-flex",
                               alignItems: "center",
                               gap: 6,
-                              background: hasClash ? "#fef2f2" : thStyle.bg,
-                              border: hasClash ? "1px solid #ef4444" : `1px solid ${thStyle.border}`,
-                              color: hasClash ? "#991b1b" : thStyle.text,
+                              background: hasAnyConflict ? "#fef2f2" : thStyle.bg,
+                              border: hasAnyConflict ? "1px solid #ef4444" : `1px solid ${thStyle.border}`,
+                              color: hasAnyConflict ? "#991b1b" : thStyle.text,
                               padding: "4px 8px",
                               borderRadius: 8,
                               fontSize: 11.5,
-                              fontWeight: hasClash ? 700 : 500,
+                              fontWeight: hasAnyConflict ? 700 : 500,
                               boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                             }}
-                            title={hasClash ? `⚠️ Conflict detected: Also booked with "${clashName}". Click ✕ to remove.` : `${slot.day_of_week || slot.dayOfWeek}: ${time} - ${endTime} • ${therapyName} with ${slot.therapist_id || slot.therapistId || schedule.therapist_id} • ${isSchoolSlot ? "School Hold (Hidden from WA)" : "OTA (Open to all)"}`}
+                            title={
+                              isOffDayClash
+                                ? `⚠️ Clinician Off-Day Conflict: ${therapistName || "Therapist"} is NOT scheduled to work on ${slotDay}s. Click ✕ to remove or change clinician.`
+                                : hasClash
+                                ? `⚠️ Conflict detected: Also booked with "${clashName}". Click ✕ to remove.`
+                                : `${slot.day_of_week || slot.dayOfWeek}: ${time} - ${endTime} • ${therapyName} with ${slot.therapist_id || slot.therapistId || schedule.therapist_id} • ${isSchoolSlot ? "School Hold (Hidden from WA)" : "OTA (Open to all)"}`
+                            }
                           >
                             <span
                               style={{
                                 fontSize: 10,
                                 fontWeight: 800,
-                                background: hasClash ? "#fee2e2" : thStyle.tagBg,
-                                color: hasClash ? "#b91c1c" : thStyle.tagText,
+                                background: hasAnyConflict ? "#fee2e2" : thStyle.tagBg,
+                                color: hasAnyConflict ? "#b91c1c" : thStyle.tagText,
                                 padding: "1px 5px",
                                 borderRadius: 4,
                                 textTransform: "uppercase",
                               }}
                             >
-                              {hasClash ? "⚠️ " : ""}{dayShort}
+                              {hasAnyConflict ? "⚠️ " : ""}{dayShort}
                             </span>
                             <span style={{ fontWeight: 700 }}>{time}</span>
                             <span style={{ opacity: 0.6 }}>•</span>
@@ -2728,7 +3239,7 @@ return (
                             {therapistName && (
                               <>
                                 <span style={{ opacity: 0.6 }}>•</span>
-                                <span style={{ fontWeight: 600, color: hasClash ? "#991b1b" : "var(--text)" }}>{therapistName}</span>
+                                <span style={{ fontWeight: 600, color: hasAnyConflict ? "#991b1b" : "var(--text)" }}>{therapistName}</span>
                               </>
                             )}
                             <span
@@ -2745,6 +3256,11 @@ return (
                             >
                               {isSchoolSlot ? "🏫 School" : "🌐 OTA"}
                             </span>
+                            {isOffDayClash && (
+                              <span style={{ fontSize: 9.5, color: "#b91c1c", background: "#fee2e2", border: "1px solid #fca5a5", padding: "1px 4px", borderRadius: 3, fontWeight: 800 }}>
+                                ⚠️ Off Day
+                              </span>
+                            )}
                             {hasClash && (
                               <span style={{ fontSize: 10, color: "#dc2626", fontWeight: 800 }}>
                                 [Clash: {clashName.slice(0, 7)}]
@@ -3788,6 +4304,18 @@ return (
         <span style={{ fontSize: 16, color: "#10b981" }}>✓</span>
         <span>{toastMessage}</span>
       </div>
+    )}
+
+    {/* Dynamic Therapist Shift & Working Days Modal */}
+    {shiftModalTherapist && (
+      <TherapistShiftModal
+        therapist={shiftModalTherapist}
+        liveTherapists={liveTherapists}
+        schedules={schedules}
+        onClose={() => setShiftModalTherapist(null)}
+        onSave={handleSaveShiftModal}
+        onSchedulesUpdated={fetchSchedules}
+      />
     )}
   </div>
   );

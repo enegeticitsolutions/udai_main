@@ -21,6 +21,13 @@ async function readFallbackFile() {
 }
 
 async function writeFallbackFile(data) {
+  if (!Array.isArray(data) || data.length === 0) {
+    const existing = await readFallbackFile();
+    if (existing && existing.length > 0) {
+      console.warn("[scheduleService] Safeguard: Prevented overwriting fallback file with empty data.");
+      return;
+    }
+  }
   const filePath = storageFilePath();
   await writeJsonFile(filePath, data);
 }
