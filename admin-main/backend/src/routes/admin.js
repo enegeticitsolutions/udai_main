@@ -1332,14 +1332,49 @@ adminRouter.get("/slots/available", async (req, res, next) => {
     }
 
     const dayOfWeek = getDayOfWeekFromDate(rawDate);
-    if (!dayOfWeek || dayOfWeek === "Sunday") {
+
+    // Check if admin has explicitly opened or closed this date in MongoDB availabilities
+    let isSpecialOpen = false;
+    let isExplicitlyUnavailable = false;
+    try {
+      await connectMongoDb();
+      const db = isMongoConnected() ? getMongoDb() : null;
+      if (db) {
+        const query = { date: rawDate };
+        if (therapistId) {
+          const cleanName = therapistId.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, "").trim();
+          query.therapistName = { $regex: new RegExp(cleanName, "i") };
+        }
+        const record = await db.collection("availabilities").findOne(query);
+        if (record) {
+          if (record.isAvailable === true) isSpecialOpen = true;
+          if (record.isAvailable === false) isExplicitlyUnavailable = true;
+        }
+      }
+    } catch {}
+
+    if ((!dayOfWeek || dayOfWeek === "Sunday") && !isSpecialOpen) {
       res.json({
         success: true,
         date: rawDate,
         day_of_week: dayOfWeek || "Sunday",
-        message: "Clinic is closed on Sundays",
+        message: "Clinic is closed on Sundays (Click + Open in Availability Manager to open special shift)",
         reserved_slots: [],
         available_slots: [],
+      });
+      return;
+    }
+
+    if (isExplicitlyUnavailable) {
+      res.json({
+        success: true,
+        date: rawDate,
+        day_of_week: dayOfWeek,
+        therapist_id: therapistId,
+        message: `${therapistId || "Therapist"} is marked On Leave for this date`,
+        reserved_slots: [],
+        available_slots: [],
+        count: 0,
       });
       return;
     }

@@ -63,6 +63,7 @@ export function isTherapistScheduledWorking(therapistName, dayIso, dayOfWeek) {
   if (name.includes("atal")) {
     if (dayOfWeek >= 1 && dayOfWeek <= 5) return true;
     if (dayOfWeek === 6) {
+      if (!dayIso) return true; // Weekly recurring template without date -> 2nd & 4th Sat is an active working shift!
       return saturdayIndex === 2 || saturdayIndex === 4;
     }
     return false;
@@ -1648,6 +1649,46 @@ export default function AvailabilityManagerPage({ therapists: propTherapists = [
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Live Booking Slots Status */}
+            <div style={{ marginTop: 16, background: selectedDayDetails.available ? "#f0fdf4" : "#fef2f2", border: selectedDayDetails.available ? "1px solid #bbf7d0" : "1px solid #fecaca", borderRadius: 10, padding: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: selectedDayDetails.available ? "#15803d" : "#b91c1c" }}>
+                  {selectedDayDetails.available
+                    ? "🟢 Date is OPEN for WhatsApp, Online & Admin Bookings"
+                    : "🔒 Date is CLOSED — No appointments can be booked on this date"}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: selectedDayDetails.available ? "#166534" : "#991b1b" }}>
+                  {selectedDayDetails.available ? "Active Slots Ready" : "Click button above to + Open"}
+                </span>
+              </div>
+              {selectedDayDetails.available && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                  {["10:00", "10:45", "11:30", "12:15", "13:30", "14:15", "15:00", "15:45"].map((time) => {
+                    const isOccupiedByRoutine = (selectedDayDetails.recurringSessions || []).some(
+                      (s) => s.startTime === time || s.start_time === time
+                    );
+                    return (
+                      <span
+                        key={time}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          background: isOccupiedByRoutine ? "#fef3c7" : "#ffffff",
+                          border: isOccupiedByRoutine ? "1px solid #f59e0b" : "1px solid #86efac",
+                          color: isOccupiedByRoutine ? "#b45309" : "#15803d",
+                        }}
+                        title={isOccupiedByRoutine ? `Booked for recurring routine session at ${time}` : `Available for booking at ${time}`}
+                      >
+                        {time} {isOccupiedByRoutine ? "🔒 Routine" : "✓ Open"}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>

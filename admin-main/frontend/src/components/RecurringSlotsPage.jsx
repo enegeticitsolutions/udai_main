@@ -240,6 +240,13 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
   const [tempValue, setTempValue] = useState("");
   const editInputRef = useRef(null);
 
+  // Toast notification state
+  const [toastMessage, setToastMessage] = useState(null);
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3800);
+  };
+
   // New row inline creation (multi-session clinical routine)
   const [isAddingRow, setIsAddingRow] = useState(false);
   const [newRowData, setNewRowData] = useState({
@@ -545,31 +552,51 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
     );
 
     if (existingIndex >= 0) {
+      const existingSlot = sessionModal.slots[existingIndex];
+      const slotTherapist = existingSlot.therapist_id || existingSlot.therapistId || therapist || "Assigned Therapist";
+      const slotTherapy = existingSlot.therapy_name || existingSlot.therapy_type || therapy || "Therapy";
+
+      const confirmed = window.confirm(
+        `⚠️ Remove Prescribed Slot?\n\n` +
+        `Child: ${sessionModal.schedule?.child_name || "Child"}\n` +
+        `Day & Time: ${day} at ${time}\n` +
+        `Therapist: ${slotTherapist}\n` +
+        `Discipline: ${slotTherapy}\n\n` +
+        `Are you sure you want to release this slot from routine?`
+      );
+      if (!confirmed) return;
+
       setSessionModal((prev) => ({
         ...prev,
         slots: prev.slots.filter((_, idx) => idx !== existingIndex),
       }));
+      showToast(`Slot released: ${day} ${time} with ${slotTherapist} removed.`);
     } else {
       if (sessionModal.slots.length >= 25) {
         alert("Maximum 25 prescribed slots permitted per child.");
         return;
       }
+      const targetTherapist = therapist || modalPickerTherapist || THERAPISTS[0];
+      const targetTherapy = therapy || modalPickerTherapy || getDefaultDiscipline(targetTherapist);
+      const targetSlotType = slotType || matrixSlotType || sessionModal.schedule?.slot_type || "OTA";
+
       const newSlot = createDefaultSlot(
         day,
         time,
-        therapy || modalPickerTherapy || getDefaultDiscipline(therapist),
-        therapist || modalPickerTherapist || THERAPISTS[0],
-        slotType || matrixSlotType || sessionModal.schedule?.slot_type || "OTA"
+        targetTherapy,
+        targetTherapist,
+        targetSlotType
       );
       setSessionModal((prev) => ({
         ...prev,
         slots: [...prev.slots, newSlot],
       }));
+      showToast(`✓ Slot added: ${day} ${time} with ${targetTherapist} (${targetTherapy}).`);
     }
   };
 
   // Toggle slot in row via 1-click grid
-  const handleToggleSlotInRow = (schedule, day, time, therapy, therapist, slotType) => {
+  const handleToggleSlotInRow = async (schedule, day, time, therapy, therapist, slotType) => {
     const currentSlots = schedule.recurring_slots || schedule.sessions || [];
     const existingIndex = currentSlots.findIndex(
       (s) =>
@@ -578,21 +605,41 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
     );
 
     if (existingIndex >= 0) {
+      const existingSlot = currentSlots[existingIndex];
+      const slotTherapist = existingSlot.therapist_id || existingSlot.therapistId || therapist || "Assigned Therapist";
+      const slotTherapy = existingSlot.therapy_name || existingSlot.therapy_type || therapy || "Therapy";
+
+      const confirmed = window.confirm(
+        `⚠️ Remove Prescribed Slot?\n\n` +
+        `Child: ${schedule.child_name}\n` +
+        `Day & Time: ${day} at ${time}\n` +
+        `Therapist: ${slotTherapist}\n` +
+        `Discipline: ${slotTherapy}\n\n` +
+        `Are you sure you want to release / delete this slot from ${schedule.child_name}'s routine?`
+      );
+      if (!confirmed) return;
+
       const updated = currentSlots.filter((_, idx) => idx !== existingIndex);
-      handleSlotsUpdate(schedule, updated);
+      await handleSlotsUpdate(schedule, updated);
+      showToast(`Slot released: ${day} ${time} with ${slotTherapist} removed from ${schedule.child_name}'s routine.`);
     } else {
       if (currentSlots.length >= 25) {
         alert("Maximum 25 prescribed slots permitted per child.");
         return;
       }
+      const targetTherapist = therapist || THERAPISTS[0];
+      const targetTherapy = therapy || getDefaultDiscipline(targetTherapist);
+      const targetSlotType = slotType || matrixSlotType || schedule.slot_type || "OTA";
+
       const newSlot = createDefaultSlot(
         day,
         time,
-        therapy || getDefaultDiscipline(therapist),
-        therapist || THERAPISTS[0],
-        slotType || matrixSlotType || schedule.slot_type || "OTA"
+        targetTherapy,
+        targetTherapist,
+        targetSlotType
       );
-      handleSlotsUpdate(schedule, [...currentSlots, newSlot]);
+      await handleSlotsUpdate(schedule, [...currentSlots, newSlot]);
+      showToast(`✓ Slot assigned: ${day} ${time} with ${targetTherapist} (${targetTherapy}) for ${schedule.child_name}.`);
     }
   };
 
@@ -743,7 +790,12 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
             <tr style={{ background: "var(--surface-2)", borderBottom: "2px solid var(--line)" }}>
               <th style={{ width: 95, padding: "8px 10px", textAlign: "left", color: "var(--muted)", fontWeight: 700 }}>Time</th>
               {DAYS_OF_WEEK.map((d) => (
-                <th key={d} style={{ padding: "8px 6px", fontWeight: 700 }}>{d}</th>
+                <th key={d} style={{ padding: "8px 6px", fontWeight: 700 }}>
+                  {d}
+                  {d === "Saturday" && String(therapistId || "").toLowerCase().includes("atal") && (
+                    <span style={{ display: "block", fontSize: 10, color: "#0284c7", fontWeight: 600 }}>(2nd & 4th Sat)</span>
+                  )}
+                </th>
               ))}
             </tr>
           </thead>
@@ -759,6 +811,108 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
                   {DAYS_OF_WEEK.map((day) => {
                     const dayIdx = DAY_NAME_TO_INDEX[day];
                     const isWorking = isTherapistScheduledWorking(therapistId, null, dayIdx);
+
+                    const childSlot = (currentSlots || []).find(
+                      (s) =>
+                        (s.day_of_week === day || s.dayOfWeek === day) &&
+                        (s.start_time === time || s.startTime === time)
+                    );
+
+                    const occupiedBy = occupiedMap[`${day}_${time}`];
+
+                    if (childSlot) {
+                      const slotTherapist = childSlot.therapist_id || childSlot.therapistId || therapistId || "Therapist";
+                      const slotTherapy = childSlot.therapy_name || childSlot.therapy_type || discipline || "Therapy";
+                      const isSameTherapist = String(slotTherapist).toLowerCase().includes(String(therapistId).toLowerCase()) ||
+                        String(therapistId).toLowerCase().includes(String(slotTherapist).toLowerCase());
+                      const childOccName = getOccupiedChildName(occupiedBy);
+                      const isConflictWithOther = Boolean(occupiedBy && childOccName.toLowerCase().trim() !== String(childName || "").toLowerCase().trim());
+                      const isSchool = (childSlot.slot_type || childSlot.slotType) === "School";
+
+                      return (
+                        <td key={day} style={{ padding: "3px 4px" }}>
+                          <button
+                            type="button"
+                            className="selected-slot-chip"
+                            onClick={() => onToggleSlot(day, time, slotTherapy, slotTherapist, matrixSlotType)}
+                            title={
+                              isConflictWithOther
+                                ? `Collision: Also booked for "${childOccName}". Click to release.`
+                                : `Prescribed Slot for ${childName || "Child"}: ${day} at ${time} with ${slotTherapist} (${slotTherapy}). Click to release/remove.`
+                            }
+                            style={{
+                              width: "100%",
+                              padding: "4px 3px",
+                              borderRadius: 7,
+                              background: isConflictWithOther
+                                ? "#fef2f2"
+                                : isSchool
+                                ? "#fffbeb"
+                                : isSameTherapist
+                                ? "var(--accent-soft, #e0f2fe)"
+                                : "#faf5ff",
+                              borderColor: isConflictWithOther
+                                ? "#ef4444"
+                                : isSchool
+                                ? "#f59e0b"
+                                : isSameTherapist
+                                ? "var(--accent, #0284c7)"
+                                : "#9333ea",
+                              color: isConflictWithOther
+                                ? "#b91c1c"
+                                : isSchool
+                                ? "#b45309"
+                                : isSameTherapist
+                                ? "var(--accent, #0284c7)"
+                                : "#7e22ce",
+                              borderWidth: 1.5,
+                              borderStyle: "solid",
+                              fontWeight: 700,
+                              fontSize: 11,
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              lineHeight: 1.15,
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 3, fontWeight: 800 }}>
+                              <span>{isSchool ? "🏫" : "✓"}</span>
+                              <span>{time}</span>
+                              <span style={{ fontSize: 10, color: "var(--danger, #ef4444)", marginLeft: 2 }}>✕</span>
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: 800,
+                                marginTop: 2,
+                                maxWidth: 95,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                color: isSameTherapist ? "var(--text, #1e293b)" : "#6b21a8",
+                              }}
+                            >
+                              {slotTherapist} {!isSameTherapist && "⚡"}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 8.5,
+                                fontWeight: 600,
+                                opacity: 0.85,
+                                maxWidth: 95,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {slotTherapy.split(" ")[0]}
+                            </div>
+                          </button>
+                        </td>
+                      );
+                    }
 
                     if (!isWorking) {
                       return (
@@ -788,41 +942,6 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
                       );
                     }
 
-                    const childSlot = (currentSlots || []).find(
-                      (s) =>
-                        (s.day_of_week === day || s.dayOfWeek === day) &&
-                        (s.start_time === time || s.startTime === time)
-                    );
-
-                    const occupiedBy = occupiedMap[`${day}_${time}`];
-
-                    if (childSlot) {
-                      const isSameTherapist = String(childSlot.therapist_id || childSlot.therapistId || "").toLowerCase().includes(String(therapistId).toLowerCase()) ||
-                        String(therapistId).toLowerCase().includes(String(childSlot.therapist_id || childSlot.therapistId || "").toLowerCase());
-                      const childOccName = getOccupiedChildName(occupiedBy);
-                      const isConflictWithOther = Boolean(occupiedBy && childOccName.toLowerCase().trim() !== String(childName || "").toLowerCase().trim());
-                      const isSchool = (childSlot.slot_type || childSlot.slotType) === "School";
-
-                      return (
-                        <td key={day} style={{ padding: "4px 5px" }}>
-                          <button
-                            type="button"
-                            className="selected-slot-chip"
-                            onClick={() => onToggleSlot(day, time, discipline, therapistId, matrixSlotType)}
-                            title={isConflictWithOther ? `Collision detected: Also booked for "${childOccName}" with ${therapistId}. Click to remove.` : `Click to remove ${isSchool ? "School Hold" : "OTA"} slot`}
-                            style={{
-                              background: isConflictWithOther ? "#fef2f2" : (isSchool ? "#fffbeb" : (isSameTherapist ? "var(--accent-soft)" : "rgba(147, 51, 234, 0.12)")),
-                              borderColor: isConflictWithOther ? "#ef4444" : (isSchool ? "#f59e0b" : (isSameTherapist ? "var(--accent)" : "#9333ea")),
-                              color: isConflictWithOther ? "#b91c1c" : (isSchool ? "#b45309" : (isSameTherapist ? "var(--accent)" : "#9333ea")),
-                              fontWeight: 700,
-                            }}
-                          >
-                            {isConflictWithOther ? `⚠️ ${time} (Clashes: ${childOccName.slice(0, 6)}) ✕` : `${isSchool ? "🏫" : "✓"} ${time} ${isSchool ? "(School)" : ""} ✕`}
-                          </button>
-                        </td>
-                      );
-                    }
-
                     if (occupiedBy) {
                       const occName = getOccupiedChildName(occupiedBy);
                       const isSchool = isSchoolOccupied(occupiedBy);
@@ -838,14 +957,35 @@ export default function RecurringSlotsPage({ therapists: propTherapists = [], on
                               fontWeight: isSchool ? 800 : undefined,
                               cursor: "pointer",
                             }}
-                            title={isSchool ? `🏫 School Hold (Admin Only): Held for School (${occName}). WhatsApp users CANNOT see or book this slot. Click to assign or manage.` : `Conflict: ${therapistId} is booked on ${day} at ${time} with ${occName}`}
-                            onClick={() => {
+                            title={
+                              isSchool
+                                ? `🏫 School Hold (Admin Only): Held for School (${occName}). Click to assign.`
+                                : `🔒 Booked for "${occName}" on ${day} at ${time}. Click to Release / Free this slot.`
+                            }
+                            onClick={async () => {
                               if (isSchool) {
                                 if (confirm(`🏫 Slot is currently held for School (${occName}).\nWhatsApp users CANNOT see or book this slot.\n\nDo you want to assign ${childName || "this child"} to this slot?`)) {
                                   onToggleSlot(day, time, discipline, therapistId, "School");
                                 }
                               } else {
-                                alert(`Conflict: Therapist "${therapistId}" is already booked on ${day} at ${time} for "${occName}".`);
+                                const targetSched = schedules.find((s) => String(s.id || s._id) === String(occupiedBy.schedule_id));
+                                if (!targetSched) {
+                                  alert(`Slot is booked for "${occName}". To remove, find "${occName}" in the table below and delete or modify their slot.`);
+                                  return;
+                                }
+                                const choice = window.confirm(
+                                  `🔒 Slot "${day} at ${time}" is currently booked for "${occName}".\n\n` +
+                                  `Do you want to RELEASE / FREE this slot so it becomes open (+ Free) for booking?\n\n` +
+                                  `• Click OK to remove this slot from "${occName}"\n` +
+                                  `• Click Cancel to keep it booked`
+                                );
+                                if (choice) {
+                                  const currentTargetSlots = targetSched.recurring_slots || targetSched.sessions || [];
+                                  const filteredSlots = currentTargetSlots.filter(
+                                    (s) => !((s.day_of_week === day || s.dayOfWeek === day) && (s.start_time === time || s.startTime === time))
+                                  );
+                                  await handleSlotsUpdate(targetSched, filteredSlots);
+                                }
                               }
                             }}
                           >
@@ -3621,6 +3761,32 @@ return (
             </Button>
           </div>
         </div>
+      </div>
+    )}
+
+    {/* Floating Toast Notification */}
+    {toastMessage && (
+      <div
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          zIndex: 9999,
+          background: "#0f172a",
+          color: "#ffffff",
+          padding: "12px 20px",
+          borderRadius: 10,
+          boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+          fontSize: 13.5,
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          animation: "fadeIn 0.2s ease-in-out",
+        }}
+      >
+        <span style={{ fontSize: 16, color: "#10b981" }}>✓</span>
+        <span>{toastMessage}</span>
       </div>
     )}
   </div>
